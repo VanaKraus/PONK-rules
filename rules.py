@@ -4,6 +4,7 @@ from udapi.core.block import Block
 from udapi.core.node import Node
 
 import os
+import sys
 
 # TODO: unify rule intervention marks
 # TODO: generalize rule blocks (e.g. using an abstract-ish class). it could contain process_id generation, text recomputation etc.
@@ -51,3 +52,18 @@ class double_adpos_rule(Block):
                     correction.misc["RuleDoubleAdpos"] = f"{process_id},add"
 
                     cconj.root.text = cconj.root.compute_text()
+
+
+class condition_rule(Block):
+    def process_node(self, node: Node):
+        process_id = os.urandom(4).hex()
+
+        if node.upos == "AUX" and node.feats["Mood"] == "Cnd":
+            aux = node
+            for participle in [
+                nd
+                for nd in node.siblings + [node.parent]
+                if nd.upos in ["VERB", "AUX"] and nd.feats["VerbForm"] == "Part"
+            ]:
+                aux.misc["RuleCondition"] = f"{process_id},aux"
+                participle.misc["RuleCondition"] = f"{process_id},participle"

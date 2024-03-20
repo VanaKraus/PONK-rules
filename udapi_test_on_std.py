@@ -11,7 +11,10 @@ doc = udapi.Document()
 doc.from_conllu_string("".join(sys.stdin.readlines()))
 
 dadp_rule = rules.double_adpos_rule()
+cond_rule = rules.condition_rule()
+
 dadp_rule.run(doc)
+cond_rule.run(doc)
 
 print(doc.to_conllu_string())
 
