@@ -6,6 +6,8 @@ from fastapi import FastAPI, UploadFile, HTTPException
 from udapi.core.document import Document
 from udapi.core.node import Node
 
+import metrics
+
 import rules
 
 app = FastAPI()
@@ -44,8 +46,8 @@ def get_stats_for_conllu(text_id: str):
     "chars": chars,
     "CLI": 0.047 * (chars/words) * 100 - 0.286 * (sentences/words) * 100 - 12.9,
     "ARI": 3.666 * (chars/words) + 0.631 * (words/sentences) - 19.491, #formula in Cinkova 2021 has parens switched
-    "num_hapax": count_hapaxes(filtered_nodes, use_lemma=True),
-    "entropy": compute_entropy(filtered_nodes, use_lemma=True)
+    "num_hapax": metrics.Metric.build_from_string("num_hapax:use_lemma=True")(doc).apply(),
+    "entropy": metrics.Entropy(doc, use_lemma=True).apply()
   }
 
 @app.get("/rules/{text_id}")
@@ -62,18 +64,3 @@ def get_doc_from_id(id: str):
   except ValueError:
     raise HTTPException(status_code=404)
 
-def get_word_counts(nodes: list[Node], use_lemma = False) -> Iterator[Tuple[str, int]]:
-  all_words = list(node.form if not use_lemma else node.lemma for node in nodes)
-  unique_words = set(all_words)
-  counts = map(lambda x: all_words.count(x), unique_words)
-  return zip(unique_words,counts)
-
-def count_hapaxes(nodes: list[Node], use_lemma = False):
-  counts = [item[1] for item in get_word_counts(nodes, use_lemma)]
-  return counts.count(1)
-
-def compute_entropy(nodes: list[Node], use_lemma = False):
-  counts = [item[1] for item in get_word_counts(nodes, use_lemma)]
-  n_words = sum(counts)
-  probs = map(lambda x: x/n_words, counts)
-  return -sum(prob * log2(prob) for prob in probs)
