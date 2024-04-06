@@ -1,3 +1,4 @@
+from __future__ import annotations
 import util
 
 from udapi.core.block import Block
@@ -5,62 +6,84 @@ from udapi.core.node import Node
 
 import os
 
+
 # TODO: unify rule intervention marks
 # TODO: generalize rule blocks (e.g. using an abstract-ish class). it could contain process_id generation, text recomputation etc.
 
 
 class Rule(Block):
     def __init__(self, detect_only=True, **kwargs):
-        Block.__init__(**kwargs)
+        Block.__init__(self, **kwargs)
         self.detect_only = detect_only
+        self.process_id = Rule.get_application_id()
+
+    @staticmethod
+    def id():
+        raise NotImplementedError("Please give your rule an id")
 
     @staticmethod
     def get_application_id():
         return os.urandom(4).hex()
 
+    @staticmethod
+    def get_rules() -> dict[str, type]:
+        return {sub.id(): sub for sub in Rule.__subclasses__()}
+
+    @staticmethod
+    def build_from_string(string: str) -> Rule:
+        rule_id, args = string.split(':')[0], string.split(':')[1:]
+        args = {arg.split('=')[0]: arg.split('=')[1:] for arg in args}
+        return Rule.get_rules()[rule_id](**args)
+
+
 class double_adpos_rule(Rule):
     def __init__(self, detect_only=True):
         Rule.__init__(self, detect_only)
+
+    @staticmethod
+    def id():
+        return "rule_double_adpos"
 
     def process_node(self, node: Node):
         # TODO: multi-word adpositions
         # TODO: sometimes the structure isn't actually ambiguous and doesn't need to be ammended
         # TODO: sometimes the rule catches adpositions that shouldn't be repeated in the coordination
 
-        process_id = Rule.get_application_id()
 
-        if node.upos == "CCONJ":
-            cconj = node
+        if node.upos != "CCONJ":
+            return None #nothing we can do for this node, bail
 
-            # find an adposition present in the coordination
-            for parent_adpos in [
-                nd
-                for nd in cconj.parent.siblings
-                if nd.udeprel == "case" and nd.upos == "ADP"
-            ]:
-                # check that the two coordination elements have the same case
-                if cconj.parent.feats["Case"] != parent_adpos.parent.feats["Case"]:
-                    continue
+        cconj = node
 
-                # check that the second coordination element doesn't already have an adposition
-                if not [
-                    nd for nd in cconj.siblings if nd.lemma == parent_adpos.lemma
-                ] and not [nd for nd in cconj.siblings if nd.upos == "ADP"]:
-                    if not self.detect_only:
-                        correction = util.clone_node(
-                            parent_adpos,
-                            cconj.parent,
-                            filter_misc_keys=r"^(?!Rule).*",
-                            form=parent_adpos.form.lower(),
-                        )
-                        correction.shift_after_node(cconj)
-                        correction.misc["RuleDoubleAdpos"] = f"{process_id},add"
+        # find an adposition present in the coordination
+        for parent_adpos in [
+            nd
+            for nd in cconj.parent.siblings
+            if nd.udeprel == "case" and nd.upos == "ADP"
+        ]:
+            # check that the two coordination elements have the same case
+            if cconj.parent.feats["Case"] != parent_adpos.parent.feats["Case"]:
+                continue
 
-                    cconj.misc["RuleDoubleAdpos"] = f"{process_id},cconj"
-                    parent_adpos.misc["RuleDoubleAdpos"] = f"{process_id},orig_adpos"
-                    parent_adpos.parent.misc["RuleDoubleAdpos"] = (
-                        f"{process_id},coord_el1"
+            # check that the second coordination element doesn't already have an adposition
+            if not [
+                nd for nd in cconj.siblings if nd.lemma == parent_adpos.lemma
+            ] and not [nd for nd in cconj.siblings if nd.upos == "ADP"]:
+                if not self.detect_only:
+                    correction = util.clone_node(
+                        parent_adpos,
+                        cconj.parent,
+                        filter_misc_keys=r"^(?!Rule).*",
+                        form=parent_adpos.form.lower(),
                     )
-                    cconj.parent.misc["RuleDoubleAdpos"] = f"{process_id},coord_el2"
+                    correction.shift_after_node(cconj)
+                    correction.misc[double_adpos_rule.id()] = f"{self.process_id},add"
 
-                    cconj.root.text = cconj.root.compute_text()
+                cconj.misc[double_adpos_rule.id()] = f"{self.process_id},cconj"
+                parent_adpos.misc[double_adpos_rule.id()] = f"{self.process_id},orig_adpos"
+                parent_adpos.parent.misc[double_adpos_rule.id()] = (
+                    f"{self.process_id},coord_el1"
+                )
+                cconj.parent.misc[double_adpos_rule.id()] = f"{self.process_id},coord_el2"
+
+                cconj.root.text = cconj.root.compute_text()
