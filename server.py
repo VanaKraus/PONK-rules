@@ -46,8 +46,8 @@ def get_stats_for_conllu(text_id: str):
       "chars": chars,
       "CLI": 0.047 * (chars/words) * 100 - 0.286 * (sentences/words) * 100 - 12.9,
       "ARI": 3.666 * (chars/words) + 0.631 * (words/sentences) - 19.491, #formula in Cinkova 2021 has parens switched
-      "num_hapax": metrics.Metric.build_from_string("num_hapax:use_lemma=True")(doc).apply(),
-      "entropy": metrics.Entropy(doc, use_lemma=True).apply()
+      "num_hapax": metrics.Metric.build_from_string("num_hapax:use_lemma=True").apply(doc),
+      "entropy": metrics.Entropy(use_lemma=True).apply(doc)
     }
 
 
