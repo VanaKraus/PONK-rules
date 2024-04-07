@@ -25,6 +25,9 @@ class Rule(Block):
     def get_application_id():
         return os.urandom(4).hex()
 
+    def annotate_node(self, node: Node, annotation: str):
+        node.misc[self.__class__.id()] = f"{self.process_id},{annotation}"
+
     @staticmethod
     def get_rules() -> dict[str, type]:
         return {sub.id(): sub for sub in Rule.__subclasses__()}
@@ -77,13 +80,11 @@ class double_adpos_rule(Rule):
                         form=parent_adpos.form.lower(),
                     )
                     correction.shift_after_node(cconj)
-                    correction.misc[double_adpos_rule.id()] = f"{self.process_id},add"
+                    self.annotate_node(correction, 'add')
 
-                cconj.misc[double_adpos_rule.id()] = f"{self.process_id},cconj"
-                parent_adpos.misc[double_adpos_rule.id()] = f"{self.process_id},orig_adpos"
-                parent_adpos.parent.misc[double_adpos_rule.id()] = (
-                    f"{self.process_id},coord_el1"
-                )
-                cconj.parent.misc[double_adpos_rule.id()] = f"{self.process_id},coord_el2"
+                self.annotate_node(cconj, 'cconj')
+                self.annotate_node(parent_adpos, 'orig_adpos')
+                self.annotate_node(parent_adpos.parent, 'coord_el1')
+                self.annotate_node(cconj.parent, 'coord_el2')
 
                 cconj.root.text = cconj.root.compute_text()
