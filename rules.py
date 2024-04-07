@@ -3,6 +3,8 @@ import util
 
 from udapi.core.block import Block
 from udapi.core.node import Node
+from udapi.core.root import Root
+from typing import Set
 
 from utils import StringBuildable
 
@@ -31,6 +33,7 @@ class double_adpos_rule(Rule):
     @StringBuildable.parse_string_args(detect_only=bool)
     def __init__(self, detect_only=True):
         Rule.__init__(self, detect_only)
+        self.modified_roots: Set[Root] = set()
 
     @classmethod
     def id(cls):
@@ -76,4 +79,9 @@ class double_adpos_rule(Rule):
                 self.annotate_node(parent_adpos.parent, 'coord_el1')
                 self.annotate_node(cconj.parent, 'coord_el2')
 
-                cconj.root.text = cconj.root.compute_text()
+                if not self.detect_only:
+                    self.modified_roots.add(cconj.root)
+
+    def after_process_document(self, document):
+        for root in self.modified_roots:
+            root.text = root.compute_text()
