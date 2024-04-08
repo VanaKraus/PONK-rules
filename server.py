@@ -36,7 +36,7 @@ def get_stats_for_conllu(text_id: str):
     #return statistics for a given id
     doc = get_doc_from_id(text_id)
     filtered_nodes = list(node for node in doc.nodes if node.upos != "PUNCT")
-    sentences = len(list(doc.trees))
+    sentences = len(list(doc.bundles))
     words = len(filtered_nodes)
     chars = sum(len(node.form) for node in filtered_nodes)
     return {
