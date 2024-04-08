@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, UploadFile, HTTPException
 from udapi.core.document import Document
 
-import metrics
+from metrics import Metric, Entropy
 
 import rules
 
