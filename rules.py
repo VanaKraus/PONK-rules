@@ -3,6 +3,10 @@ import util
 
 from udapi.core.block import Block
 from udapi.core.node import Node
+from udapi.core.root import Root
+from typing import Set
+
+from utils import StringBuildable
 
 import os
 
@@ -11,37 +15,28 @@ import os
 # TODO: generalize rule blocks (e.g. using an abstract-ish class). it could contain process_id generation, text recomputation etc.
 
 
-class Rule(Block):
+class Rule(Block, StringBuildable):
     def __init__(self, detect_only=True, **kwargs):
         Block.__init__(self, **kwargs)
         self.detect_only = detect_only
         self.process_id = Rule.get_application_id()
 
     @staticmethod
-    def id():
-        raise NotImplementedError("Please give your rule an id")
-
-    @staticmethod
     def get_application_id():
         return os.urandom(4).hex()
 
-    @staticmethod
-    def get_rules() -> dict[str, type]:
-        return {sub.id(): sub for sub in Rule.__subclasses__()}
-
-    @staticmethod
-    def build_from_string(string: str) -> Rule:
-        rule_id, args = string.split(':')[0], string.split(':')[1:]
-        args = {arg.split('=')[0]: arg.split('=')[1:] for arg in args}
-        return Rule.get_rules()[rule_id](**args)
+    def annotate_node(self, node: Node, annotation: str):
+        node.misc[self.__class__.id()] = f"{self.process_id},{annotation}"
 
 
 class double_adpos_rule(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool)
     def __init__(self, detect_only=True):
         Rule.__init__(self, detect_only)
+        self.modified_roots: Set[Root] = set()
 
-    @staticmethod
-    def id():
+    @classmethod
+    def id(cls):
         return "rule_double_adpos"
 
     def process_node(self, node: Node):
@@ -77,13 +72,16 @@ class double_adpos_rule(Rule):
                         form=parent_adpos.form.lower(),
                     )
                     correction.shift_after_node(cconj)
-                    correction.misc[double_adpos_rule.id()] = f"{self.process_id},add"
+                    self.annotate_node(correction, 'add')
 
-                cconj.misc[double_adpos_rule.id()] = f"{self.process_id},cconj"
-                parent_adpos.misc[double_adpos_rule.id()] = f"{self.process_id},orig_adpos"
-                parent_adpos.parent.misc[double_adpos_rule.id()] = (
-                    f"{self.process_id},coord_el1"
-                )
-                cconj.parent.misc[double_adpos_rule.id()] = f"{self.process_id},coord_el2"
+                self.annotate_node(cconj, 'cconj')
+                self.annotate_node(parent_adpos, 'orig_adpos')
+                self.annotate_node(parent_adpos.parent, 'coord_el1')
+                self.annotate_node(cconj.parent, 'coord_el2')
 
-                cconj.root.text = cconj.root.compute_text()
+                if not self.detect_only:
+                    self.modified_roots.add(cconj.root)
+
+    def after_process_document(self, document):
+        for root in self.modified_roots:
+            root.text = root.compute_text()

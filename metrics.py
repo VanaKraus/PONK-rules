@@ -5,60 +5,50 @@ from typing import Iterator, Tuple, Callable
 
 from math import log2
 
+from utils import StringBuildable
 
-class Metric:
-    def __init__(self, doc: Document):
-        self.doc = doc
 
-    def apply(self) -> int:
-        raise NotImplementedError("Please define your metric")
+class Metric(StringBuildable):
+    def __init__(self):
+        pass
 
-    @staticmethod
-    def id():
-        raise NotImplementedError("Please give your metric an id")
+    def apply(self, doc: Document) -> int:
+        raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
 
-    def get_word_counts(self, use_lemma=False) -> Iterator[Tuple[str, int]]:
-        all_words = list(node.form if not use_lemma else node.lemma for node in self.doc.nodes)
+    def get_word_counts(self, doc: Document, use_lemma=False) -> Iterator[Tuple[str, int]]:
+        all_words = list(node.form if not use_lemma else node.lemma for node in doc.nodes)
         unique_words = set(all_words)
         counts = map(lambda x: all_words.count(x), unique_words)
         return zip(unique_words, counts)
 
-    @staticmethod
-    def get_metrics() -> dict[str, type]:
-        return {sub.id(): sub for sub in Metric.__subclasses__()}
-
-    @staticmethod
-    def build_from_string(string: str) -> Callable[[Document], Metric]:
-        metric_id, args = string.split(':')[0], string.split(':')[1:]
-        args = {arg.split('=')[0]: arg.split('=')[1:] for arg in args}
-        return lambda x: Metric.get_metrics()[metric_id](doc=x, **args)
-
 
 class HapaxCount(Metric):
-    def __init__(self, doc: Document, use_lemma="True"):
-        Metric.__init__(self, doc)
-        self.use_lemma = use_lemma == "True"
+    @StringBuildable.parse_string_args(use_lemma=bool)
+    def __init__(self, use_lemma=True):
+        super().__init__()
+        self.use_lemma = use_lemma
 
-    def apply(self) -> int:
-        counts = [item[1] for item in super().get_word_counts(self.use_lemma)]
+    def apply(self, doc:Document) -> int:
+        counts = [item[1] for item in super().get_word_counts(doc, self.use_lemma)]
         return counts.count(1)
 
-    @staticmethod
-    def id():
+    @classmethod
+    def id(cls):
         return "num_hapax"
 
 
 class Entropy(Metric):
-    def __init__(self, doc: Document, use_lemma="True"):
-        Metric.__init__(self, doc)
-        self.use_lemma = use_lemma == "True"
+    @StringBuildable.parse_string_args(use_lemma=bool)
+    def __init__(self, use_lemma=True):
+        Metric.__init__(self)
+        self.use_lemma = use_lemma
 
-    def apply(self) -> int:
-        counts = [item[1] for item in self.get_word_counts(self.use_lemma)]
+    def apply(self, doc: Document) -> int:
+        counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma)]
         n_words = sum(counts)
         probs = map(lambda x: x/n_words, counts)
         return -sum(prob * log2(prob) for prob in probs)
 
-    @staticmethod
-    def id():
+    @classmethod
+    def id(cls):
         return "entropy"
