@@ -18,15 +18,19 @@ class Metric(StringBuildable):
 
     @staticmethod
     def get_word_counts(doc: Document, use_lemma=False, filter_punct=True) -> Iterator[Tuple[str, int]]:
-        filtered_nodes = Metric.filter_nodes_on_upos(doc.nodes, ['PUNCT'] if filter_punct else [])
+        filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if filter_punct else [])
         all_words = Metric.get_node_texts(filtered_nodes, use_lemma)
         unique_words = set(all_words)
         counts = map(lambda x: all_words.count(x), unique_words)
         return zip(unique_words, counts)
 
     @staticmethod
-    def filter_nodes_on_upos(nodes: Iterator[Node], values_to_exclude: Iterator[str]) -> List[Node]:
-        return [node for node in nodes if node.upos not in values_to_exclude]
+    def filter_nodes_on_upos(nodes: Iterator[Node], values: List[str], negative=False) -> List[Node]:
+        return [node for node in nodes if (node.upos in values != negative)]
+
+    @staticmethod
+    def negative_filter_nodes_on_upos(nodes: Iterator[Node], values_to_exclude: Iterator[str]) -> List[Node]:
+        return Metric.filter_nodes_on_upos(nodes, values_to_exclude, True)
 
     @staticmethod
     def get_node_texts(nodes: Iterator[Node], use_lemma=False):
@@ -53,7 +57,7 @@ class WordCount(Metric):
         self.filter_punct = filter_punct
 
     def apply(self, doc: Document) -> float:
-        return len(Metric.filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else []))
+        return len(Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else []))
 
     @classmethod
     def id(cls):
@@ -68,7 +72,7 @@ class CharacterCount(Metric):
         self.filter_punct = filter_punct
 
     def apply(self, doc: Document) -> float:
-        filtered_nodes = Metric.filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
+        filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
         return sum(len(node.form) for node in filtered_nodes) + \
             (len(filtered_nodes) if self.count_spaces else 0)  # TODO:fix this via reading mics
 
@@ -157,3 +161,56 @@ class Entropy(Metric):
     @classmethod
     def id(cls):
         return "entropy"
+
+
+class TTR(Metric):
+    @StringBuildable.parse_string_args(filter_punct=bool)
+    def __init__(self, filter_punct=True):
+        Metric.__init__(self)
+        self.filter_punct = filter_punct
+
+    def apply(self, doc: Document) -> float:
+        counts = dict(Metric.get_word_counts(doc, use_lemma=True, filter_punct=self.filter_punct))
+        return len(counts) / sum(count for lemma, count in counts.items())
+
+    @classmethod
+    def id(cls):
+        return "ttr"
+
+
+class VerbDistance(Metric):
+    @StringBuildable.parse_string_args(include_inf=bool)
+    def __init__(self, include_inf=False):
+        Metric.__init__(self)
+        self.include_inf=include_inf
+
+    def apply(self, doc: Document) -> float:
+        last_verb_index = 0
+        total_distance = 0
+        verbs = 0
+        nodes = list(doc.nodes)
+        for i in range(len(nodes)):
+            node = nodes[i]
+            if node.upos == 'VERB' and (self.include_inf or node.feats['VerbForm'] == 'Fin'):
+                total_distance += (i - last_verb_index - 1)
+                last_verb_index = i
+                verbs += 1
+        return total_distance / verbs
+
+    @classmethod
+    def id(cls):
+        return 'verb_distance'
+
+class Activity(Metric):
+    @StringBuildable.parse_string_args()
+    def __init__(self):
+        Metric.__init__(self)
+
+    def apply(self, doc: Document) -> float:
+        nodes = list(doc.nodes)
+        return len(Metric.filter_nodes_on_upos(nodes, ['VERB'])) /\
+            len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ']))
+
+    @classmethod
+    def id(cls):
+        return 'activity'
