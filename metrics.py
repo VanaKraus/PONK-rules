@@ -26,10 +26,10 @@ class Metric(StringBuildable):
 
     @staticmethod
     def filter_nodes_on_upos(nodes: Iterator[Node], values: List[str], negative=False) -> List[Node]:
-        return [node for node in nodes if (node.upos in values != negative)]
+        return [node for node in nodes if ((node.upos in values) != negative)]
 
     @staticmethod
-    def negative_filter_nodes_on_upos(nodes: Iterator[Node], values_to_exclude: Iterator[str]) -> List[Node]:
+    def negative_filter_nodes_on_upos(nodes: Iterator[Node], values_to_exclude: List[str]) -> List[Node]:
         return Metric.filter_nodes_on_upos(nodes, values_to_exclude, True)
 
     @staticmethod
