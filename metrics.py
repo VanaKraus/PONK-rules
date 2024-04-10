@@ -82,13 +82,11 @@ class CharacterCount(Metric):
 
 
 class CLI(Metric):
-    @StringBuildable.parse_string_args(use_lemma=bool, count_spaces=bool,
-                                       filter_punct=bool, coef_1=float,
+    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
                                        coef_2=float, const_1=float)
-    def __init__(self, use_lemma=True, count_spaces=False, filter_punct=True,
+    def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=0.047, coef_2=0.286, const_1=12.9):
         super().__init__()
-        self.use_lemma = use_lemma
         self.count_spaces = count_spaces
         self.filter_punct = filter_punct
         self.coef_1 = coef_1
@@ -99,7 +97,7 @@ class CLI(Metric):
         sents = SentenceCount().apply(doc)
         words = WordCount(self.filter_punct).apply(doc)
         chars = CharacterCount(self.count_spaces, self.filter_punct).apply(doc)
-        return self.coef_1 * (chars/words) * 100 - self.coef_2 * (sents/words) * 100 - self.const_1
+        return (self.coef_1 * (chars/words) * 100) - (self.coef_2 * (sents/words) * 100) - self.const_1
 
     @classmethod
     def id(cls):
@@ -107,13 +105,11 @@ class CLI(Metric):
 
 
 class ARI(Metric):
-    @StringBuildable.parse_string_args(use_lemma=bool, count_spaces=bool,
-                                       filter_punct=bool, coef_1=float,
+    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
                                        coef_2=float, const_1=19.49)
-    def __init__(self, use_lemma=True, count_spaces=False, filter_punct=True,
+    def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=3.666, coef_2=0.631, const_1=19.49):
         super().__init__()
-        self.use_lemma = use_lemma
         self.count_spaces = count_spaces
         self.filter_punct = filter_punct
         self.coef_1 = coef_1
