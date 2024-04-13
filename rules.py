@@ -105,6 +105,8 @@ class passive_rule(Rule):
             self.annotate_node(node, 'aux')
             self.annotate_node(parent, 'participle')
 
+            self.advance_application_id()
+
 
 class pred_subj_distance_rule(Rule):
     @StringBuildable.parse_string_args(detect_only=bool)
@@ -134,3 +136,5 @@ class pred_subj_distance_rule(Rule):
             if abs(node.ord - pred.ord) > self.max_distance:
                 self.annotate_node(pred, 'predicate_grammar')
                 self.annotate_node(node, 'subject')
+
+                self.advance_application_id()
