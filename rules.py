@@ -85,3 +85,19 @@ class double_adpos_rule(Rule):
     def after_process_document(self, document):
         for root in self.modified_roots:
             root.text = root.compute_text()
+
+class passive_rule(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool)
+    def __init__(self, detect_only=True):
+        Rule.__init__(self, detect_only)
+
+    @classmethod
+    def id(cls):
+        return 'rule_passive'
+    
+    def process_node(self, node):
+        if node.deprel == 'aux:pass':
+            parent = node.parent
+
+            self.annotate_node(node, 'aux')
+            self.annotate_node(parent, 'participle')
