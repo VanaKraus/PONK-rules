@@ -29,6 +29,9 @@ class Rule(Block, StringBuildable):
         for root in self.modified_roots:
             root.text = root.compute_text()
 
+    def advance_application_id(self):
+        self.process_id = self.get_application_id()
+
 
 class double_adpos_rule(Rule):
     @StringBuildable.parse_string_args(detect_only=bool)
@@ -75,6 +78,8 @@ class double_adpos_rule(Rule):
                 self.annotate_node(parent_adpos, 'orig_adpos')
                 self.annotate_node(parent_adpos.parent, 'coord_el1')
                 self.annotate_node(cconj.parent, 'coord_el2')
+
+                self.advance_application_id()
 
                 if not self.detect_only:
                     self.modified_roots.add(cconj.root)
