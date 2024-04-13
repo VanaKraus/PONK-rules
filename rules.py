@@ -16,20 +16,24 @@ class Rule(Block, StringBuildable):
         Block.__init__(self, **kwargs)
         self.detect_only = detect_only
         self.process_id = Rule.get_application_id()
+        self.modified_roots: Set[Root] = set()
 
     @staticmethod
     def get_application_id():
         return os.urandom(4).hex()
 
     def annotate_node(self, node: Node, annotation: str):
-        node.misc[self.__class__.id()] = f"{self.process_id},{annotation}"
+        node.misc[f"{self.__class__.id()}:{self.process_id}"] = f"{annotation}"
+
+    def after_process_document(self, document):
+        for root in self.modified_roots:
+            root.text = root.compute_text()
 
 
 class double_adpos_rule(Rule):
     @StringBuildable.parse_string_args(detect_only=bool)
     def __init__(self, detect_only=True):
         Rule.__init__(self, detect_only)
-        self.modified_roots: Set[Root] = set()
 
     @classmethod
     def id(cls):
