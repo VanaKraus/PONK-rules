@@ -159,3 +159,24 @@ class pred_obj_distance_rule(Rule):
                 self.annotate_node(parent, 'parent')
 
                 self.advance_application_id()
+
+
+class head_xcomp_distance_rule(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool)
+    def __init__(self, detect_only=True, max_distance=5):
+        Rule.__init__(self, detect_only)
+        self.max_distance = max_distance
+
+    @classmethod
+    def id(cls):
+        return 'rule_head_xcomp_distance'
+
+    def process_node(self, node):
+        if node.deprel == 'xcomp':
+            parent = node.parent
+
+            if abs(parent.ord - node.ord) > self.max_distance:
+                self.annotate_node(node, 'complement')
+                self.annotate_node(parent, 'verb')
+
+                self.advance_application_id()
