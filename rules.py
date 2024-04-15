@@ -138,3 +138,24 @@ class pred_subj_distance_rule(Rule):
                 self.annotate_node(node, 'subject')
 
                 self.advance_application_id()
+
+
+class pred_obj_distance_rule(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool)
+    def __init__(self, detect_only=True, max_distance=5):
+        Rule.__init__(self, detect_only)
+        self.max_distance = max_distance
+
+    @classmethod
+    def id(cls):
+        return 'rule_pred_obj_distance'
+
+    def process_node(self, node):
+        if node.deprel in ('obj', 'iobj'):
+            parent = node.parent
+
+            if abs(parent.ord - node.ord) > self.max_distance:
+                self.annotate_node(node, 'object')
+                self.annotate_node(parent, 'parent')
+
+                self.advance_application_id()
