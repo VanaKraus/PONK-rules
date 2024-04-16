@@ -178,7 +178,7 @@ class TTR(Metric):
 
 class VerbDistance(Metric):
     @StringBuildable.parse_string_args(include_inf=bool)
-    def __init__(self, include_inf=False):
+    def __init__(self, include_inf=True):
         Metric.__init__(self)
         self.include_inf=include_inf
 
@@ -187,12 +187,14 @@ class VerbDistance(Metric):
         total_distance = 0
         verbs = 0
         nodes = list(doc.nodes)
+        # FIXME: iterate over trees
         for i in range(len(nodes)):
             node = nodes[i]
             if node.upos == 'VERB' and (self.include_inf or node.feats['VerbForm'] == 'Fin'):
-                total_distance += (i - last_verb_index - 1)
+                total_distance += max(0, (i - last_verb_index - 1))
                 last_verb_index = i
                 verbs += 1
+        total_distance += len(nodes) - last_verb_index
         return total_distance / verbs
 
     @classmethod
