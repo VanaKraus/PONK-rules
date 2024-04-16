@@ -126,7 +126,7 @@ class CLI(Metric):
 
 class ARI(Metric):
     @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
-                                       coef_2=float, const_1=19.49)
+                                       coef_2=float, const_1=float)
     def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=3.666, coef_2=0.631, const_1=19.49):
         super().__init__()
