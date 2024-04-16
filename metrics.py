@@ -17,8 +17,10 @@ class Metric(StringBuildable):
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
 
     @staticmethod
-    def get_word_counts(doc: Document, use_lemma=False, filter_punct=True) -> Iterator[Tuple[str, int]]:
+    def get_word_counts(doc: Document, use_lemma=False, filter_punct=True, from_to: Tuple[int,int] | None = None) -> Iterator[Tuple[str, int]]:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if filter_punct else [])
+        if from_to:
+            filtered_nodes = filtered_nodes[from_to[0]:from_to[1]]
         all_words = Metric.get_node_texts(filtered_nodes, use_lemma)
         unique_words = set(all_words)
         counts = map(lambda x: all_words.count(x), unique_words)
@@ -210,3 +212,29 @@ class Activity(Metric):
     @classmethod
     def id(cls):
         return 'activity'
+
+
+class HPoint(Metric):
+    @StringBuildable.parse_string_args(use_lemma=bool, filter_punct=bool)
+    def __init__(self, use_lemma=True, filter_punct=True):
+        Metric.__init__(self)
+        self.use_lemma = use_lemma
+        self.filter_punct = filter_punct
+
+    def apply(self, doc: Document) -> float:
+        counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma, self.filter_punct)]
+        counts.sort(reverse=True)
+        for i in range(len(counts)):
+            if i+1 == counts[i]:
+                return counts[i]
+            if i+1 > counts[i]:
+                i = i - 1
+                j = i + 1
+                fi = counts[i]
+                fj = counts[j]
+                return (fi * j - fj * i) / (j - i + fi - fj)
+        return 0
+
+    @classmethod
+    def id(cls):
+        return "hpoint"
