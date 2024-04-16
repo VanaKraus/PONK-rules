@@ -238,3 +238,67 @@ class HPoint(Metric):
     @classmethod
     def id(cls):
         return "hpoint"
+
+
+class AverageTokenLength(Metric):
+    @StringBuildable.parse_string_args(filter_punct=bool)
+    def __init__(self, filter_punct=True):
+        Metric.__init__(self)
+        self.filter_punct = filter_punct
+
+    def apply(self, doc: Document) -> float:
+        total_tokens = WordCount(filter_punct=self.filter_punct).apply(doc)
+        total_chars = CharacterCount(filter_punct=self.filter_punct).apply(doc)
+        return total_chars / total_tokens
+
+    @classmethod
+    def id(cls):
+        return "atl"
+
+
+class MovingAverageTypeTokenRatio(Metric):
+    @StringBuildable.parse_string_args(use_lemma=bool, filter_punct=bool, window_size=int)
+    def __init__(self, use_lemma=False, filter_punct=True, window_size=100):
+        Metric.__init__(self)
+        self.use_lemma = use_lemma
+        self.filter_punct = filter_punct
+        self.window_size = window_size
+
+    def apply(self, doc: Document) -> float:
+        #FIXME: this is horribly slow
+        total_words = WordCount(self.filter_punct).apply(doc)
+        big_sum = 0
+        for i in range(int(total_words) - self.window_size):
+            counts = dict(Metric.get_word_counts(doc,
+                                                 use_lemma=self.use_lemma,
+                                                 filter_punct=self.filter_punct,
+                                                 from_to=(i, i+self.window_size)
+                                                 ))
+            big_sum += len(counts)
+            print(big_sum)
+
+        return big_sum / (self.window_size * (total_words - self.window_size + 1))
+
+    @classmethod
+    def id(cls):
+        return "mattr"
+
+
+class MovingAverageMorphologicalRichness(Metric):
+    @StringBuildable.parse_string_args(filter_punct=bool, window_size=int)
+    def __init__(self, filter_punct=True, window_size=100):
+        Metric.__init__(self)
+        self.filter_punct = filter_punct
+        self.window_size = window_size
+
+    def apply(self, doc: Document) -> float:
+        return MovingAverageTypeTokenRatio(use_lemma=False,
+                                           filter_punct=self.filter_punct,
+                                           window_size=self.window_size).apply(doc) - \
+               MovingAverageTypeTokenRatio(use_lemma=True,
+                                           filter_punct=self.filter_punct,
+                                           window_size=self.window_size).apply(doc)
+
+    @classmethod
+    def id(cls):
+        return "mamr"
