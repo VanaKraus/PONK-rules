@@ -38,6 +38,11 @@ class Metric(StringBuildable):
     def get_node_texts(nodes: Iterator[Node], use_lemma=False):
         return [node.form if not use_lemma else node.lemma for node in nodes]
 
+    @staticmethod
+    def get_syllables_in_word(word: str) -> int:
+        #FIXME: eeeeeh
+        return sum([word.count(vocal) for vocal in ('a', 'e', 'i', 'o', 'u', 'y')])
+
 
 class SentenceCount(Metric):
     @StringBuildable.parse_string_args()
@@ -65,6 +70,19 @@ class WordCount(Metric):
     def id(cls):
         return "word_count"
 
+class SyllableCount(Metric):
+    @StringBuildable.parse_string_args(filter_punct=bool)
+    def __init__(self, filter_punct=True):
+        super().__init__()
+        self.filter_punct = filter_punct
+
+    def apply(self, doc: Document) -> float:
+        filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
+        return sum(Metric.get_syllables_in_word(node.form) for node in filtered_nodes)
+
+    @classmethod
+    def id(cls):
+        return "syllab_count"
 
 class CharacterCount(Metric):
     @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool)
@@ -304,3 +322,48 @@ class MovingAverageMorphologicalRichness(Metric):
     @classmethod
     def id(cls):
         return "mamr"
+
+
+class FleschReadingEase(Metric):
+    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
+                                       coef_2=float, const_1=float)
+    def __init__(self, count_spaces=False, filter_punct=True,
+                 coef_1=1.672, coef_2=62.18, const_1=206.935):
+        super().__init__()
+        self.count_spaces = count_spaces
+        self.filter_punct = filter_punct
+        self.coef_1 = coef_1
+        self.coef_2 = coef_2
+        self.const_1 = const_1
+
+    def apply(self, doc: Document) -> float:
+        sents = SentenceCount().apply(doc)
+        words = WordCount(self.filter_punct).apply(doc)
+        syllabs = SyllableCount(filter_punct=self.filter_punct).apply(doc)
+        return self.const_1 - self.coef_1 * (words / sents) - self.coef_2 * (syllabs / words)
+
+    @classmethod
+    def id(cls):
+        return "fre"
+
+
+class FleschKincaidGradeLevel(Metric):
+    def __init__(self, count_spaces=False, filter_punct=True,
+                 coef_1=0.52, coef_2=9.133, const_1=16.393):
+        super().__init__()
+        self.count_spaces = count_spaces
+        self.filter_punct = filter_punct
+        self.coef_1 = coef_1
+        self.coef_2 = coef_2
+        self.const_1 = const_1
+
+    def apply(self, doc: Document) -> float:
+        sents = SentenceCount().apply(doc)
+        words = WordCount(self.filter_punct).apply(doc)
+        syllabs = SyllableCount(filter_punct=self.filter_punct).apply(doc)
+        return  self.coef_1 * (words / sents) + self.coef_2 * (syllabs / words) - self.const_1
+
+    @classmethod
+    def id(cls):
+        return "fkgl"
+# = 0.52 ×T okens/Sentences + 9.133 × Syllables/T okens − 16.393
