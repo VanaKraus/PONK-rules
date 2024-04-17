@@ -109,7 +109,7 @@ class passive_rule(Rule):
 
 
 class pred_subj_distance_rule(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
+    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=6):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
@@ -141,7 +141,7 @@ class pred_subj_distance_rule(Rule):
 
 
 class pred_obj_distance_rule(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
+    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
@@ -162,7 +162,7 @@ class pred_obj_distance_rule(Rule):
 
 
 class head_xcomp_distance_rule(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
+    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
@@ -184,7 +184,7 @@ class head_xcomp_distance_rule(Rule):
 
 # TODO: test this rule
 class multi_part_verbs_rule(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
+    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
