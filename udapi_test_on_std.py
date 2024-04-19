@@ -10,7 +10,7 @@ import sys
 doc = udapi.Document()
 doc.from_conllu_string("".join(sys.stdin.readlines()))
 
-dadp_rule = rules.double_adpos_rule()
+dadp_rule = rules.rule_double_adpos()
 dadp_rule.run(doc)
 
 print(doc.to_conllu_string())

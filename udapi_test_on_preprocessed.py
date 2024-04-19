@@ -1,4 +1,4 @@
-'''
+"""
 Useful:
     - https://github.com/udapi/udapi-python/blob/master/tutorial/01-visualizing.ipynb
         - this is how I learn how to visit trees
@@ -9,7 +9,7 @@ Useful:
 
 repeat prepositions in coordinations: useful to develop on FrBo / nezakonny_uredni_postup 30
 
-'''
+"""
 
 import rules
 
@@ -35,17 +35,15 @@ import os
 #                 print(f"\t{sibling}")
 
 
+corpus_path = "/home/ivankraus/Documents/programming/PONK/rules/conllu/KUK_0.0/data/FrBo/articles/TXT"
+corpus = pcr(corpus_path, r".*\.conllu")
 
-
-corpus_path = '/home/ivankraus/Documents/programming/PONK/rules/conllu/KUK_0.0/data/FrBo/articles/TXT'
-corpus = pcr(corpus_path, r'.*\.conllu')
-
-cntr = {'double_adpos': 0}
+cntr = {"double_adpos": 0}
 for fname in corpus.fileids():
     fpath = os.path.join(corpus_path, fname)
     doc = udapi.Document(fpath)
-    if rules.double_adpos_rule(doc.nodes):
-        print(f'conllu document: {fpath}')
-        cntr['double_adpos'] += 1
+    if rules.rule_double_adpos(doc.nodes):
+        print(f"conllu document: {fpath}")
+        cntr["double_adpos"] += 1
 
 print(cntr)
