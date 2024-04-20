@@ -162,19 +162,39 @@ class rule_head_xcomp_distance(Rule):
                 self.advance_application_id()
 
 
-# TODO: test this rule
 class rule_multi_part_verbs(Rule):
     @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
 
+    @staticmethod
+    def _is_aux(node):
+        return node.udeprel in ('aux', 'expl', 'cop')
+
     def process_node(self, node):
-        if node.udeprel in ('aux', 'expl'):
+        # if node is an auxiliary and hasn't been marked as such yet
+        if self._is_aux(node) and not {
+            k: v
+            for k, v in node.misc.items()
+            if k.split(':')[0] == self.__class__.__name__ and v == 'aux'
+        }:
             parent = node.parent
 
-            if abs(parent.ord - node.ord) > self.max_distance:
-                self.annotate_node(node, 'auxiliary')
+            # find remaining auxiliaries
+            auxiliaries = {node}
+            for child in parent.children:
+                if self._is_aux(child) and not child in auxiliaries:
+                    auxiliaries.add(child)
+
+            # find if the verb is too spread out
+            too_far_apart = False
+            for aux in auxiliaries:
+                too_far_apart |= abs(parent.ord - aux.ord) > self.max_distance
+
+            if too_far_apart:
                 self.annotate_node(parent, 'head')
+                for aux in auxiliaries:
+                    self.annotate_node(aux, 'aux')
 
                 self.advance_application_id()
