@@ -169,7 +169,7 @@ class rule_multi_part_verbs(Rule):
         self.max_distance = max_distance
 
     @staticmethod
-    def _is_aux(node):
+    def _is_aux(node: Node):
         return node.udeprel in ('aux', 'expl', 'cop')
 
     def process_node(self, node):
@@ -216,5 +216,66 @@ class rule_long_sentences(Rule):
             if end.ord - beginning.ord >= self.max_length:
                 self.annotate_node(beginning, 'beginning')
                 self.annotate_node(end, 'end')
+
+                self.advance_application_id()
+
+
+class rule_pred_at_clause_beginning(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool, max_order=int)
+    def __init__(self, detect_only=True, max_order=5):
+        Rule.__init__(self, detect_only)
+        self.max_order = max_order
+
+    @staticmethod
+    def _is_aux(node: Node):
+        return node.udeprel in ('aux', 'cop')
+
+    def process_node(self, node):
+        # finite verbs or l-participles
+        if node.feats['VerbForm'] == 'Fin' or node.xpos[0:2] == 'Vp':
+            pred_root = node.parent if self._is_aux(node) else node
+
+            clause = pred_root.descendants(add_self=True)
+
+            # remove unwanted nodes from the clause
+            remove_from_clause = []
+            for descendant in clause:
+                if descendant == pred_root:
+                    continue
+                # filter out subordinate clauses
+                if descendant.udeprel in (
+                    'csubj',
+                    'ccomp',
+                    'xcomp',
+                    'acl',
+                    'advcl',
+                ):
+                    remove_from_clause += descendant.descendants(add_self=True)
+                # filter out punctuation
+                elif descendant.upos == 'PUNCT':
+                    remove_from_clause += [descendant]
+            clause = [node for node in clause if node not in remove_from_clause]
+
+            clause_beginning = clause[0]
+
+            # tokens forming the predicate, i.e. predicate root and potentially auxiliaries
+            predicate_tokens = [pred_root] + [
+                child for child in pred_root.children if self._is_aux(child)
+            ]
+            # sort by order in the sentence
+            predicate_tokens.sort(key=lambda a: a.ord)
+            first_predicate_token = predicate_tokens[0]
+
+            # if first_predicate_token has already been annotated by this rule
+            if l := [
+                k
+                for k, _ in first_predicate_token.misc.items()
+                if k.split(':')[0] == self.__class__.__name__
+            ]:
+                return
+
+            if first_predicate_token.ord - clause_beginning.ord > self.max_order:
+                self.annotate_node(clause_beginning, 'clause_beginning')
+                self.annotate_node(first_predicate_token, 'predicate_beginning')
 
                 self.advance_application_id()
