@@ -198,3 +198,23 @@ class rule_multi_part_verbs(Rule):
                     self.annotate_node(aux, 'aux')
 
                 self.advance_application_id()
+
+
+class rule_long_sentences(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool, max_length=int)
+    def __init__(self, detect_only=True, max_length=50):
+        Rule.__init__(self, detect_only)
+        self.max_length = max_length
+
+    def process_node(self, node):
+        if node.udeprel == 'root':
+            descendants = node.descendants(add_self=True)
+
+            # len(descendants) always >= 1 when add_self == True
+            beginning, end = descendants[0], descendants[-1]
+
+            if end.ord - beginning.ord >= self.max_length:
+                self.annotate_node(beginning, 'beginning')
+                self.annotate_node(end, 'end')
+
+                self.advance_application_id()
