@@ -168,13 +168,9 @@ class rule_multi_part_verbs(Rule):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
 
-    @staticmethod
-    def _is_aux(node: Node):
-        return node.udeprel in ('aux', 'expl', 'cop')
-
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
-        if self._is_aux(node) and not {
+        if util.is_aux(node) and not {
             k: v
             for k, v in node.misc.items()
             if k.split(':')[0] == self.__class__.__name__ and v == 'aux'
@@ -184,7 +180,7 @@ class rule_multi_part_verbs(Rule):
             # find remaining auxiliaries
             auxiliaries = {node}
             for child in parent.children:
-                if self._is_aux(child) and not child in auxiliaries:
+                if util.is_aux(child) and not child in auxiliaries:
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
@@ -226,41 +222,20 @@ class rule_pred_at_clause_beginning(Rule):
         Rule.__init__(self, detect_only)
         self.max_order = max_order
 
-    @staticmethod
-    def _is_aux(node: Node):
-        return node.udeprel in ('aux', 'cop')
-
     def process_node(self, node):
         # finite verbs or l-participles
-        if node.feats['VerbForm'] == 'Fin' or node.xpos[0:2] == 'Vp':
-            pred_root = node.parent if self._is_aux(node) else node
+        if util.is_finite_verb(node):
+            pred_root = node.parent if util.is_aux(node) else node
 
-            clause = pred_root.descendants(add_self=True)
-
-            # remove unwanted nodes from the clause
-            remove_from_clause = []
-            for descendant in clause:
-                if descendant == pred_root:
-                    continue
-                # filter out subordinate clauses
-                if descendant.udeprel in (
-                    'csubj',
-                    'ccomp',
-                    'xcomp',
-                    'acl',
-                    'advcl',
-                ):
-                    remove_from_clause += descendant.descendants(add_self=True)
-                # filter out punctuation
-                elif descendant.upos == 'PUNCT':
-                    remove_from_clause += [descendant]
-            clause = [node for node in clause if node not in remove_from_clause]
+            clause = util.get_clause(
+                pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True
+            )
 
             clause_beginning = clause[0]
 
             # tokens forming the predicate, i.e. predicate root and potentially auxiliaries
             predicate_tokens = [pred_root] + [
-                child for child in pred_root.children if self._is_aux(child)
+                child for child in pred_root.children if util.is_aux(child)
             ]
             # sort by order in the sentence
             predicate_tokens.sort(key=lambda a: a.ord)
@@ -277,5 +252,81 @@ class rule_pred_at_clause_beginning(Rule):
             if first_predicate_token.ord - clause_beginning.ord > self.max_order:
                 self.annotate_node(clause_beginning, 'clause_beginning')
                 self.annotate_node(first_predicate_token, 'predicate_beginning')
+
+                self.advance_application_id()
+
+
+class rule_verbal_nouns(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool)
+    def __init__(self, detect_only=True):
+        Rule.__init__(self, detect_only)
+
+    def process_node(self, node):
+        if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
+            self.annotate_node(node, 'verbal_noun')
+            self.advance_application_id()
+
+
+class rule_too_few_verbs(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool, min_verb_frac=float)
+    def __init__(self, detect_only=True, min_verb_frac=0.05):
+        Rule.__init__(self, detect_only)
+        self.min_verb_frac = min_verb_frac
+
+    def process_node(self, node):
+        if node.udeprel == 'root':
+            sentence = util.get_clause(node, without_punctuation=True, node_is_root=True)
+
+            if not sentence:
+                return
+
+            # count each lexeme only once
+            finite_verbs = [
+                nd
+                for nd in sentence
+                if util.is_finite_verb(nd)
+                and not (
+                    util.is_aux(nd, grammatical_only=True)
+                    and (
+                        util.is_finite_verb(nd.parent)
+                        or [
+                            preceding_nd
+                            for preceding_nd in nd.parent.descendants(preceding_only=True)
+                            if preceding_nd != nd
+                            and util.is_aux(preceding_nd, grammatical_only=True)
+                        ]
+                    )
+                )
+            ]
+
+            if len(finite_verbs) / len(sentence) < self.min_verb_frac:
+                for verb in finite_verbs:
+                    self.annotate_node(verb, 'verb')
+
+                self.advance_application_id()
+
+
+class rule_too_many_negations(Rule):
+    @StringBuildable.parse_string_args(detect_only=bool, max_negation_frac=float)
+    def __init__(self, detect_only=True, max_negation_frac=0.1):
+        Rule.__init__(self, detect_only)
+        self.max_negation_frac = max_negation_frac
+
+    def process_node(self, node):
+        if node.udeprel == 'root':
+            clause = util.get_clause(node, without_punctuation=True, node_is_root=True)
+
+            positives = [
+                nd for nd in clause if 'Polarity' in nd.feats and nd.feats['Polarity'] == 'Pos'
+            ]
+            negatives = [
+                nd for nd in clause if 'Polarity' in nd.feats and nd.feats['Polarity'] == 'Neg'
+            ]
+
+            no_pos, no_neg = len(positives), len(negatives)
+
+            if no_neg > 2 and no_neg / (no_pos + no_neg) > self.max_negation_frac:
+                for nd in negatives:
+                    self.annotate_node(nd, 'negative')
 
                 self.advance_application_id()
