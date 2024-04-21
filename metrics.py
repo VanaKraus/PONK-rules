@@ -2,16 +2,18 @@ from __future__ import annotations
 from udapi.core.document import Document
 from udapi.core.node import Node
 
-from typing import Iterator, Tuple, List
+from typing import Iterator, Tuple, List, Literal, Union
 
 from math import log2
 
 from utils import StringBuildable
 
+from pydantic import BaseModel, Field
+
 
 class Metric(StringBuildable):
     def __init__(self):
-        pass
+        StringBuildable.__init__(self)
 
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
@@ -45,6 +47,8 @@ class Metric(StringBuildable):
 
 
 class SentenceCount(Metric):
+    new_id: Literal['sent_count']
+
     @StringBuildable.parse_string_args()
     def __init__(self):
         super().__init__()
@@ -58,7 +62,9 @@ class SentenceCount(Metric):
 
 
 class WordCount(Metric):
-    @StringBuildable.parse_string_args(filter_punct=bool)
+    new_id: Literal['word_count']
+    filter_punct: bool
+
     def __init__(self, filter_punct=True):
         super().__init__()
         self.filter_punct = filter_punct
@@ -71,7 +77,8 @@ class WordCount(Metric):
         return "word_count"
 
 class SyllableCount(Metric):
-    @StringBuildable.parse_string_args(filter_punct=bool)
+    new_id: Literal['syllab_count']
+    filter_punct: bool
     def __init__(self, filter_punct=True):
         super().__init__()
         self.filter_punct = filter_punct
@@ -85,7 +92,10 @@ class SyllableCount(Metric):
         return "syllab_count"
 
 class CharacterCount(Metric):
-    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool)
+    new_id: Literal['char_count']
+    count_spaces: bool
+    filter_punct: bool
+
     def __init__(self, count_spaces=False, filter_punct=True):
         super().__init__()
         self.count_spaces = count_spaces
@@ -102,8 +112,12 @@ class CharacterCount(Metric):
 
 
 class CLI(Metric):
-    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
-                                       coef_2=float, const_1=float)
+    new_id: Literal['cli']
+    count_spaces: bool
+    filter_punct: bool
+    coef_1: float
+    coef_2: float
+    const_1: float
     def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=0.047, coef_2=0.286, const_1=12.9):
         super().__init__()
@@ -125,8 +139,12 @@ class CLI(Metric):
 
 
 class ARI(Metric):
-    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
-                                       coef_2=float, const_1=float)
+    new_id: Literal['ari']
+    count_spaces: bool
+    filter_punct: bool
+    coef_1: float
+    coef_2: float
+    const_1: float
     def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=3.666, coef_2=0.631, const_1=19.49):
         super().__init__()
@@ -148,7 +166,8 @@ class ARI(Metric):
 
 
 class HapaxCount(Metric):
-    @StringBuildable.parse_string_args(use_lemma=bool)
+    new_id: Literal['num_hapax']
+    use_lemma: bool
     def __init__(self, use_lemma=True):
         super().__init__()
         self.use_lemma = use_lemma
@@ -163,7 +182,8 @@ class HapaxCount(Metric):
 
 
 class Entropy(Metric):
-    @StringBuildable.parse_string_args(use_lemma=bool)
+    new_id: Literal['entropy']
+    use_lemma: bool
     def __init__(self, use_lemma=True):
         Metric.__init__(self)
         self.use_lemma = use_lemma
@@ -180,7 +200,9 @@ class Entropy(Metric):
 
 
 class TTR(Metric):
-    @StringBuildable.parse_string_args(filter_punct=bool)
+    new_id: Literal['ttr']
+    filter_punct: bool
+
     def __init__(self, filter_punct=True):
         Metric.__init__(self)
         self.filter_punct = filter_punct
@@ -195,7 +217,8 @@ class TTR(Metric):
 
 
 class VerbDistance(Metric):
-    @StringBuildable.parse_string_args(include_inf=bool)
+    new_id: Literal['verb_dist']
+    include_inf: bool
     def __init__(self, include_inf=True):
         Metric.__init__(self)
         self.include_inf=include_inf
@@ -220,7 +243,7 @@ class VerbDistance(Metric):
         return 'verb_distance'
 
 class Activity(Metric):
-    @StringBuildable.parse_string_args()
+    new_id: Literal['activity']
     def __init__(self):
         Metric.__init__(self)
 
@@ -235,7 +258,9 @@ class Activity(Metric):
 
 
 class HPoint(Metric):
-    @StringBuildable.parse_string_args(use_lemma=bool, filter_punct=bool)
+    new_id: Literal['hpoint']
+    use_lemma: bool
+    filter_punct: bool
     def __init__(self, use_lemma=True, filter_punct=True):
         Metric.__init__(self)
         self.use_lemma = use_lemma
@@ -261,7 +286,8 @@ class HPoint(Metric):
 
 
 class AverageTokenLength(Metric):
-    @StringBuildable.parse_string_args(filter_punct=bool)
+    new_id: Literal['atl']
+    filter_punct: bool
     def __init__(self, filter_punct=True):
         Metric.__init__(self)
         self.filter_punct = filter_punct
@@ -277,7 +303,10 @@ class AverageTokenLength(Metric):
 
 
 class MovingAverageTypeTokenRatio(Metric):
-    @StringBuildable.parse_string_args(use_lemma=bool, filter_punct=bool, window_size=int)
+    new_id: Literal['mattr']
+    use_lemma: bool
+    filter_punct: bool
+    window_size: int
     def __init__(self, use_lemma=False, filter_punct=True, window_size=100):
         Metric.__init__(self)
         self.use_lemma = use_lemma
@@ -305,7 +334,9 @@ class MovingAverageTypeTokenRatio(Metric):
 
 
 class MovingAverageMorphologicalRichness(Metric):
-    @StringBuildable.parse_string_args(filter_punct=bool, window_size=int)
+    new_id: Literal['mamr']
+    filter_punct: bool
+    window_size: int
     def __init__(self, filter_punct=True, window_size=100):
         Metric.__init__(self)
         self.filter_punct = filter_punct
@@ -325,8 +356,12 @@ class MovingAverageMorphologicalRichness(Metric):
 
 
 class FleschReadingEase(Metric):
-    @StringBuildable.parse_string_args(count_spaces=bool, filter_punct=bool, coef_1=float,
-                                       coef_2=float, const_1=float)
+    new_id: Literal['fkgl']
+    count_spaces: bool
+    filter_punct: bool
+    coef_1: float
+    coef_2: float
+    const_1: float
     def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=1.672, coef_2=62.18, const_1=206.935):
         super().__init__()
@@ -348,6 +383,12 @@ class FleschReadingEase(Metric):
 
 
 class FleschKincaidGradeLevel(Metric):
+    new_id: Literal['flesh']
+    count_spaces: bool
+    filter_punct: bool
+    coef_1: float
+    coef_2: float
+    const_1: float
     def __init__(self, count_spaces=False, filter_punct=True,
                  coef_1=0.52, coef_2=9.133, const_1=16.393):
         super().__init__()
@@ -367,3 +408,8 @@ class FleschKincaidGradeLevel(Metric):
     def id(cls):
         return "fkgl"
 # = 0.52 ×T okens/Sentences + 9.133 × Syllables/T okens − 16.393
+
+print(Metric.__subclasses__())
+class MetricsWrapper(BaseModel):
+    metric: Union[*Metric.__subclasses__()] = Field(..., discriminator='new_id')
+    #new_id: str
