@@ -204,7 +204,7 @@ class rule_long_sentences(Rule):
 
     def process_node(self, node):
         if node.udeprel == 'root':
-            descendants = node.descendants(add_self=True)
+            descendants = util.get_clause(node, node_is_root=True)
 
             # len(descendants) always >= 1 when add_self == True
             beginning, end = descendants[0], descendants[-1]
@@ -268,10 +268,13 @@ class rule_verbal_nouns(Rule):
 
 
 class rule_too_few_verbs(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, min_verb_frac=float)
-    def __init__(self, detect_only=True, min_verb_frac=0.05):
+    @StringBuildable.parse_string_args(detect_only=bool, min_verb_frac=float, finite_only=bool)
+    def __init__(self, detect_only=True, min_verb_frac=0.05, finite_only=False):
         Rule.__init__(self, detect_only)
         self.min_verb_frac = min_verb_frac
+        self.is_verb = (
+            util.is_finite_verb if finite_only else lambda node: node.upos in ('VERB', 'AUX')
+        )
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -281,14 +284,14 @@ class rule_too_few_verbs(Rule):
                 return
 
             # count each lexeme only once
-            finite_verbs = [
+            verbs = [
                 nd
                 for nd in sentence
-                if util.is_finite_verb(nd)
+                if self.is_verb(nd)
                 and not (
                     util.is_aux(nd, grammatical_only=True)
                     and (
-                        util.is_finite_verb(nd.parent)
+                        self.is_verb(nd.parent)
                         or [
                             preceding_nd
                             for preceding_nd in nd.parent.descendants(preceding_only=True)
@@ -299,8 +302,8 @@ class rule_too_few_verbs(Rule):
                 )
             ]
 
-            if len(finite_verbs) / len(sentence) < self.min_verb_frac:
-                for verb in finite_verbs:
+            if len(verbs) / len(sentence) < self.min_verb_frac:
+                for verb in verbs:
                     self.annotate_node(verb, 'verb')
 
                 self.advance_application_id()
