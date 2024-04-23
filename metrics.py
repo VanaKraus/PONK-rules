@@ -12,8 +12,8 @@ from pydantic import BaseModel, Field
 
 
 class Metric(StringBuildable):
-    def __init__(self):
-        StringBuildable.__init__(self)
+    def __init__(self, **kwargs):
+        StringBuildable.__init__(self, **kwargs)
 
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
@@ -49,10 +49,6 @@ class Metric(StringBuildable):
 class SentenceCount(Metric):
     rule_id: Literal['sent_count'] = 'sent_count'
 
-    @StringBuildable.parse_string_args()
-    def __init__(self):
-        super().__init__()
-
     def apply(self, doc: Document) -> float:
         return len(doc.bundles)
 
@@ -65,10 +61,6 @@ class WordCount(Metric):
     rule_id: Literal['word_count'] = 'word_count'
     filter_punct: bool = True
 
-    def __init__(self, filter_punct=True):
-        super().__init__()
-        self.filter_punct = filter_punct
-
     def apply(self, doc: Document) -> float:
         return len(Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else []))
 
@@ -79,10 +71,6 @@ class WordCount(Metric):
 class SyllableCount(Metric):
     rule_id: Literal['syllab_count'] = 'syllab_count'
     filter_punct: bool = True
-
-    def __init__(self, filter_punct=True):
-        super().__init__()
-        self.filter_punct = filter_punct
 
     def apply(self, doc: Document) -> float:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
@@ -96,11 +84,6 @@ class CharacterCount(Metric):
     rule_id: Literal['char_count'] = 'char_count'
     count_spaces: bool = False
     filter_punct: bool = True
-
-    def __init__(self, count_spaces=False, filter_punct=True):
-        super().__init__()
-        self.count_spaces = count_spaces
-        self.filter_punct = filter_punct
 
     def apply(self, doc: Document) -> float:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
@@ -119,19 +102,11 @@ class CLI(Metric):
     coef_1: float = 0.047
     coef_2: float = 0.286
     const_1: float = 12.9
-    def __init__(self, count_spaces=False, filter_punct=True,
-                 coef_1=0.047, coef_2=0.286, const_1=12.9):
-        super().__init__()
-        self.count_spaces = count_spaces
-        self.filter_punct = filter_punct
-        self.coef_1 = coef_1
-        self.coef_2 = coef_2
-        self.const_1 = const_1
 
     def apply(self, doc: Document) -> float:
         sents = SentenceCount().apply(doc)
-        words = WordCount(self.filter_punct).apply(doc)
-        chars = CharacterCount(self.count_spaces, self.filter_punct).apply(doc)
+        words = WordCount(filter_punct=self.filter_punct).apply(doc)
+        chars = CharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
         return (self.coef_1 * (chars/words) * 100) - (self.coef_2 * (sents/words) * 100) - self.const_1
 
     @classmethod
@@ -146,19 +121,11 @@ class ARI(Metric):
     coef_1: float = 3.666
     coef_2: float = 0.631
     const_1: float = 19.49
-    def __init__(self, count_spaces=False, filter_punct=True,
-                 coef_1=3.666, coef_2=0.631, const_1=19.49):
-        super().__init__()
-        self.count_spaces = count_spaces
-        self.filter_punct = filter_punct
-        self.coef_1 = coef_1
-        self.coef_2 = coef_2
-        self.const_1 = const_1
 
     def apply(self, doc: Document) -> float:
         sents = SentenceCount().apply(doc)
-        words = WordCount(self.filter_punct).apply(doc)
-        chars = CharacterCount(self.count_spaces, self.filter_punct).apply(doc)
+        words = WordCount(filter_punct=self.filter_punct).apply(doc)
+        chars = CharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
         return self.coef_1 * (chars/words) + self.coef_2 * (words/sents) - self.const_1
 
     @classmethod
@@ -169,10 +136,6 @@ class ARI(Metric):
 class HapaxCount(Metric):
     rule_id: Literal['num_hapax'] = 'num_hapax'
     use_lemma: bool = True
-
-    def __init__(self, use_lemma=True):
-        super().__init__()
-        self.use_lemma = use_lemma
 
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in super().get_word_counts(doc, self.use_lemma)]
@@ -186,9 +149,6 @@ class HapaxCount(Metric):
 class Entropy(Metric):
     rule_id: Literal['entropy'] = 'entropy'
     use_lemma: bool = True
-    def __init__(self, use_lemma=True):
-        Metric.__init__(self)
-        self.use_lemma = use_lemma
 
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma)]
@@ -205,10 +165,6 @@ class TTR(Metric):
     rule_id: Literal['ttr'] = 'ttr'
     filter_punct: bool = True
 
-    def __init__(self, filter_punct=True):
-        Metric.__init__(self)
-        self.filter_punct = filter_punct
-
     def apply(self, doc: Document) -> float:
         counts = dict(Metric.get_word_counts(doc, use_lemma=True, filter_punct=self.filter_punct))
         return len(counts) / sum(count for lemma, count in counts.items())
@@ -221,9 +177,6 @@ class TTR(Metric):
 class VerbDistance(Metric):
     rule_id: Literal['verb_dist'] = 'verb_dist'
     include_inf: bool = True
-    def __init__(self, include_inf=True):
-        Metric.__init__(self)
-        self.include_inf=include_inf
 
     def apply(self, doc: Document) -> float:
         last_verb_index = 0
@@ -246,8 +199,6 @@ class VerbDistance(Metric):
 
 class Activity(Metric):
     rule_id: Literal['activity'] = 'activity'
-    def __init__(self):
-        Metric.__init__(self)
 
     def apply(self, doc: Document) -> float:
         nodes = list(doc.nodes)
@@ -263,10 +214,6 @@ class HPoint(Metric):
     rule_id: Literal['hpoint'] = 'hpoint'
     use_lemma: bool = True
     filter_punct: bool = True
-    def __init__(self, use_lemma=True, filter_punct=True):
-        Metric.__init__(self)
-        self.use_lemma = use_lemma
-        self.filter_punct = filter_punct
 
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma, self.filter_punct)]
@@ -290,9 +237,6 @@ class HPoint(Metric):
 class AverageTokenLength(Metric):
     rule_id: Literal['atl'] = 'atl'
     filter_punct: bool = True
-    def __init__(self, filter_punct=True):
-        Metric.__init__(self)
-        self.filter_punct = filter_punct
 
     def apply(self, doc: Document) -> float:
         total_tokens = WordCount(filter_punct=self.filter_punct).apply(doc)
@@ -309,15 +253,10 @@ class MovingAverageTypeTokenRatio(Metric):
     use_lemma: bool = True
     filter_punct: bool = True
     window_size: int = 100
-    def __init__(self, use_lemma=False, filter_punct=True, window_size=100):
-        Metric.__init__(self)
-        self.use_lemma = use_lemma
-        self.filter_punct = filter_punct
-        self.window_size = window_size
 
     def apply(self, doc: Document) -> float:
         #FIXME: this is horribly slow
-        total_words = WordCount(self.filter_punct).apply(doc)
+        total_words = WordCount(filter_punct=self.filter_punct).apply(doc)
         big_sum = 0
         for i in range(int(total_words) - self.window_size):
             counts = dict(Metric.get_word_counts(doc,
@@ -339,10 +278,6 @@ class MovingAverageMorphologicalRichness(Metric):
     rule_id: Literal['mamr'] = 'mamr'
     filter_punct: bool = True
     window_size: int = 100
-    def __init__(self, filter_punct=True, window_size=100):
-        Metric.__init__(self)
-        self.filter_punct = filter_punct
-        self.window_size = window_size
 
     def apply(self, doc: Document) -> float:
         return MovingAverageTypeTokenRatio(use_lemma=False,
@@ -364,18 +299,10 @@ class FleschReadingEase(Metric):
     coef_1: float = 1.672
     coef_2: float = 62.18
     const_1: float = 206.935
-    def __init__(self, count_spaces=False, filter_punct=True,
-                 coef_1=1.672, coef_2=62.18, const_1=206.935):
-        super().__init__()
-        self.count_spaces = count_spaces
-        self.filter_punct = filter_punct
-        self.coef_1 = coef_1
-        self.coef_2 = coef_2
-        self.const_1 = const_1
 
     def apply(self, doc: Document) -> float:
         sents = SentenceCount().apply(doc)
-        words = WordCount(self.filter_punct).apply(doc)
+        words = WordCount(filter_punct=self.filter_punct).apply(doc)
         syllabs = SyllableCount(filter_punct=self.filter_punct).apply(doc)
         return self.const_1 - self.coef_1 * (words / sents) - self.coef_2 * (syllabs / words)
 
@@ -391,18 +318,10 @@ class FleschKincaidGradeLevel(Metric):
     coef_1: float = 0.52
     coef_2: float = 9.133
     const_1: float = 16.393
-    def __init__(self, count_spaces=False, filter_punct=True,
-                 coef_1=0.52, coef_2=9.133, const_1=16.393):
-        super().__init__()
-        self.count_spaces = count_spaces
-        self.filter_punct = filter_punct
-        self.coef_1 = coef_1
-        self.coef_2 = coef_2
-        self.const_1 = const_1
 
     def apply(self, doc: Document) -> float:
         sents = SentenceCount().apply(doc)
-        words = WordCount(self.filter_punct).apply(doc)
+        words = WordCount(filter_punct=self.filter_punct).apply(doc)
         syllabs = SyllableCount(filter_punct=self.filter_punct).apply(doc)
         return  self.coef_1 * (words / sents) + self.coef_2 * (syllabs / words) - self.const_1
 
@@ -411,7 +330,10 @@ class FleschKincaidGradeLevel(Metric):
         return "fkgl"
 # = 0.52 ×T okens/Sentences + 9.133 × Syllables/T okens − 16.393
 
+
 print(Metric.__subclasses__())
+
+
 class MetricsWrapper(BaseModel):
     metric: Union[*Metric.__subclasses__()] = Field(..., discriminator='rule_id')
     #rule_id: str
