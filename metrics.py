@@ -12,8 +12,7 @@ from pydantic import BaseModel, Field
 
 
 class Metric(StringBuildable):
-    def __init__(self, **kwargs):
-        StringBuildable.__init__(self, **kwargs)
+    #TODO: figure out how to enforce rule_id presence
 
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
@@ -331,9 +330,9 @@ class FleschKincaidGradeLevel(Metric):
 # = 0.52 ×T okens/Sentences + 9.133 × Syllables/T okens − 16.393
 
 
-print(Metric.__subclasses__())
+print(Metric.__subclasses__() == Metric.get_final_children())
 
 
 class MetricsWrapper(BaseModel):
-    metric: Union[*Metric.__subclasses__()] = Field(..., discriminator='rule_id')
-    #rule_id: str
+    metric: Union[*Metric.get_final_children()] = Field(..., discriminator='rule_id')
+
