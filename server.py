@@ -7,7 +7,12 @@ from metrics import Metric, MetricsWrapper
 
 from rules import Rule, RuleBlockWrapper, RuleAPIWrapper
 
-app = FastAPI()
+from pydantic import BaseModel
+
+app = FastAPI(
+    title='PONK Rules',
+    swagger_ui_parameters={"defaultModelsExpandDepth": 0}
+)
 
 
 @app.get("/")
@@ -31,15 +36,33 @@ def receive_conllu(file: UploadFile):
         raise HTTPException(status_code=406, detail=f"{type(e).__name__}: {str(e)}")
 
 
+class MetricsReply(BaseModel):
+    results: list[dict[str, int | float]]
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "results": [
+                        {"word_count": 42},
+                        {"ari": 17.6}
+                    ]
+                }
+            ]
+        }
+    }
+
+
 @app.post("/stats/{text_id}")
-def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None = None):
+def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None = None) -> MetricsReply:
     # return statistics for a given id
     doc = get_doc_from_id(text_id)
     if metric_list is None:
         # return all available metrics
-        return {instance.rule_id: instance.apply(doc) for instance in
-                [subclass() for subclass in Metric.get_final_children()]}
-    return [{metric.rule_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
+        results = [{instance.metric_id: instance.apply(doc)} for instance in
+                   [subclass() for subclass in Metric.get_final_children()]]
+    else:
+        results = [{metric.metric_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
+    return MetricsReply(results=results)
 
 
 @app.post("/rules/{text_id}")
