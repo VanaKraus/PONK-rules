@@ -22,3 +22,55 @@ def clone_node(node: Node, parent: Node, filter_misc_keys: str = None, **overrid
         setattr(res, arg, val)
 
     return res
+
+
+def is_aux(node: Node, grammatical_only: bool = False) -> bool:
+    if grammatical_only:
+        return node.udeprel in ('aux', 'cop') or node.deprel == 'expl:pass'
+    else:
+        return node.udeprel in ('aux', 'expl', 'cop')
+
+
+def is_finite_verb(node: Node) -> bool:
+    return ('VerbForm' in node.feats and node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
+
+
+def is_clause_root(node: Node) -> bool:
+    return (
+        node.udeprel in ('csubj', 'ccomp', 'xcomp', 'acl', 'advcl', 'parataxis', 'root')
+        or is_finite_verb(node)
+        or [nd for nd in node.children if is_aux(nd, grammatical_only=True)]
+    )
+
+
+def get_clause_root(node: Node) -> Node:
+    clause_root = node
+    while not is_clause_root(clause_root):
+        clause_root = clause_root.parent
+    return clause_root
+
+
+def get_clause(
+    node: Node,
+    without_subordinates: bool = False,
+    without_punctuation: bool = False,
+    node_is_root: bool = False,
+) -> list[Node]:
+    clause_root = node if node_is_root else get_clause_root(node)
+    clause = clause_root.descendants(add_self=True)
+
+    if without_subordinates:
+        to_remove = []
+        for nd in clause:
+            if nd == clause_root:
+                continue
+
+            if is_clause_root(nd):
+                to_remove += nd.descendants(add_self=True)
+
+        clause = [nd for nd in clause if not nd in to_remove]
+
+    if without_punctuation:
+        clause = [nd for nd in clause if nd.upos != 'PUNCT']
+
+    return clause
