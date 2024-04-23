@@ -5,7 +5,7 @@ from udapi.core.document import Document
 
 from metrics import Metric, MetricsWrapper
 
-import rules
+from rules import Rule, RuleBlockWrapper, RuleAPIWrapper
 
 app = FastAPI()
 
@@ -43,10 +43,12 @@ def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] = None)
 
 
 @app.get("/rules/{text_id}")
-def get_conllu_after_rules_applied(text_id: str):
+def get_conllu_after_rules_applied(text_id: str, rule_list: list[RuleAPIWrapper] | None = None):
     # return modified conllu after application of rules
     doc = get_doc_from_id(text_id)
-    rules.rule_double_adpos().run(doc)
+    rules = [rule() for rule in Rule.get_final_children()] if rule_list is None else [item.rule for item in rule_list]
+    for rule in rules:
+        RuleBlockWrapper(rule).run(doc)
     return {"id": text_id, "document": doc.to_conllu_string()}
 
 

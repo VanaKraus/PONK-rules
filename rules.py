@@ -4,19 +4,23 @@ import util
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.root import Root
-from typing import Set
+from udapi.core.document import Document
+from typing import Literal, Any, Union
 
 from utils import StringBuildable
+
+from pydantic import BaseModel, Field
 
 import os
 
 
-class Rule(Block, StringBuildable):
-    def __init__(self, detect_only=True, **kwargs):
-        Block.__init__(self, **kwargs)
-        self.detect_only = detect_only
+class Rule(StringBuildable):
+    detect_only: bool = True
+    process_id: str = ''
+    modified_roots: set[Any] = set()  # FIXME: This should not be Any, but rather Root
+
+    def model_post_init(self, __context: Any) -> None:
         self.process_id = Rule.get_application_id()
-        self.modified_roots: Set[Root] = set()
 
     @staticmethod
     def get_application_id():
@@ -36,11 +40,14 @@ class Rule(Block, StringBuildable):
     def advance_application_id(self):
         self.process_id = self.get_application_id()
 
+    def process_node(self, node: Node):
+        raise NotImplementedError('A rule is expected to have a \'process_node\' method.')
+
 
 class rule_double_adpos(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
-    def __init__(self, detect_only=True):
-        Rule.__init__(self, detect_only)
+    rule_id: Literal['rule_double_adpos'] = 'rule_double_adpos'
+
+    # detect_only: bool = True
 
     def process_node(self, node: Node):
         # TODO: multi-word adpositions
@@ -86,9 +93,7 @@ class rule_double_adpos(Rule):
 
 
 class rule_passive(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
-    def __init__(self, detect_only=True):
-        Rule.__init__(self, detect_only)
+    rule_id: Literal['rule_passive'] = 'rule_passive'
 
     def process_node(self, node):
         if node.deprel == 'aux:pass':
@@ -101,10 +106,8 @@ class rule_passive(Rule):
 
 
 class rule_pred_subj_distance(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
-    def __init__(self, detect_only=True, max_distance=6):
-        Rule.__init__(self, detect_only)
-        self.max_distance = max_distance
+    rule_id: Literal['rule_pred_subj_distance'] = 'rule_pred_subj_distance'
+    max_distance: int = 6
 
     def process_node(self, node):
         # locate subject
@@ -129,10 +132,8 @@ class rule_pred_subj_distance(Rule):
 
 
 class rule_pred_obj_distance(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
-    def __init__(self, detect_only=True, max_distance=5):
-        Rule.__init__(self, detect_only)
-        self.max_distance = max_distance
+    rule_id: Literal['rule_pred_obj_distance'] = 'rule_pred_obj_distance'
+    max_distance: int = 6
 
     def process_node(self, node):
         if node.deprel in ('obj', 'iobj'):
@@ -146,10 +147,8 @@ class rule_pred_obj_distance(Rule):
 
 
 class rule_head_xcomp_distance(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
-    def __init__(self, detect_only=True, max_distance=5):
-        Rule.__init__(self, detect_only)
-        self.max_distance = max_distance
+    rule_id: Literal['rule_head_xcomp_distance'] = 'rule_head_xcomp_distance'
+    max_distance: int = 5
 
     def process_node(self, node):
         if node.deprel == 'xcomp':
@@ -163,10 +162,8 @@ class rule_head_xcomp_distance(Rule):
 
 
 class rule_multi_part_verbs(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
-    def __init__(self, detect_only=True, max_distance=5):
-        Rule.__init__(self, detect_only)
-        self.max_distance = max_distance
+    rule_id: Literal['rule_multi_part_verbs'] = 'rule_multi_part_verbs'
+    max_distance: int = 5
 
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
@@ -197,10 +194,8 @@ class rule_multi_part_verbs(Rule):
 
 
 class rule_long_sentences(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_length=int)
-    def __init__(self, detect_only=True, max_length=50):
-        Rule.__init__(self, detect_only)
-        self.max_length = max_length
+    rule_id: Literal['rule_long_sentences'] = 'rule_long_sentences'
+    max_length: int = 50
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -217,10 +212,8 @@ class rule_long_sentences(Rule):
 
 
 class rule_pred_at_clause_beginning(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_order=int)
-    def __init__(self, detect_only=True, max_order=5):
-        Rule.__init__(self, detect_only)
-        self.max_order = max_order
+    rule_id: Literal['rule_pred_at_clause_beginning'] = 'rule_pred_at_clause_beginning'
+    max_order: int = 5
 
     def process_node(self, node):
         # finite verbs or l-participles
@@ -257,9 +250,7 @@ class rule_pred_at_clause_beginning(Rule):
 
 
 class rule_verbal_nouns(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool)
-    def __init__(self, detect_only=True):
-        Rule.__init__(self, detect_only)
+    rule_id: Literal['rule_verbal_nouns'] = 'rule_verbal_nouns'
 
     def process_node(self, node):
         if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
@@ -268,13 +259,12 @@ class rule_verbal_nouns(Rule):
 
 
 class rule_too_few_verbs(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, min_verb_frac=float, finite_only=bool)
-    def __init__(self, detect_only=True, min_verb_frac=0.05, finite_only=False):
-        Rule.__init__(self, detect_only)
-        self.min_verb_frac = min_verb_frac
-        self.is_verb = (
-            util.is_finite_verb if finite_only else lambda node: node.upos in ('VERB', 'AUX')
-        )
+    rule_id: Literal['rule_too_few_verbs'] = 'rule_too_few_verbs'
+    min_verb_frac: float = 0.05
+    finite_only: bool = False
+
+    def is_verb(self, node):
+        return util.is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -310,10 +300,8 @@ class rule_too_few_verbs(Rule):
 
 
 class rule_too_many_negations(Rule):
-    @StringBuildable.parse_string_args(detect_only=bool, max_negation_frac=float)
-    def __init__(self, detect_only=True, max_negation_frac=0.1):
-        Rule.__init__(self, detect_only)
-        self.max_negation_frac = max_negation_frac
+    rule_id: Literal['rule_too_many_negations'] = 'rule_too_many_negations'
+    max_negation_frac: float = 0.1
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -333,3 +321,19 @@ class rule_too_many_negations(Rule):
                     self.annotate_node(nd, 'negative')
 
                 self.advance_application_id()
+
+
+class RuleBlockWrapper(Block):
+    def __init__(self, rule: Rule):
+        Block.__init__(self)
+        self.rule = rule
+
+    def process_node(self, node: Node):
+        return self.rule.process_node(node)
+
+    def after_process_document(self, document: Document):
+        return self.rule.after_process_document(document)
+
+
+class RuleAPIWrapper(BaseModel):
+    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')
