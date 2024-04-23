@@ -12,13 +12,14 @@ from pydantic import BaseModel, Field
 
 
 class Metric(StringBuildable):
-    #TODO: figure out how to enforce rule_id presence
+    # TODO: figure out how to enforce rule_id presence
 
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
 
     @staticmethod
-    def get_word_counts(doc: Document, use_lemma=False, filter_punct=True, from_to: Tuple[int,int] | None = None) -> Iterator[Tuple[str, int]]:
+    def get_word_counts(doc: Document, use_lemma=False, filter_punct=True,
+                        from_to: Tuple[int, int] | None = None) -> Iterator[Tuple[str, int]]:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if filter_punct else [])
         if from_to:
             filtered_nodes = filtered_nodes[from_to[0]:from_to[1]]
@@ -41,7 +42,7 @@ class Metric(StringBuildable):
 
     @staticmethod
     def get_syllables_in_word(word: str) -> int:
-        #FIXME: eeeeeh
+        # FIXME: eeeeeh
         return sum([word.count(vocal) for vocal in ('a', 'e', 'i', 'o', 'u', 'y')])
 
 
@@ -59,6 +60,7 @@ class WordCount(Metric):
     def apply(self, doc: Document) -> float:
         return len(Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else []))
 
+
 class SyllableCount(Metric):
     rule_id: Literal['syllab_count'] = 'syllab_count'
     filter_punct: bool = True
@@ -66,6 +68,7 @@ class SyllableCount(Metric):
     def apply(self, doc: Document) -> float:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
         return sum(Metric.get_syllables_in_word(node.form) for node in filtered_nodes)
+
 
 class CharacterCount(Metric):
     rule_id: Literal['char_count'] = 'char_count'
@@ -90,10 +93,11 @@ class CLI(Metric):
         sents = SentenceCount().apply(doc)
         words = WordCount(filter_punct=self.filter_punct).apply(doc)
         chars = CharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
-        return (self.coef_1 * (chars/words) * 100) - (self.coef_2 * (sents/words) * 100) - self.const_1
+        return (self.coef_1 * (chars / words) * 100) - (self.coef_2 * (sents / words) * 100) - self.const_1
 
 
 class ARI(Metric):
+    """THIS IS ARIIIIII"""
     rule_id: Literal['ari'] = 'ari'
     count_spaces: bool = False
     filter_punct: bool = True
@@ -105,7 +109,7 @@ class ARI(Metric):
         sents = SentenceCount().apply(doc)
         words = WordCount(filter_punct=self.filter_punct).apply(doc)
         chars = CharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
-        return self.coef_1 * (chars/words) + self.coef_2 * (words/sents) - self.const_1
+        return self.coef_1 * (chars / words) + self.coef_2 * (words / sents) - self.const_1
 
 
 class HapaxCount(Metric):
@@ -124,7 +128,7 @@ class Entropy(Metric):
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma)]
         n_words = sum(counts)
-        probs = map(lambda x: x/n_words, counts)
+        probs = map(lambda x: x / n_words, counts)
         return -sum(prob * log2(prob) for prob in probs)
 
 
@@ -156,12 +160,13 @@ class VerbDistance(Metric):
         total_distance += len(nodes) - last_verb_index
         return total_distance / verbs
 
+
 class Activity(Metric):
     rule_id: Literal['activity'] = 'activity'
 
     def apply(self, doc: Document) -> float:
         nodes = list(doc.nodes)
-        return len(Metric.filter_nodes_on_upos(nodes, ['VERB'])) /\
+        return len(Metric.filter_nodes_on_upos(nodes, ['VERB'])) / \
             len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ']))
 
 
@@ -174,9 +179,9 @@ class HPoint(Metric):
         counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma, self.filter_punct)]
         counts.sort(reverse=True)
         for i in range(len(counts)):
-            if i+1 == counts[i]:
+            if i + 1 == counts[i]:
                 return counts[i]
-            if i+1 > counts[i]:
+            if i + 1 > counts[i]:
                 i = i - 1
                 j = i + 1
                 fi = counts[i]
@@ -202,14 +207,14 @@ class MovingAverageTypeTokenRatio(Metric):
     window_size: int = 100
 
     def apply(self, doc: Document) -> float:
-        #FIXME: this is horribly slow
+        # FIXME: this is horribly slow
         total_words = WordCount(filter_punct=self.filter_punct).apply(doc)
         big_sum = 0
         for i in range(int(total_words) - self.window_size):
             counts = dict(Metric.get_word_counts(doc,
                                                  use_lemma=self.use_lemma,
                                                  filter_punct=self.filter_punct,
-                                                 from_to=(i, i+self.window_size)
+                                                 from_to=(i, i + self.window_size)
                                                  ))
             big_sum += len(counts)
             print(big_sum)
@@ -226,9 +231,9 @@ class MovingAverageMorphologicalRichness(Metric):
         return MovingAverageTypeTokenRatio(use_lemma=False,
                                            filter_punct=self.filter_punct,
                                            window_size=self.window_size).apply(doc) - \
-               MovingAverageTypeTokenRatio(use_lemma=True,
-                                           filter_punct=self.filter_punct,
-                                           window_size=self.window_size).apply(doc)
+            MovingAverageTypeTokenRatio(use_lemma=True,
+                                        filter_punct=self.filter_punct,
+                                        window_size=self.window_size).apply(doc)
 
 
 class FleschReadingEase(Metric):
@@ -267,3 +272,7 @@ print(Metric.__subclasses__() == Metric.get_final_children())
 class MetricsWrapper(BaseModel):
     metric: Union[*Metric.get_final_children()] = Field(..., discriminator='rule_id')
 
+
+class DocMetricHandler:
+    def __init__(self, doc: Document):
+        self.doc = doc

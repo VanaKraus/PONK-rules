@@ -17,7 +17,7 @@ def root():
 
 @app.post("/upload", status_code=201)
 def receive_conllu(file: UploadFile):
-    #read uploaded file
+    # read uploaded file
     file_id = os.urandom(8).hex()
     filename = file_id + ".conllu"
     with open(filename, "wb") as local_copy:
@@ -33,10 +33,10 @@ def receive_conllu(file: UploadFile):
 
 @app.post("/stats/{text_id}")
 def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] = None):
-    #return statistics for a given id
+    # return statistics for a given id
     doc = get_doc_from_id(text_id)
     if metric_list is None:
-        #return all available metrics
+        # return all available metrics
         return {instance.rule_id: instance.apply(doc) for instance in
                 [subclass() for subclass in Metric.get_final_children()]}
     return [{metric.rule_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
@@ -44,7 +44,7 @@ def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] = None)
 
 @app.get("/rules/{text_id}")
 def get_conllu_after_rules_applied(text_id: str):
-    #return modified conllu after application of rules
+    # return modified conllu after application of rules
     doc = get_doc_from_id(text_id)
     rules.double_adpos_rule().run(doc)
     return {"id": text_id, "document": doc.to_conllu_string()}
