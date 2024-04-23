@@ -32,7 +32,7 @@ def receive_conllu(file: UploadFile):
 
 
 @app.post("/stats/{text_id}")
-def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] = None):
+def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None = None):
     # return statistics for a given id
     doc = get_doc_from_id(text_id)
     if metric_list is None:
