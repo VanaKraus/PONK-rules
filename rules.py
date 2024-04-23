@@ -22,6 +22,10 @@ class Rule(Block, StringBuildable):
     def get_application_id():
         return os.urandom(4).hex()
 
+    @classmethod
+    def id(cls):
+        return cls.__name__
+
     def annotate_node(self, node: Node, annotation: str):
         node.misc[f"{self.__class__.id()}:{self.process_id}"] = f"{annotation}"
 
@@ -33,14 +37,10 @@ class Rule(Block, StringBuildable):
         self.process_id = self.get_application_id()
 
 
-class double_adpos_rule(Rule):
+class rule_double_adpos(Rule):
     @StringBuildable.parse_string_args(detect_only=bool)
     def __init__(self, detect_only=True):
         Rule.__init__(self, detect_only)
-
-    @classmethod
-    def id(cls):
-        return "rule_double_adpos"
 
     def process_node(self, node: Node):
         # TODO: multi-word adpositions
@@ -68,7 +68,7 @@ class double_adpos_rule(Rule):
                     correction = util.clone_node(
                         parent_adpos,
                         cconj.parent,
-                        filter_misc_keys=r"^(?!Rule).*",
+                        filter_misc_keys=r"^(?!rule_).*",
                         form=parent_adpos.form.lower(),
                     )
                     correction.shift_after_node(cconj)
@@ -84,19 +84,11 @@ class double_adpos_rule(Rule):
                 if not self.detect_only:
                     self.modified_roots.add(cconj.root)
 
-    def after_process_document(self, document):
-        for root in self.modified_roots:
-            root.text = root.compute_text()
 
-
-class passive_rule(Rule):
+class rule_passive(Rule):
     @StringBuildable.parse_string_args(detect_only=bool)
     def __init__(self, detect_only=True):
         Rule.__init__(self, detect_only)
-
-    @classmethod
-    def id(cls):
-        return 'rule_passive'
 
     def process_node(self, node):
         if node.deprel == 'aux:pass':
@@ -108,15 +100,11 @@ class passive_rule(Rule):
             self.advance_application_id()
 
 
-class pred_subj_distance_rule(Rule):
+class rule_pred_subj_distance(Rule):
     @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=6):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
-
-    @classmethod
-    def id(cls):
-        return 'rule_pred_subj_distance'
 
     def process_node(self, node):
         # locate subject
@@ -140,15 +128,11 @@ class pred_subj_distance_rule(Rule):
                 self.advance_application_id()
 
 
-class pred_obj_distance_rule(Rule):
+class rule_pred_obj_distance(Rule):
     @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
-
-    @classmethod
-    def id(cls):
-        return 'rule_pred_obj_distance'
 
     def process_node(self, node):
         if node.deprel in ('obj', 'iobj'):
@@ -161,15 +145,11 @@ class pred_obj_distance_rule(Rule):
                 self.advance_application_id()
 
 
-class head_xcomp_distance_rule(Rule):
+class rule_head_xcomp_distance(Rule):
     @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
-
-    @classmethod
-    def id(cls):
-        return 'rule_head_xcomp_distance'
 
     def process_node(self, node):
         if node.deprel == 'xcomp':
@@ -183,15 +163,11 @@ class head_xcomp_distance_rule(Rule):
 
 
 # TODO: test this rule
-class multi_part_verbs_rule(Rule):
+class rule_multi_part_verbs(Rule):
     @StringBuildable.parse_string_args(detect_only=bool, max_distance=int)
     def __init__(self, detect_only=True, max_distance=5):
         Rule.__init__(self, detect_only)
         self.max_distance = max_distance
-
-    @classmethod
-    def id(cls):
-        return 'rule_multi_part_verbs'
 
     def process_node(self, node):
         if node.udeprel in ('aux', 'expl'):

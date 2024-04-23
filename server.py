@@ -46,7 +46,7 @@ def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] = None)
 def get_conllu_after_rules_applied(text_id: str):
     # return modified conllu after application of rules
     doc = get_doc_from_id(text_id)
-    rules.double_adpos_rule().run(doc)
+    rules.rule_double_adpos().run(doc)
     return {"id": text_id, "document": doc.to_conllu_string()}
 
 
