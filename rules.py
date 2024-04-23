@@ -26,6 +26,10 @@ class Rule(StringBuildable):
     def get_application_id():
         return os.urandom(4).hex()
 
+    @classmethod
+    def id(cls):
+        return cls.__name__
+
     def annotate_node(self, node: Node, annotation: str):
         node.misc[f"{self.__class__.id()}:{self.process_id}"] = f"{annotation}"
 
