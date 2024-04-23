@@ -3,10 +3,6 @@ from pydantic import BaseModel
 
 class StringBuildable(BaseModel):
     @classmethod
-    def id(cls):
-        raise NotImplementedError(f"Please give your class {cls.__name__} an id")
-
-    @classmethod
     def get_direct_children(cls) -> dict[str, type]:
         return {sub.id(): sub for sub in cls.__subclasses__()}
 
