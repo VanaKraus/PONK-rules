@@ -65,14 +65,29 @@ def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None 
     return MetricsReply(results=results)
 
 
+class RulesReply(BaseModel):
+    id: str
+    document: str
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "id": "deadbeef12345678",
+                    "document": "A conllu string",
+                }
+            ]
+        }
+    }
+
+
 @app.post("/rules/{text_id}")
-def get_conllu_after_rules_applied(text_id: str, rule_list: list[RuleAPIWrapper] | None = None):
+def get_conllu_after_rules_applied(text_id: str, rule_list: list[RuleAPIWrapper] | None = None) -> RulesReply:
     # return modified conllu after application of rules
     doc = get_doc_from_id(text_id)
     rules = [rule() for rule in Rule.get_final_children()] if rule_list is None else [item.rule for item in rule_list]
     for rule in rules:
         RuleBlockWrapper(rule).run(doc)
-    return {"id": text_id, "document": doc.to_conllu_string()}
+    return RulesReply(id=text_id, document=doc.to_conllu_string())
 
 
 def get_doc_from_id(doc_id: str):
