@@ -42,7 +42,7 @@ def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None 
     return [{metric.rule_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
 
 
-@app.get("/rules/{text_id}")
+@app.post("/rules/{text_id}")
 def get_conllu_after_rules_applied(text_id: str, rule_list: list[RuleAPIWrapper] | None = None):
     # return modified conllu after application of rules
     doc = get_doc_from_id(text_id)
