@@ -39,8 +39,7 @@ def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] = None)
         #return all available metrics
         return {instance.rule_id: instance.apply(doc) for instance in
                 [subclass() for subclass in Metric.get_final_children()]}
-    #return {'res': (metric_list[0]).metric.apply(doc)}
-    return {metric.id(): metric.apply(doc) for metric in [x.metric for x in metric_list]}
+    return [{metric.rule_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
 
 
 @app.get("/rules/{text_id}")
