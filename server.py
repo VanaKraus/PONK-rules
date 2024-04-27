@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from udapi.core.document import Document
 
 from metrics import Metric, MetricsWrapper
@@ -45,10 +45,18 @@ def apply_rules(rule_list: list[RuleAPIWrapper] | None, doc: Document) -> str:
     return doc.to_conllu_string()
 
 
+def try_build_conllu_from_string(conllu_string: str) -> Document:
+    doc = Document()
+    try:
+        doc.from_conllu_string(string=conllu_string)
+    except ValueError:
+        raise HTTPException(status_code=422, detail='Conllu string validation failed.')
+    return doc
+
+
 @app.post('/main')
 def stat_conllu_apply_rules(main_request: MainRequest) -> MainReply:
-    doc = Document()
-    doc.from_conllu_string(string=main_request.conllu_string)
+    doc = try_build_conllu_from_string(main_request.conllu_string)
     metrics = compute_metrics(main_request.metric_list, doc)
     modified_doc = apply_rules(main_request.rule_list, doc)
     return MainReply(modified_conllu=modified_doc, metrics=metrics)
