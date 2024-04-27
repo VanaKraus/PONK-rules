@@ -215,7 +215,6 @@ class MetricMovingAverageTypeTokenRatio(Metric):
                                                  from_to=(i, i + self.window_size)
                                                  ))
             big_sum += len(counts)
-            print(big_sum)
 
         return big_sum / (self.window_size * (total_words - self.window_size + 1))
 
@@ -262,9 +261,6 @@ class MetricFleschKincaidGradeLevel(Metric):
         words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         syllabs = MetricSyllableCount(filter_punct=self.filter_punct).apply(doc)
         return self.coef_1 * (words / sents) + self.coef_2 * (syllabs / words) - self.const_1
-
-
-print(Metric.__subclasses__() == Metric.get_final_children())
 
 
 class MetricsWrapper(BaseModel):
