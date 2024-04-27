@@ -53,41 +53,41 @@ def stat_conllu_apply_rules(main_request: MainRequest) -> MainReply:
     return MainReply(modified_conllu=modified_doc, metrics=metrics)
 
 
-@app.post("/upload", status_code=201)
-def receive_conllu(file: UploadFile):
-    # read uploaded file
-    file_id = os.urandom(8).hex()
-    filename = file_id + ".conllu"
-    with open(filename, "wb") as local_copy:
-        local_copy.write(file.file.read())
-    try:
-        Document(filename=filename)
-        return {"file_id": file_id}
-    except ValueError as e:
-        local_copy.close()
-        os.remove(filename)
-        raise HTTPException(status_code=406, detail=f"{type(e).__name__}: {str(e)}")
-
-
-@app.post("/stats/{text_id}")
-def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None = None):
-    # return statistics for a given id
-    doc = get_doc_from_id(text_id)
-    return compute_metrics(metric_list, doc)
-
-
-@app.get("/rules/{text_id}")
-def get_conllu_after_rules_applied(text_id: str, rule_list: list[RuleAPIWrapper] | None = None):
-    # return modified conllu after application of rules
-    doc = get_doc_from_id(text_id)
-    return apply_rules(rule_list, doc)
-
-
-def get_doc_from_id(doc_id: str):
-    try:
-        doc = Document(filename=doc_id + ".conllu")
-        return doc
-    except ValueError:
-        raise HTTPException(status_code=404)
+# @app.post("/upload", status_code=201)
+# def receive_conllu(file: UploadFile):
+#     # read uploaded file
+#     file_id = os.urandom(8).hex()
+#     filename = file_id + ".conllu"
+#     with open(filename, "wb") as local_copy:
+#         local_copy.write(file.file.read())
+#     try:
+#         Document(filename=filename)
+#         return {"file_id": file_id}
+#     except ValueError as e:
+#         local_copy.close()
+#         os.remove(filename)
+#         raise HTTPException(status_code=406, detail=f"{type(e).__name__}: {str(e)}")
+#
+#
+# @app.post("/stats/{text_id}")
+# def get_stats_for_conllu(text_id: str, metric_list: list[MetricsWrapper] | None = None):
+#     # return statistics for a given id
+#     doc = get_doc_from_id(text_id)
+#     return compute_metrics(metric_list, doc)
+#
+#
+# @app.get("/rules/{text_id}")
+# def get_conllu_after_rules_applied(text_id: str, rule_list: list[RuleAPIWrapper] | None = None):
+#     # return modified conllu after application of rules
+#     doc = get_doc_from_id(text_id)
+#     return apply_rules(rule_list, doc)
+#
+#
+# def get_doc_from_id(doc_id: str):
+#     try:
+#         doc = Document(filename=doc_id + ".conllu")
+#         return doc
+#     except ValueError:
+#         raise HTTPException(status_code=404)
 
 
