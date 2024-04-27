@@ -32,7 +32,6 @@ class MainReply(BaseModel):
 
 
 def compute_metrics(metric_list: list[MetricsWrapper] | None, doc: Document) -> list[dict[str, float]]:
-    print(metric_list)
     if metric_list is None:
         # return all available metrics
         return [{instance.metric_id: instance.apply(doc)} for instance in
