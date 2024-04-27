@@ -164,8 +164,8 @@ class MetricActivity(Metric):
 
     def apply(self, doc: Document) -> float:
         nodes = list(doc.nodes)
-        return len(Metric.filter_nodes_on_upos(nodes, ['VERB'])) / \
-            len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ']))
+        return max(1, len(Metric.filter_nodes_on_upos(nodes, ['VERB']))) /\
+            max(1, len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ'])))
 
 
 class MetricHPoint(Metric):
