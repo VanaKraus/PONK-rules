@@ -49,3 +49,12 @@ class StringBuildable(BaseModel):
             return wrapper
         return decorate
 
+
+MINIMAL_CONLLU = """# newdoc
+# newpar
+# sent_id = 1
+# text = Tohle je test.
+1	Tohle	tenhle	DET	PDNS1----------	Case=Nom|Gender=Neut|Number=Sing|PronType=Dem	3	nsubj	_	TokenRange=0:5
+2	je	být	AUX	VB-S---3P-AAI--	Aspect=Imp|Mood=Ind|Number=Sing|Person=3|Polarity=Pos|Tense=Pres|VerbForm=Fin|Voice=Act	3	cop	_	TokenRange=6:8
+3	test	test	NOUN	NNIS1-----A----	Animacy=Inan|Case=Nom|Gender=Masc|Number=Sing|Polarity=Pos	0	root	_	SpaceAfter=No|TokenRange=9:13
+4	.	.	PUNCT	Z:-------------	_	3	punct	_	SpaceAfter=No|TokenRange=13:14"""

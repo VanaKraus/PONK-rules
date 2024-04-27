@@ -5,7 +5,9 @@ from metrics import Metric, MetricsWrapper
 
 from rules import Rule, RuleBlockWrapper, RuleAPIWrapper
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from utils import MINIMAL_CONLLU
 
 app = FastAPI(
     title='PONK Rules',
@@ -19,14 +21,14 @@ def root():
 
 
 class MainRequest(BaseModel):
-    conllu_string: str
+    conllu_string: str = Field(examples=[MINIMAL_CONLLU])
     rule_list: list[RuleAPIWrapper] | None = None
     metric_list: list[MetricsWrapper] | None = None
 
 
 class MainReply(BaseModel):
-    modified_conllu: str
-    metrics: list[dict[str, float]]
+    modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
+    metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
 
 
 def compute_metrics(metric_list: list[MetricsWrapper] | None, doc: Document) -> list[dict[str, float]]:
