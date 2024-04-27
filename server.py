@@ -56,7 +56,7 @@ def try_build_conllu_from_string(conllu_string: str) -> Document:
     return doc
 
 
-@app.post('/main')
+@app.post('/main', tags=['ponk_rules'])
 def stat_conllu_apply_rules(main_request: MainRequest) -> MainReply:
     doc = try_build_conllu_from_string(main_request.conllu_string)
     metrics = compute_metrics(main_request.metric_list, doc)
