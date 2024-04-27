@@ -213,7 +213,7 @@ class VerbDistance(Metric):
                 last_verb_index = i
                 verbs += 1
         total_distance += len(nodes) - last_verb_index
-        return total_distance / verbs
+        return total_distance / max(1, verbs)
 
     @classmethod
     def id(cls):
