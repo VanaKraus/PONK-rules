@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile
 from udapi.core.document import Document
+from udapi.block.read.conllu import Conllu as ConlluReader
+from io import FileIO, TextIOWrapper
 
 from metrics import Metric, MetricsWrapper
 
@@ -56,10 +58,20 @@ def try_build_conllu_from_string(conllu_string: str) -> Document:
 
 
 @app.post('/main', tags=['ponk_rules'])
-def stat_conllu_apply_rules(main_request: MainRequest) -> MainReply:
+def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     doc = try_build_conllu_from_string(main_request.conllu_string)
     metrics = compute_metrics(main_request.metric_list, doc)
     modified_doc = apply_rules(main_request.rule_list, doc)
+    return MainReply(modified_conllu=modified_doc, metrics=metrics)
+
+
+@app.post('/raw', tags=['ponk_rules'])
+def perform_defaults_on_conllu(file: UploadFile):
+    reader = ConlluReader(filehandle=TextIOWrapper(file.file))
+    doc = Document()
+    reader.apply_on_document(doc)
+    metrics = compute_metrics(None, doc)
+    modified_doc = apply_rules(None, doc)
     return MainReply(modified_conllu=modified_doc, metrics=metrics)
 
 
