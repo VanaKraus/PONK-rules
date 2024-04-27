@@ -33,9 +33,9 @@ def compute_metrics(metric_list: list[MetricsWrapper] | None, doc: Document) -> 
     print(metric_list)
     if metric_list is None:
         # return all available metrics
-        return [{instance.rule_id: instance.apply(doc)} for instance in
+        return [{instance.metric_id: instance.apply(doc)} for instance in
                 [subclass() for subclass in Metric.get_final_children()]]
-    return [{metric.rule_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
+    return [{metric.metric_id: metric.apply(doc)} for metric in [x.metric for x in metric_list]]
 
 
 def apply_rules(rule_list: list[RuleAPIWrapper] | None, doc: Document) -> str:
