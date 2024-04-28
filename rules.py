@@ -51,7 +51,7 @@ class RuleDoubleAdpos(Rule):
     # detect_only: bool = True
 
     def process_node(self, node: Node):
-        # TODO: multi-word adpositions
+        # FIXME: multi-word adpositions
         # TODO: sometimes the structure isn't actually ambiguous and doesn't need to be ammended
         # TODO: sometimes the rule catches adpositions that shouldn't be repeated in the coordination
 
@@ -305,12 +305,183 @@ class RuleTooManyNegations(Rule):
                 self.advance_application_id()
 
 
-class rule_weak_meaning_verbs(Rule):
-    rule_id: Literal['rule_weak_meaning_verbs'] = 'rule_weak_meaning_verbs'
+class RuleWeakMeaningWords(Rule):
+    rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
+    _weak_meaning_words: list[str] = ['dopadat', 'zaměřit', 'poukázat', 'ovlivnit', 'postup', 'obdobně', 'velmi']
 
     def process_node(self, node):
-        if node.lemma in words.WEAK_MEANING_VERB_LEMMAS:
-            self.annotate_node(node, 'verb')
+        if node.lemma in self._weak_meaning_words:
+            self.annotate_node(node, 'weak_meaning_word')
+            self.advance_application_id()
+
+
+class RuleAbstractNouns(Rule):
+    rule_id: Literal['RuleAbstractNouns'] = 'RuleAbstractNouns'
+    _abstract_nouns: list[str] = [
+        'základ',
+        'situace',
+        'úvaha',
+        'charakter',
+        'stupeň',
+        'aspekt',
+        'okolnosti',
+        'událost',
+        'snaha',
+        'podmínky',
+        'činnost',
+    ]
+
+    def process_node(self, node):
+        if node.lemma in self._abstract_nouns:
+            self.annotate_node(node, 'abstract_noun')
+            self.advance_application_id()
+
+
+class RuleRelativisticExpression(Rule):
+    rule_id: Literal['RuleRelativisticExpression'] = 'RuleRelativisticExpression'
+
+    # lemmas; when space-separated, nodes next-to-eachother with corresponding lemmas are looked for
+    _expressions: list[list[str]] = [
+        expr.split(' ') for expr in ['poněkud', 'jevit', 'patrně', 'do jistý míra', 'snad', 'jaksi']
+    ]
+
+    def process_node(self, node):
+        for expr in self._expressions:
+            # node matches first lemma in the expression
+            if node.lemma.lower() == expr[0]:
+                nd_iterator, i = node, 0
+                nodes = [nd_iterator]
+
+                # see if next nodes match next lemmas in the expression
+                while (nd_iterator := nd_iterator.next_node) and (i := i + 1) < len(expr):
+                    if nd_iterator.lemma.lower() != expr[i]:
+                        break
+                    nodes += [nd_iterator]
+                # success listener
+                else:
+                    for matching_node in nodes:
+                        self.annotate_node(matching_node, 'relativistic_expression')
+                        self.advance_application_id()
+
+
+class RuleConfirmationExpression(Rule):
+    rule_id: Literal['RuleConfirmationExpression'] = 'RuleConfirmationExpression'
+    _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
+
+    def process_node(self, node):
+        if node.lemma in self._expressions:
+            self.annotate_node(node, 'confirmation_expression')
+
+
+class RuleRedundantExpression(Rule):
+    rule_id: Literal['RuleRedundantExpression'] = 'RuleRedundantExpression'
+
+    def _annotate(self, *nodes: Node):
+        for nd in nodes:
+            self.annotate_node(nd, 'redundant_expression')
+
+    def process_node(self, node):
+        match node.lemma:
+            # je nutné zdůraznit
+            case 'nutný':
+                if (aux := [c for c in node.children if c.lemma == 'být']) and (
+                    inf := [c for c in node.children if c.lemma == 'zdůraznit']
+                ):
+                    self._annotate(node, aux[0], inf[0])
+                    self.advance_application_id()
+
+            # z uvedeného je zřejmé
+            case 'zřejmý':
+                if (aux := [c for c in node.children if c.lemma == 'být']) and (
+                    adj := [
+                        c for c in node.children if c.lemma == 'uvedený' and [a for a in c.children if a.lemma == 'z']
+                    ]
+                ):
+                    # little dirty, I'd love to know if it's possible to retreive the adposition from the condition
+                    # without it possible being overwritten if there are multiple cs that match c.lemma == 'uvedený'
+                    adp = [a for a in adj[0].children if a.lemma == 'z']
+
+                    self._annotate(node, aux[0], adj[0], adp[0])
+                    self.advance_application_id()
+
+            # vyvstala otázka
+            case 'vyvstat':
+                if noun := [c for c in node.children if c.lemma == 'otázka']:
+                    self._annotate(node, noun[0])
+                    self.advance_application_id()
+
+            # nabízí se otázka
+            case 'nabízet':
+                if (expl := [c for c in node.children if c.deprel == 'expl:pass']) and (
+                    noun := [c for c in node.children if c.lemma == 'otázka']
+                ):
+                    self._annotate(node, expl[0], noun[0])
+                    self.advance_application_id()
+
+            # v neposlední řadě
+            case 'řada':
+                if (adj := [c for c in node.children if c.lemma == 'neposlední']) and (
+                    adp := [c for c in node.children if c.lemma == 'v']
+                ):
+                    self._annotate(node, adj[0], adp[0])
+                    self.advance_application_id()
+
+            # v kontextu věci
+            case 'kontext':
+                if (noun := [c for c in node.children if c.lemma == 'věc']) and (
+                    adp := [c for c in node.children if c.lemma == 'v']
+                ):
+                    self._annotate(node, noun[0], adp[0])
+                    self.advance_application_id()
+
+            # v rámci posuzování
+            case 'posuzování':
+                if adp := [
+                    c for c in node.children if c.lemma == 'v' and [n for n in c.children if n.lemma == 'rámec']
+                ]:
+                    # little dirty, I'd love to know if it's possible to retreive the noun from the condition
+                    # without it possible being overwritten if there are multiple cs that match c.lemma == 'v'
+                    noun = [n for n in adp[0].children if n.lemma == 'rámec']
+
+                    self._annotate(node, adp[0], noun[0])
+                    self.advance_application_id()
+
+
+class RuleTooLongExpression(Rule):
+    rule_id: Literal['RuleTooLongExpression'] = 'RuleTooLongExpression'
+
+    def _annotate(self, *nodes: Node):
+        for nd in nodes:
+            self.annotate_node(nd, 'too_long_expression')
+
+    def process_node(self, node):
+        match node.lemma:
+            # v důsledku toho
+            case 'důsledek':
+                if (adp := node.parent).lemma == 'v' and adp.parent and (pron := adp.parent).upos in ('PRON', 'DET'):
+                    self._annotate(node, adp, pron)
+                    self.advance_application_id()
+
+            # v případě, že
+            case 'že':
+                if (
+                    node.parent.parent
+                    and (noun := node.parent.parent).lemma == 'případ'
+                    and (adp := [c for c in noun.children if c.lemma == 'v'])
+                ):
+                    self._annotate(node, noun, adp[0])
+                    self.advance_application_id()
+            # týkající se
+            case 'týkající':
+                if expl := [c for c in node.children if c.deprel == 'expl:pv']:
+                    self._annotate(node, expl[0])
+                    self.advance_application_id()
+
+            # za účelem
+            case 'účel':
+                if (adp := node.parent).lemma == 'za':
+                    self._annotate(node, adp)
+                    self.advance_application_id()
 
 
 class RuleBlockWrapper(Block):
