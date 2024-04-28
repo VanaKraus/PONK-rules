@@ -1,5 +1,6 @@
 from __future__ import annotations
 import util
+import word_lists as words
 
 from udapi.core.block import Block
 from udapi.core.node import Node
@@ -302,6 +303,14 @@ class rule_too_many_negations(Rule):
                     self.annotate_node(nd, 'negative')
 
                 self.advance_application_id()
+
+
+class rule_weak_meaning_verbs(Rule):
+    rule_id: Literal['rule_weak_meaning_verbs'] = 'rule_weak_meaning_verbs'
+
+    def process_node(self, node):
+        if node.lemma in words.WEAK_MEANING_VERB_LEMMAS:
+            self.annotate_node(node, 'verb')
 
 
 class RuleBlockWrapper(Block):
