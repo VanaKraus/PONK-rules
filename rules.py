@@ -45,8 +45,8 @@ class Rule(StringBuildable):
         raise NotImplementedError('A rule is expected to have a \'process_node\' method.')
 
 
-class rule_double_adpos(Rule):
-    rule_id: Literal['rule_double_adpos'] = 'rule_double_adpos'
+class RuleDoubleAdpos(Rule):
+    rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
 
     # detect_only: bool = True
 
@@ -74,7 +74,7 @@ class rule_double_adpos(Rule):
                     correction = util.clone_node(
                         parent_adpos,
                         cconj.parent,
-                        filter_misc_keys=r"^(?!rule_).*",
+                        filter_misc_keys=r"^(?!Rule).*",
                         form=parent_adpos.form.lower(),
                     )
                     correction.shift_after_node(cconj)
@@ -91,8 +91,8 @@ class rule_double_adpos(Rule):
                     self.modified_roots.add(cconj.root)
 
 
-class rule_passive(Rule):
-    rule_id: Literal['rule_passive'] = 'rule_passive'
+class RulePassive(Rule):
+    rule_id: Literal['RulePassive'] = 'RulePassive'
 
     def process_node(self, node):
         if node.deprel == 'aux:pass':
@@ -104,8 +104,8 @@ class rule_passive(Rule):
             self.advance_application_id()
 
 
-class rule_pred_subj_distance(Rule):
-    rule_id: Literal['rule_pred_subj_distance'] = 'rule_pred_subj_distance'
+class RulePredSubjDistance(Rule):
+    rule_id: Literal['RulePredSubjDistance'] = 'RulePredSubjDistance'
     max_distance: int = 6
 
     def process_node(self, node):
@@ -128,8 +128,8 @@ class rule_pred_subj_distance(Rule):
                 self.advance_application_id()
 
 
-class rule_pred_obj_distance(Rule):
-    rule_id: Literal['rule_pred_obj_distance'] = 'rule_pred_obj_distance'
+class RulePredObjDistance(Rule):
+    rule_id: Literal['RulePredObjDistance'] = 'RulePredObjDistance'
     max_distance: int = 6
 
     def process_node(self, node):
@@ -143,8 +143,8 @@ class rule_pred_obj_distance(Rule):
                 self.advance_application_id()
 
 
-class rule_head_xcomp_distance(Rule):
-    rule_id: Literal['rule_head_xcomp_distance'] = 'rule_head_xcomp_distance'
+class RuleHeadXcompDistance(Rule):
+    rule_id: Literal['RuleHeadXcompDistance'] = 'RuleHeadXcompDistance'
     max_distance: int = 5
 
     def process_node(self, node):
@@ -158,14 +158,14 @@ class rule_head_xcomp_distance(Rule):
                 self.advance_application_id()
 
 
-class rule_multi_part_verbs(Rule):
-    rule_id: Literal['rule_multi_part_verbs'] = 'rule_multi_part_verbs'
+class RuleMultiPartVerbs(Rule):
+    rule_id: Literal['RuleMultiPartVerbs'] = 'RuleMultiPartVerbs'
     max_distance: int = 5
 
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
         if util.is_aux(node) and not {
-            k: v for k, v in node.misc.items() if k.split(':')[0] == self.__class__.__name__ and v == 'aux'
+            k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'
         }:
             parent = node.parent
 
@@ -188,8 +188,8 @@ class rule_multi_part_verbs(Rule):
                 self.advance_application_id()
 
 
-class rule_long_sentences(Rule):
-    rule_id: Literal['rule_long_sentences'] = 'rule_long_sentences'
+class RuleLongSentences(Rule):
+    rule_id: Literal['RuleLongSentences'] = 'RuleLongSentences'
     max_length: int = 50
 
     def process_node(self, node):
@@ -206,8 +206,8 @@ class rule_long_sentences(Rule):
                 self.advance_application_id()
 
 
-class rule_pred_at_clause_beginning(Rule):
-    rule_id: Literal['rule_pred_at_clause_beginning'] = 'rule_pred_at_clause_beginning'
+class RulePredAtClauseBeginning(Rule):
+    rule_id: Literal['RulePredAtClauseBeginning'] = 'RulePredAtClauseBeginning'
     max_order: int = 5
 
     def process_node(self, node):
@@ -226,7 +226,7 @@ class rule_pred_at_clause_beginning(Rule):
             first_predicate_token = predicate_tokens[0]
 
             # if first_predicate_token has already been annotated by this rule
-            if l := [k for k, _ in first_predicate_token.misc.items() if k.split(':')[0] == self.__class__.__name__]:
+            if l := [k for k, _ in first_predicate_token.misc.items() if k.split(':')[0] == self.rule_id]:
                 return
 
             if first_predicate_token.ord - clause_beginning.ord > self.max_order:
@@ -236,8 +236,8 @@ class rule_pred_at_clause_beginning(Rule):
                 self.advance_application_id()
 
 
-class rule_verbal_nouns(Rule):
-    rule_id: Literal['rule_verbal_nouns'] = 'rule_verbal_nouns'
+class RuleVerbalNouns(Rule):
+    rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
 
     def process_node(self, node):
         if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
@@ -245,8 +245,8 @@ class rule_verbal_nouns(Rule):
             self.advance_application_id()
 
 
-class rule_too_few_verbs(Rule):
-    rule_id: Literal['rule_too_few_verbs'] = 'rule_too_few_verbs'
+class RuleTooFewVerbs(Rule):
+    rule_id: Literal['RuleTooFewVerbs'] = 'RuleTooFewVerbs'
     min_verb_frac: float = 0.05
     finite_only: bool = False
 
@@ -285,8 +285,8 @@ class rule_too_few_verbs(Rule):
                 self.advance_application_id()
 
 
-class rule_too_many_negations(Rule):
-    rule_id: Literal['rule_too_many_negations'] = 'rule_too_many_negations'
+class RuleTooManyNegations(Rule):
+    rule_id: Literal['RuleTooManyNegations'] = 'RuleTooManyNegations'
     max_negation_frac: float = 0.1
 
     def process_node(self, node):
@@ -326,4 +326,4 @@ class RuleBlockWrapper(Block):
 
 
 class RuleAPIWrapper(BaseModel):
-    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')
+    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')  # type: ignore
