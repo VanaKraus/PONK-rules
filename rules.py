@@ -1,6 +1,5 @@
 from __future__ import annotations
 import util
-import word_lists as words
 
 from udapi.core.block import Block
 from udapi.core.node import Node
