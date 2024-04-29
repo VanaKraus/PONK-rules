@@ -263,6 +263,23 @@ class MetricFleschKincaidGradeLevel(Metric):
         return self.coef_1 * (words / sents) + self.coef_2 * (syllabs / words) - self.const_1
 
 
+class MetricGunningFog(Metric):
+    metric_id: Literal['gf'] = 'gf'
+    filter_punct: bool = True
+    coef_1: float = 0.4
+    coef_2: float = 100
+    syllab_threshold: int = 3
+
+    def _is_word_complex(self, word: str):
+        return Metric.get_syllables_in_word(word) > self.syllab_threshold
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
+        return self.coef_1 * ((words/sents) + self.coef_2 * (complex_words/words))
+
+
 class MetricsWrapper(BaseModel):
     metric: Union[*Metric.get_final_children()] = Field(..., discriminator='metric_id')
 
