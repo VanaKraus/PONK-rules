@@ -46,23 +46,29 @@ class Rule(StringBuildable):
 
 class RuleDoubleAdpos(Rule):
     rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
-
-    # detect_only: bool = True
+    min_distance: int = 3
 
     def process_node(self, node: Node):
-        # FIXME: multi-word adpositions
         # TODO: sometimes the structure isn't actually ambiguous and doesn't need to be ammended
         # TODO: sometimes the rule catches adpositions that shouldn't be repeated in the coordination
+        # ----- adding a minimum distance between the two coordinated elements could help
+        # TODO: coordinations without CCONJ
 
         if node.upos != "CCONJ":
-            return None  # nothing we can do for this node, bail
+            return  # nothing we can do for this node, bail
 
         cconj = node
 
         # find an adposition present in the coordination
         for parent_adpos in [nd for nd in cconj.parent.siblings if nd.udeprel == "case" and nd.upos == "ADP"]:
+            coord_el1, coord_el2 = parent_adpos.parent, cconj.parent
+
             # check that the two coordination elements have the same case
-            if cconj.parent.feats["Case"] != parent_adpos.parent.feats["Case"]:
+            if coord_el2.feats["Case"] != coord_el1.feats["Case"]:
+                continue
+
+            # check that the two coordination elements aren't too close to eachother
+            if coord_el2.ord - coord_el1.ord <= self.min_distance:
                 continue
 
             # check that the second coordination element doesn't already have an adposition
@@ -72,17 +78,21 @@ class RuleDoubleAdpos(Rule):
                 if not self.detect_only:
                     correction = util.clone_node(
                         parent_adpos,
-                        cconj.parent,
+                        coord_el2,
                         filter_misc_keys=r"^(?!Rule).*",
-                        form=parent_adpos.form.lower(),
+                        include_subtree=True,
                     )
+
+                    correction.form = parent_adpos.form.lower()
                     correction.shift_after_node(cconj)
-                    self.annotate_node(correction, 'add')
+
+                    for node_to_annotate in correction.descendants(add_self=True):
+                        self.annotate_node(node_to_annotate, 'add')
 
                 self.annotate_node(cconj, 'cconj')
                 self.annotate_node(parent_adpos, 'orig_adpos')
-                self.annotate_node(parent_adpos.parent, 'coord_el1')
-                self.annotate_node(cconj.parent, 'coord_el2')
+                self.annotate_node(coord_el1, 'coord_el1')
+                self.annotate_node(coord_el2, 'coord_el2')
 
                 self.advance_application_id()
 
