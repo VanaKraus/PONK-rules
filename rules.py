@@ -49,11 +49,6 @@ class RuleDoubleAdpos(Rule):
     min_distance: int = 3
 
     def process_node(self, node: Node):
-        # TODO: sometimes the structure isn't actually ambiguous and doesn't need to be ammended
-        # TODO: sometimes the rule catches adpositions that shouldn't be repeated in the coordination
-        # ----- adding a minimum distance between the two coordinated elements could help
-        # TODO: coordinations without CCONJ
-
         if node.upos != "CCONJ":
             return  # nothing we can do for this node, bail
 
@@ -491,6 +486,71 @@ class RuleTooLongExpression(Rule):
                 if (adp := node.parent).lemma == 'za':
                     self._annotate(node, adp)
                     self.advance_application_id()
+
+
+class RuleAnaphoricReference(Rule):
+    rule_id: Literal['RuleAnaphoricReference'] = 'RuleAnaphoricReference'
+
+    def _annotate(self, *nodes: Node):
+        for node in nodes:
+            self.annotate_node(node, 'anaphoric_reference')
+
+    def process_node(self, node):
+        match node.lemma:
+            # co se týče výše uvedeného
+            # ze shora uvedeného důvodu
+            # z právě uvedeného je zřejmé
+            case 'uvedený':
+                if adv := [c for c in node.children if c.lemma in ('vysoko', 'shora', 'právě')]:
+                    self._annotate(node, *adv)
+                    self.advance_application_id()
+
+            # s ohledem na tuto skutečnost
+            case 'skutečnost':
+                if (det := [c for c in node.children if c.udeprel == 'det' and c.feats['PronType'] == 'Dem']) and (
+                    adp := [c for c in node.children if c.udeprel == 'case']
+                ):
+                    self._annotate(node, *det, *adp, *[desc for a in adp for desc in a.descendants()])
+                    self.advance_application_id()
+
+            # z logiky věci vyplývá
+            case 'logika':
+                if (noun := [c for c in node.children if c.lemma == 'věc']) and (
+                    adp := [c for c in node.children if c.lemma == 'z']
+                ):
+                    self._annotate(node, *noun, *adp, *[desc for a in adp for desc in a.descendants()])
+                    self.advance_application_id()
+
+
+class RuleAmbiguousRegard(Rule):
+    rule_id: Literal['RuleAmbiguousRegard'] = 'RuleAmbiguousRegard'
+
+    def process_node(self, node):
+        if (
+            (sconj := node).lemma == 'než'
+            and not util.is_clause_root(landmark := node.parent)
+            and not [c for c in landmark.children if c.udeprel == 'case']
+            and (comparative := landmark.parent)
+            and 'Degree' in comparative.feats
+            and comparative.feats['Degree'] == 'Cmp'
+            and comparative.parent
+        ):
+            # trajector should be a noun
+            # if comparative.upos == 'ADJ', its parent should be a noun
+            # otherwise it's likely that comparative.upos == 'VERB'; we try to find its object
+            trajector = (
+                comparative.parent
+                if comparative.upos == 'ADJ'
+                else ([c for c in comparative.parent.children if c.udeprel == 'obj'] + [None])[0]
+            )
+
+            if trajector.udeprel == 'obj':
+                self.annotate_node(sconj, 'sconj')
+                self.annotate_node(landmark, 'landmark')
+                self.annotate_node(comparative, 'comparative')
+                self.annotate_node(trajector, 'trajector')
+
+                self.advance_application_id()
 
 
 class RuleBlockWrapper(Block):

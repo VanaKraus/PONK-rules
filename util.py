@@ -46,11 +46,7 @@ def is_finite_verb(node: Node) -> bool:
 
 
 def is_clause_root(node: Node) -> bool:
-    return (
-        node.udeprel in ('csubj', 'ccomp', 'xcomp', 'acl', 'advcl', 'parataxis', 'root')
-        or is_finite_verb(node)
-        or [nd for nd in node.children if is_aux(nd, grammatical_only=True)]
-    )
+    return is_finite_verb(node) or bool([nd for nd in node.children if is_aux(nd, grammatical_only=True)])
 
 
 def get_clause_root(node: Node) -> Node:
