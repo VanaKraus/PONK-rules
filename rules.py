@@ -537,14 +537,14 @@ class RuleAmbiguousRegard(Rule):
         ):
             # trajector should be a noun
             # if comparative.upos == 'ADJ', its parent should be a noun
-            # otherwise it's likely that comparative.upos == 'VERB'; we try to find its object
+            # otherwise it may be that comparative.upos == 'VERB'; we try to find its object
             trajector = (
                 comparative.parent
                 if comparative.upos == 'ADJ'
                 else ([c for c in comparative.parent.children if c.udeprel == 'obj'] + [None])[0]
             )
 
-            if trajector.udeprel == 'obj':
+            if trajector and trajector.udeprel == 'obj':
                 self.annotate_node(sconj, 'sconj')
                 self.annotate_node(landmark, 'landmark')
                 self.annotate_node(comparative, 'comparative')
