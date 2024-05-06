@@ -4,7 +4,7 @@ from udapi.core.node import Node
 
 from typing import Iterator, Tuple, List, Literal, Union
 
-from math import log2
+from math import log2, sqrt
 
 from utils import StringBuildable
 
@@ -261,6 +261,38 @@ class MetricFleschKincaidGradeLevel(Metric):
         words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         syllabs = MetricSyllableCount(filter_punct=self.filter_punct).apply(doc)
         return self.coef_1 * (words / sents) + self.coef_2 * (syllabs / words) - self.const_1
+
+
+class PolysyllabicMetric(Metric):
+    syllab_threshold: int = 3
+
+    def _is_word_complex(self, word: str):
+        return Metric.get_syllables_in_word(word) > self.syllab_threshold
+
+
+class MetricGunningFog(PolysyllabicMetric):
+    metric_id: Literal['gf'] = 'gf'
+    filter_punct: bool = True
+    coef_1: float = 0.4
+    coef_2: float = 100
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
+        return self.coef_1 * ((words/sents) + self.coef_2 * (complex_words/words))
+
+
+# Modified version of SMOG. We do not rely on sampling
+class MetricSMOG(PolysyllabicMetric):
+    metric_id: Literal['smog'] = 'smog'
+    coef_1: float = 1.043
+    const_1: float = 3.1291
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
+        return self.coef_1 * sqrt(complex_words * 90) / sents + self.const_1
 
 
 class MetricsWrapper(BaseModel):
