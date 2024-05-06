@@ -13,7 +13,8 @@ from utils import MINIMAL_CONLLU
 
 app = FastAPI(
     title='PONK Rules',
-    swagger_ui_parameters={"defaultModelsExpandDepth": 0}
+    swagger_ui_parameters={"defaultModelsExpandDepth": 0},
+    openapi_url='/docs/openapi.json'
 )
 
 

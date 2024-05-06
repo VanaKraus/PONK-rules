@@ -282,6 +282,7 @@ class MetricGunningFog(PolysyllabicMetric):
         complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
         return self.coef_1 * ((words/sents) + self.coef_2 * (complex_words/words))
 
+
 # Modified version of SMOG. We do not rely on sampling
 class MetricSMOG(PolysyllabicMetric):
     metric_id: Literal['smog'] = 'smog'
@@ -292,7 +293,6 @@ class MetricSMOG(PolysyllabicMetric):
         sents = MetricSentenceCount().apply(doc)
         complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
         return self.coef_1 * sqrt(complex_words * 90) / sents + self.const_1
-
 
 
 class MetricsWrapper(BaseModel):
