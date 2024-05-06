@@ -16,8 +16,8 @@ import os
 
 class Rule(StringBuildable):
     detect_only: bool = True
-    process_id: str = ''
-    modified_roots: set[Any] = set()  # FIXME: This should not be Any, but rather Root
+    process_id: str = Field(default_factory=lambda: os.urandom(4).hex(), hidden=True)
+    modified_roots: set[Any] = Field(default=set(), hidden=True)  # FIXME: This should not be Any, but rather Root
 
     def model_post_init(self, __context: Any) -> None:
         self.process_id = Rule.get_application_id()
