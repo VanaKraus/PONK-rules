@@ -4,7 +4,9 @@ from udapi.core.dualdict import DualDict
 import re
 
 
-def clone_node(node: Node, parent: Node, filter_misc_keys: str = None, **override) -> Node:
+def clone_node(
+    node: Node, parent: Node, filter_misc_keys: str = None, include_subtree: bool = False, **override
+) -> Node:
     res = parent.create_child(
         form=node.form,
         lemma=node.lemma,
@@ -21,6 +23,14 @@ def clone_node(node: Node, parent: Node, filter_misc_keys: str = None, **overrid
     for arg, val in override.items():
         setattr(res, arg, val)
 
+    if include_subtree:
+        for child in node.children:
+            new_child = clone_node(child, res, filter_misc_keys, include_subtree, **override)
+            if child.ord < node.ord:
+                new_child.shift_before_node(res)
+            else:
+                new_child.shift_after_node(res)
+
     return res
 
 
@@ -36,11 +46,7 @@ def is_finite_verb(node: Node) -> bool:
 
 
 def is_clause_root(node: Node) -> bool:
-    return (
-        node.udeprel in ('csubj', 'ccomp', 'xcomp', 'acl', 'advcl', 'parataxis', 'root')
-        or is_finite_verb(node)
-        or [nd for nd in node.children if is_aux(nd, grammatical_only=True)]
-    )
+    return is_finite_verb(node) or bool([nd for nd in node.children if is_aux(nd, grammatical_only=True)])
 
 
 def get_clause_root(node: Node) -> Node:
