@@ -46,7 +46,7 @@ class Rule(StringBuildable):
 
 class RuleDoubleAdpos(Rule):
     rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
-    min_distance: int = 3
+    max_allowable_distance: int = 3
 
     def process_node(self, node: Node):
         if node.upos != "CCONJ":
@@ -63,7 +63,7 @@ class RuleDoubleAdpos(Rule):
                 continue
 
             # check that the two coordination elements aren't too close to eachother
-            if coord_el2.ord - coord_el1.ord <= self.min_distance:
+            if coord_el2.ord - coord_el1.ord <= self.max_allowable_distance:
                 continue
 
             # check that the second coordination element doesn't already have an adposition
@@ -111,11 +111,10 @@ class RulePassive(Rule):
 class RulePredSubjDistance(Rule):
     rule_id: Literal['RulePredSubjDistance'] = 'RulePredSubjDistance'
     max_distance: int = 6
+    include_clausal_subjects: bool = False
 
     def process_node(self, node):
-        # locate subject
-        if node.udeprel in ('nsubj', 'csubj'):
-
+        if node.udeprel == 'nsubj' or (self.include_clausal_subjects and node.udeprel == 'csubj'):
             # locate predicate
             pred = node.parent
 
@@ -125,9 +124,18 @@ class RulePredSubjDistance(Rule):
             ]:
                 pred = finite_verbs[0]
 
-            if abs(node.ord - pred.ord) > self.max_distance:
+            # locate subject
+            subj = node
+            if node.udeprel == 'csubj':
+                clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+                if node.ord < pred.ord:
+                    subj = clause[-1]
+                else:
+                    subj = clause[0]
+
+            if abs(subj.ord - pred.ord) > self.max_distance:
                 self.annotate_node(pred, 'predicate_grammar')
-                self.annotate_node(node, 'subject')
+                self.annotate_node(subj, 'subject')
 
                 self.advance_application_id()
 
@@ -195,10 +203,11 @@ class RuleMultiPartVerbs(Rule):
 class RuleLongSentences(Rule):
     rule_id: Literal['RuleLongSentences'] = 'RuleLongSentences'
     max_length: int = 50
+    without_punctuation: bool = False
 
     def process_node(self, node):
         if node.udeprel == 'root':
-            descendants = util.get_clause(node, node_is_root=True)
+            descendants = util.get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
 
             # len(descendants) always >= 1 when add_self == True
             beginning, end = descendants[0], descendants[-1]
@@ -292,6 +301,7 @@ class RuleTooFewVerbs(Rule):
 class RuleTooManyNegations(Rule):
     rule_id: Literal['RuleTooManyNegations'] = 'RuleTooManyNegations'
     max_negation_frac: float = 0.1
+    max_allowable_negations: int = 2
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -302,7 +312,7 @@ class RuleTooManyNegations(Rule):
 
             no_pos, no_neg = len(positives), len(negatives)
 
-            if no_neg > 2 and no_neg / (no_pos + no_neg) > self.max_negation_frac:
+            if no_neg > self.max_allowable_negations and no_neg / (no_pos + no_neg) > self.max_negation_frac:
                 for nd in negatives:
                     self.annotate_node(nd, 'negative')
 
@@ -341,8 +351,8 @@ class RuleAbstractNouns(Rule):
             self.advance_application_id()
 
 
-class RuleRelativisticExpression(Rule):
-    rule_id: Literal['RuleRelativisticExpression'] = 'RuleRelativisticExpression'
+class RuleRelativisticExpressions(Rule):
+    rule_id: Literal['RuleRelativisticExpressions'] = 'RuleRelativisticExpressions'
 
     # lemmas; when space-separated, nodes next-to-eachother with corresponding lemmas are looked for
     _expressions: list[list[str]] = [
@@ -368,8 +378,8 @@ class RuleRelativisticExpression(Rule):
                         self.advance_application_id()
 
 
-class RuleConfirmationExpression(Rule):
-    rule_id: Literal['RuleConfirmationExpression'] = 'RuleConfirmationExpression'
+class RuleConfirmationExpressions(Rule):
+    rule_id: Literal['RuleConfirmationExpressions'] = 'RuleConfirmationExpressions'
     _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
@@ -377,8 +387,8 @@ class RuleConfirmationExpression(Rule):
             self.annotate_node(node, 'confirmation_expression')
 
 
-class RuleRedundantExpression(Rule):
-    rule_id: Literal['RuleRedundantExpression'] = 'RuleRedundantExpression'
+class RuleRedundantExpressions(Rule):
+    rule_id: Literal['RuleRedundantExpressions'] = 'RuleRedundantExpressions'
 
     def _annotate(self, *nodes: Node):
         for nd in nodes:
@@ -451,8 +461,8 @@ class RuleRedundantExpression(Rule):
                     self.advance_application_id()
 
 
-class RuleTooLongExpression(Rule):
-    rule_id: Literal['RuleTooLongExpression'] = 'RuleTooLongExpression'
+class RuleTooLongExpressions(Rule):
+    rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
 
     def _annotate(self, *nodes: Node):
         for nd in nodes:
@@ -488,8 +498,8 @@ class RuleTooLongExpression(Rule):
                     self.advance_application_id()
 
 
-class RuleAnaphoricReference(Rule):
-    rule_id: Literal['RuleAnaphoricReference'] = 'RuleAnaphoricReference'
+class RuleAnaphoricReferences(Rule):
+    rule_id: Literal['RuleAnaphoricReferences'] = 'RuleAnaphoricReferences'
 
     def _annotate(self, *nodes: Node):
         for node in nodes:
@@ -522,8 +532,8 @@ class RuleAnaphoricReference(Rule):
                     self.advance_application_id()
 
 
-class RuleAmbiguousRegard(Rule):
-    rule_id: Literal['RuleAmbiguousRegard'] = 'RuleAmbiguousRegard'
+class RuleAmbiguousRegards(Rule):
+    rule_id: Literal['RuleAmbiguousRegards'] = 'RuleAmbiguousRegards'
 
     def process_node(self, node):
         if (
