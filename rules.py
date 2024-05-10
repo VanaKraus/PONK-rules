@@ -301,7 +301,7 @@ class RuleTooFewVerbs(Rule):
 class RuleTooManyNegations(Rule):
     rule_id: Literal['RuleTooManyNegations'] = 'RuleTooManyNegations'
     max_negation_frac: float = 0.1
-    max_allowable_negations: int = 2
+    max_allowable_negations: int = 3
 
     def process_node(self, node):
         if node.udeprel == 'root':
