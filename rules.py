@@ -18,6 +18,7 @@ class Rule(StringBuildable):
     detect_only: bool = True
     process_id: str = Field(default_factory=lambda: os.urandom(4).hex(), hidden=True)
     modified_roots: set[Any] = Field(default=set(), hidden=True)  # FIXME: This should not be Any, but rather Root
+    application_count: int = Field(default=0, hidden=True)
 
     def model_post_init(self, __context: Any) -> None:
         self.process_id = Rule.get_application_id()
@@ -39,6 +40,10 @@ class Rule(StringBuildable):
 
     def advance_application_id(self):
         self.process_id = self.get_application_id()
+        self.application_count += 1
+
+    def reset_application_count(self):
+        self.application_count = 0
 
     def process_node(self, node: Node):
         raise NotImplementedError('A rule is expected to have a \'process_node\' method.')
@@ -49,7 +54,7 @@ class RuleDoubleAdpos(Rule):
     max_allowable_distance: int = 3
 
     def process_node(self, node: Node):
-        if node.upos != "CCONJ":
+        if node.upos != "CCONJ" or node.parent.parent is None:
             return  # nothing we can do for this node, bail
 
         cconj = node
@@ -208,6 +213,9 @@ class RuleLongSentences(Rule):
     def process_node(self, node):
         if node.udeprel == 'root':
             descendants = util.get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
+
+            if not descendants:
+                return
 
             # len(descendants) always >= 1 when add_self == True
             beginning, end = descendants[0], descendants[-1]
