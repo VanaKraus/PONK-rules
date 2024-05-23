@@ -54,7 +54,7 @@ class RuleDoubleAdpos(Rule):
     max_allowable_distance: int = 3
 
     def process_node(self, node: Node):
-        if node.upos != "CCONJ" or node.parent.parent is None:
+        if node.upos != "CCONJ" or node.parent.parent is None:  # in case parent_adpos doesn't have a parent
             return  # nothing we can do for this node, bail
 
         cconj = node
@@ -160,17 +160,20 @@ class RulePredObjDistance(Rule):
                 self.advance_application_id()
 
 
-class RuleHeadXcompDistance(Rule):
-    rule_id: Literal['RuleHeadXcompDistance'] = 'RuleHeadXcompDistance'
+class RuleInfVerbDistance(Rule):
+    rule_id: Literal['RuleInfVerbDistance'] = 'RuleInfVerbDistance'
     max_distance: int = 5
 
     def process_node(self, node):
-        if node.deprel == 'xcomp':
-            parent = node.parent
+        if (
+            'VerbForm' in node.feats
+            and (infinitive := node).feats['VerbForm'] == 'Inf'
+            and 'VerbForm' in (verb := infinitive.parent).feats
+        ):
 
-            if abs(parent.ord - node.ord) > self.max_distance:
-                self.annotate_node(node, 'complement')
-                self.annotate_node(parent, 'verb')
+            if abs(verb.ord - infinitive.ord) > self.max_distance:
+                self.annotate_node(infinitive, 'infinitive')
+                self.annotate_node(verb, 'verb')
 
                 self.advance_application_id()
 
