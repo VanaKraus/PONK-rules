@@ -54,7 +54,7 @@ class RuleDoubleAdpos(Rule):
     max_allowable_distance: int = 3
 
     def process_node(self, node: Node):
-        if node.upos != "CCONJ":
+        if node.upos != "CCONJ" or node.parent.parent is None:
             return  # nothing we can do for this node, bail
 
         cconj = node
@@ -213,6 +213,9 @@ class RuleLongSentences(Rule):
     def process_node(self, node):
         if node.udeprel == 'root':
             descendants = util.get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
+
+            if not descendants:
+                return
 
             # len(descendants) always >= 1 when add_self == True
             beginning, end = descendants[0], descendants[-1]
