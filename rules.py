@@ -50,6 +50,19 @@ class Rule(StringBuildable):
 
 
 class RuleDoubleAdpos(Rule):
+    """Capture coordinations where both elements could be headed by a preposition \
+    but only the first is.
+
+    Supports transformations.
+
+    Inspiration: Sgall & Panevová (2014, p. 77).
+
+    Attributes:
+        max_allowable_distance (int): how far apart the coordination elements can be \
+            to not be considered an issue (elements separated by one token only would \
+            have distance of 2).
+    """
+
     rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
     max_allowable_distance: int = 3
 
@@ -67,7 +80,7 @@ class RuleDoubleAdpos(Rule):
             if coord_el2.feats["Case"] != coord_el1.feats["Case"]:
                 continue
 
-            # check that the two coordination elements aren't too close to eachother
+            # check that the two coordination elements aren't too close to each-other
             if coord_el2.ord - coord_el1.ord <= self.max_allowable_distance:
                 continue
 
@@ -101,6 +114,11 @@ class RuleDoubleAdpos(Rule):
 
 
 class RulePassive(Rule):
+    """Capture be-passives.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 39-40).
+    """
+
     rule_id: Literal['RulePassive'] = 'RulePassive'
 
     def process_node(self, node):
@@ -114,6 +132,19 @@ class RulePassive(Rule):
 
 
 class RulePredSubjDistance(Rule):
+    """Capture subjects that are too distant from their predicates \
+        (or their auxiliaries/copulas when present).
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 53-54).
+
+    Attributes:
+        max_distance (int): how far apart the subject and the predicate can be \
+            to not be considered an issue (subject and predicate right next to each other \
+            would have distance of 1).
+        include_clausal_subjects (bool): take clausal subjects into consideration. Token \
+            from the clause closest to the predicate is considered for the distance measurement.
+    """
+
     rule_id: Literal['RulePredSubjDistance'] = 'RulePredSubjDistance'
     max_distance: int = 6
     include_clausal_subjects: bool = False
@@ -146,6 +177,17 @@ class RulePredSubjDistance(Rule):
 
 
 class RulePredObjDistance(Rule):
+    """Capture objects (both direct and indirect) that are too distant \
+        from their parents.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 53-54).
+
+    Attributes:
+        max_distance (int): how far apart the object and the parent can be \
+            to not be considered an issue (object and its parent \
+            right next to each other would have distance of 1).
+    """
+
     rule_id: Literal['RulePredObjDistance'] = 'RulePredObjDistance'
     max_distance: int = 6
 
@@ -161,6 +203,14 @@ class RulePredObjDistance(Rule):
 
 
 class RuleInfVerbDistance(Rule):
+    """Capture infinitives that are too far from a verbal word they complement.
+
+    Attributes:
+        max_distance (int): how far apart the infinitive and the parent can be \
+            to not be considered an issue (infinitive and its parent \
+            right next to each other would have distance of 1).
+    """
+
     rule_id: Literal['RuleInfVerbDistance'] = 'RuleInfVerbDistance'
     max_distance: int = 5
 
@@ -179,6 +229,17 @@ class RuleInfVerbDistance(Rule):
 
 
 class RuleMultiPartVerbs(Rule):
+    """Capture multi-word verbal forms the parts of which (auxiliaries and clitics) \
+        are too far apart from the root (content) token.
+
+    Inspired by: Šamánková & Kubíková (2022, pp. 53-54).
+
+    Attributes:
+        max_distance (int): how far apart the auxiliary/clitic can be from the root \
+            to not be considered an issue (auxiliary/clitic and the root \
+            right next to each other would have distance of 1).
+    """
+
     rule_id: Literal['RuleMultiPartVerbs'] = 'RuleMultiPartVerbs'
     max_distance: int = 5
 
@@ -209,6 +270,15 @@ class RuleMultiPartVerbs(Rule):
 
 
 class RuleLongSentences(Rule):
+    """Capture sentences that are too long.
+
+    Inspiration: Šamánková & Kubíková (2022, p. 51).
+
+    Attributes:
+        max_length (int): how long the sentence can be to not be considered an issue.
+        without_punctuation (bool): exclude punctuation from the count.
+    """
+
     rule_id: Literal['RuleLongSentences'] = 'RuleLongSentences'
     max_length: int = 50
     without_punctuation: bool = False
@@ -231,6 +301,16 @@ class RuleLongSentences(Rule):
 
 
 class RulePredAtClauseBeginning(Rule):
+    """Capture predicates (their finite tokens for multi-token predicates) \
+        that are too far from the beginning of their clause.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 53-54).
+
+    Attributes:
+        max_order (int): how far the predicate can be to not be considered an issue \
+            (predicate right at the beginning of the clause would have order of 0).
+    """
+
     rule_id: Literal['RulePredAtClauseBeginning'] = 'RulePredAtClauseBeginning'
     max_order: int = 5
 
@@ -261,6 +341,11 @@ class RulePredAtClauseBeginning(Rule):
 
 
 class RuleVerbalNouns(Rule):
+    """Capture verbal nouns.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 38-39).
+    """
+
     rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
 
     def process_node(self, node):
@@ -270,6 +355,16 @@ class RuleVerbalNouns(Rule):
 
 
 class RuleTooFewVerbs(Rule):
+    """Capture sentences containing too few verbs.
+
+    Inspiration: Šamánková & Kubíková (2022, p. 37).
+
+    Attributes:
+        min_verb_frac (float): the lowest (# of verbs / # of words) fraction value \
+            for the sentence to not be considered an issue.
+        finite_only (bool): count only finite verbs.
+    """
+
     rule_id: Literal['RuleTooFewVerbs'] = 'RuleTooFewVerbs'
     min_verb_frac: float = 0.05
     finite_only: bool = False
@@ -310,6 +405,17 @@ class RuleTooFewVerbs(Rule):
 
 
 class RuleTooManyNegations(Rule):
+    """Capture sentences with too many negations.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 40-41).
+
+    Attributes:
+        max_negation_frac (float): the highest (# of negations / # of words with polarity) \
+            fraction value for the sentence to not be considered an issue.
+        max_allowable_negations (int): the highest # of negations in the sentence for the rule \
+            to remain inhibited. This is to allow for double negation in Czech.
+    """
+
     rule_id: Literal['RuleTooManyNegations'] = 'RuleTooManyNegations'
     max_negation_frac: float = 0.1
     max_allowable_negations: int = 3
@@ -331,6 +437,11 @@ class RuleTooManyNegations(Rule):
 
 
 class RuleWeakMeaningWords(Rule):
+    """Capture semantically weak words.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39).
+    """
+
     rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
     _weak_meaning_words: list[str] = ['dopadat', 'zaměřit', 'poukázat', 'ovlivnit', 'postup', 'obdobně', 'velmi']
 
@@ -341,6 +452,11 @@ class RuleWeakMeaningWords(Rule):
 
 
 class RuleAbstractNouns(Rule):
+    """Capture semantically weak abstract nouns.
+
+    Inspiration: Šamánková & Kubíková (2022, p. 41).
+    """
+
     rule_id: Literal['RuleAbstractNouns'] = 'RuleAbstractNouns'
     _abstract_nouns: list[str] = [
         'základ',
@@ -363,9 +479,14 @@ class RuleAbstractNouns(Rule):
 
 
 class RuleRelativisticExpressions(Rule):
+    """Capture relativistic expressions.
+
+    Inspiration: Šamánková & Kubíková (2022, p. 42).
+    """
+
     rule_id: Literal['RuleRelativisticExpressions'] = 'RuleRelativisticExpressions'
 
-    # lemmas; when space-separated, nodes next-to-eachother with corresponding lemmas are looked for
+    # lemmas; when space-separated, nodes next-to-each-other with corresponding lemmas are looked for
     _expressions: list[list[str]] = [
         expr.split(' ') for expr in ['poněkud', 'jevit', 'patrně', 'do jistý míra', 'snad', 'jaksi']
     ]
@@ -390,6 +511,12 @@ class RuleRelativisticExpressions(Rule):
 
 
 class RuleConfirmationExpressions(Rule):
+    """Capture confirmation expressions. They often violate the maxim of quantity \
+        in needlesly confirming what the author is already expected to be 100% sure about.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 42-43).
+    """
+
     rule_id: Literal['RuleConfirmationExpressions'] = 'RuleConfirmationExpressions'
     _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
@@ -399,6 +526,11 @@ class RuleConfirmationExpressions(Rule):
 
 
 class RuleRedundantExpressions(Rule):
+    """Capture expressions that aren't needed to convey the message.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 42-43).
+    """
+
     rule_id: Literal['RuleRedundantExpressions'] = 'RuleRedundantExpressions'
 
     def _annotate(self, *nodes: Node):
@@ -473,6 +605,11 @@ class RuleRedundantExpressions(Rule):
 
 
 class RuleTooLongExpressions(Rule):
+    """Capture expressions that could be shortened.
+
+    Inspiration: Šamánková & Kubíková (2022, p. 44).
+    """
+
     rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
 
     def _annotate(self, *nodes: Node):
@@ -510,6 +647,11 @@ class RuleTooLongExpressions(Rule):
 
 
 class RuleAnaphoricReferences(Rule):
+    """Capture vague anaphoric references.
+
+    Inspiration: Šamánková & Kubíková (2022, p. 42).
+    """
+
     rule_id: Literal['RuleAnaphoricReferences'] = 'RuleAnaphoricReferences'
 
     def _annotate(self, *nodes: Node):
@@ -544,6 +686,12 @@ class RuleAnaphoricReferences(Rule):
 
 
 class RuleAmbiguousRegards(Rule):
+    """Capture regard constructions (e.g. [trajector] is greater than [landmark]) \
+        that are ambiguous as to which word fills the [trajector] slot.
+
+    Inspiration: Sgall & Panevová (2014, pp. 77-78), Šamánková & Kubíková (2022, p. 41).
+    """
+
     rule_id: Literal['RuleAmbiguousRegards'] = 'RuleAmbiguousRegards'
 
     def process_node(self, node):
@@ -558,7 +706,7 @@ class RuleAmbiguousRegards(Rule):
         ):
             # trajector should be a noun
             # if comparative.upos == 'ADJ', its parent should be a noun
-            # otherwise it may be that comparative.upos == 'VERB'; we try to find its object
+            # otherwise it may be that comparative.parent is verbal; we try to find its object
             trajector = (
                 comparative.parent
                 if comparative.upos == 'ADJ'
