@@ -67,14 +67,14 @@ class RuleDoubleAdpos(Rule):
     max_allowable_distance: int = 3
 
     def process_node(self, node: Node):
-        if node.upos != "CCONJ" or node.parent.parent is None:  # in case parent_adpos doesn't have a parent
+        if node.deprel != 'conj' or node.parent.parent is None:  # in case parent_adpos doesn't have a parent
             return  # nothing we can do for this node, bail
 
-        cconj = node
+        coord_el2 = node
 
         # find an adposition present in the coordination
-        for parent_adpos in [nd for nd in cconj.parent.siblings if nd.udeprel == "case" and nd.upos == "ADP"]:
-            coord_el1, coord_el2 = parent_adpos.parent, cconj.parent
+        for parent_adpos in [nd for nd in coord_el2.siblings if nd.udeprel == "case" and nd.upos == "ADP"]:
+            coord_el1 = parent_adpos.parent
 
             # check that the two coordination elements have the same case
             if coord_el2.feats["Case"] != coord_el1.feats["Case"]:
@@ -85,9 +85,11 @@ class RuleDoubleAdpos(Rule):
                 continue
 
             # check that the second coordination element doesn't already have an adposition
-            if not [nd for nd in cconj.siblings if nd.lemma == parent_adpos.lemma] and not [
-                nd for nd in cconj.siblings if nd.upos == "ADP"
+            if not [nd for nd in coord_el2.children if nd.lemma == parent_adpos.lemma] and not [
+                nd for nd in coord_el2.children if nd.upos == "ADP"
             ]:
+                cconj = ([None] + [c for c in coord_el2.children if c.deprel in ('cc', 'punct') and c.lemma != '.'])[-1]
+
                 if not self.detect_only:
                     correction = util.clone_node(
                         parent_adpos,
@@ -97,12 +99,16 @@ class RuleDoubleAdpos(Rule):
                     )
 
                     correction.form = parent_adpos.form.lower()
-                    correction.shift_after_node(cconj)
+                    if cconj:
+                        correction.shift_after_subtree(cconj)
+                    else:
+                        correction.shift_before_node(coord_el2.descendants(add_self=True)[0])
 
                     for node_to_annotate in correction.descendants(add_self=True):
                         self.annotate_node(node_to_annotate, 'add')
 
-                self.annotate_node(cconj, 'cconj')
+                if cconj:
+                    self.annotate_node(cconj, 'cconj')
                 self.annotate_node(parent_adpos, 'orig_adpos')
                 self.annotate_node(coord_el1, 'coord_el1')
                 self.annotate_node(coord_el2, 'coord_el2')
@@ -308,7 +314,7 @@ class RulePredAtClauseBeginning(Rule):
 
     Attributes:
         max_order (int): how far the predicate can be to not be considered an issue \
-            (predicate right at the beginning of the clause would have order of 0).
+            (predicate right at the beginning of the clause would have order of 1).
     """
 
     rule_id: Literal['RulePredAtClauseBeginning'] = 'RulePredAtClauseBeginning'
@@ -333,7 +339,8 @@ class RulePredAtClauseBeginning(Rule):
             if l := [k for k, _ in first_predicate_token.misc.items() if k.split(':')[0] == self.rule_id]:
                 return
 
-            if first_predicate_token.ord - clause_beginning.ord > self.max_order:
+            # add 1 to make the parameter 1-indexed instead of being 0-indexed
+            if first_predicate_token.ord - clause_beginning.ord + 1 > self.max_order:
                 self.annotate_node(clause_beginning, 'clause_beginning')
                 self.annotate_node(first_predicate_token, 'predicate_beginning')
 
