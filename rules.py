@@ -31,8 +31,20 @@ class Rule(StringBuildable):
     def id(cls):
         return cls.__name__
 
-    def annotate_node(self, node: Node, annotation: str):
-        node.misc[f"{self.__class__.id()}:{self.process_id}"] = f"{annotation}"
+    def annotate_node(self, annotation: str, *node: Node, flag: str | None = None):
+        key = f"{self.__class__.id()}:{self.process_id}"
+        if flag:
+            key += f":{flag}"
+        value = annotation
+
+        for nd in node:
+            nd.misc[key] = value
+
+    def annotate_measurement(self, m_name: str, m_value, *node):
+        self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
+
+    def annotate_parameter(self, p_name: str, p_value, *node):
+        self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
 
     def after_process_document(self, document):
         for root in self.modified_roots:
@@ -81,7 +93,7 @@ class RuleDoubleAdpos(Rule):
                 continue
 
             # check that the two coordination elements aren't too close to each-other
-            if coord_el2.ord - coord_el1.ord <= self.max_allowable_distance:
+            if (dst := coord_el2.ord - coord_el1.ord) <= self.max_allowable_distance:
                 continue
 
             # check that the second coordination element doesn't already have an adposition
@@ -105,13 +117,18 @@ class RuleDoubleAdpos(Rule):
                         correction.shift_before_node(coord_el2.descendants(add_self=True)[0])
 
                     for node_to_annotate in correction.descendants(add_self=True):
-                        self.annotate_node(node_to_annotate, 'add')
+                        self.annotate_node('add', node_to_annotate)
 
                 if cconj:
-                    self.annotate_node(cconj, 'cconj')
-                self.annotate_node(parent_adpos, 'orig_adpos')
-                self.annotate_node(coord_el1, 'coord_el1')
-                self.annotate_node(coord_el2, 'coord_el2')
+                    self.annotate_node('cconj', cconj)
+                self.annotate_node('orig_adpos', parent_adpos)
+                self.annotate_node('coord_el1', coord_el1)
+                self.annotate_node('coord_el2', coord_el2)
+
+                self.annotate_measurement('max_allowable_distance', dst, cconj, parent_adpos, coord_el1, coord_el2)
+                self.annotate_parameter(
+                    'max_allowable_distance', self.max_allowable_distance, cconj, parent_adpos, coord_el1, coord_el2
+                )
 
                 self.advance_application_id()
 
@@ -131,8 +148,8 @@ class RulePassive(Rule):
         if node.deprel == 'aux:pass':
             parent = node.parent
 
-            self.annotate_node(node, 'aux')
-            self.annotate_node(parent, 'participle')
+            self.annotate_node('aux', node)
+            self.annotate_node('participle', parent)
 
             self.advance_application_id()
 
@@ -175,9 +192,13 @@ class RulePredSubjDistance(Rule):
                 else:
                     subj = clause[0]
 
-            if abs(subj.ord - pred.ord) > self.max_distance:
-                self.annotate_node(pred, 'predicate_grammar')
-                self.annotate_node(subj, 'subject')
+            if (max_dst := abs(subj.ord - pred.ord)) > self.max_distance:
+                self.annotate_node('predicate_grammar', pred)
+                self.annotate_node('subject', subj)
+
+                self.annotate_measurement('max_distance', max_dst, pred, subj)
+                self.annotate_parameter('max_distance', self.max_distance, pred, subj)
+                self.annotate_parameter('include_clausal_subjects', self.include_clausal_subjects, pred, subj)
 
                 self.advance_application_id()
 
@@ -201,9 +222,12 @@ class RulePredObjDistance(Rule):
         if node.deprel in ('obj', 'iobj'):
             parent = node.parent
 
-            if abs(parent.ord - node.ord) > self.max_distance:
-                self.annotate_node(node, 'object')
-                self.annotate_node(parent, 'parent')
+            if (max_dst := abs(parent.ord - node.ord)) > self.max_distance:
+                self.annotate_node('object', node)
+                self.annotate_node('parent', parent)
+
+                self.annotate_measurement('max_distance', max_dst, node, parent)
+                self.annotate_parameter('max_distance', self.max_distance, node, parent)
 
                 self.advance_application_id()
 
@@ -227,9 +251,12 @@ class RuleInfVerbDistance(Rule):
             and 'VerbForm' in (verb := infinitive.parent).feats
         ):
 
-            if abs(verb.ord - infinitive.ord) > self.max_distance:
-                self.annotate_node(infinitive, 'infinitive')
-                self.annotate_node(verb, 'verb')
+            if (max_dst := abs(verb.ord - infinitive.ord)) > self.max_distance:
+                self.annotate_node('infinitive', infinitive)
+                self.annotate_node('verb', verb)
+
+                self.annotate_measurement('max_distance', max_dst, infinitive, verb)
+                self.annotate_parameter('max_distance', self.max_distance, infinitive, verb)
 
                 self.advance_application_id()
 
@@ -264,13 +291,18 @@ class RuleMultiPartVerbs(Rule):
 
             # find if the verb is too spread out
             too_far_apart = False
+            max_dst = 0
             for aux in auxiliaries:
-                too_far_apart |= abs(parent.ord - aux.ord) > self.max_distance
+                dst = abs(parent.ord - aux.ord)
+                max_dst = max(max_dst, dst)
+                too_far_apart |= dst > self.max_distance
 
             if too_far_apart:
-                self.annotate_node(parent, 'head')
-                for aux in auxiliaries:
-                    self.annotate_node(aux, 'aux')
+                self.annotate_node('head', parent)
+                self.annotate_node('aux', *auxiliaries)
+
+                self.annotate_measurement('max_distance', max_dst, parent, *auxiliaries)
+                self.annotate_parameter('max_distance', self.max_distance, parent, *auxiliaries)
 
                 self.advance_application_id()
 
@@ -299,9 +331,13 @@ class RuleLongSentences(Rule):
             # len(descendants) always >= 1 when add_self == True
             beginning, end = descendants[0], descendants[-1]
 
-            if end.ord - beginning.ord >= self.max_length:
-                self.annotate_node(beginning, 'beginning')
-                self.annotate_node(end, 'end')
+            if (max_length := end.ord - beginning.ord) >= self.max_length:
+                self.annotate_node('beginning', beginning)
+                self.annotate_node('end', end)
+
+                self.annotate_measurement('max_length', max_length, beginning, end)
+                self.annotate_parameter('max_length', self.max_length, beginning, end)
+                self.annotate_parameter('without_punctuation', self.without_punctuation, beginning, end)
 
                 self.advance_application_id()
 
@@ -340,9 +376,12 @@ class RulePredAtClauseBeginning(Rule):
                 return
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
-            if first_predicate_token.ord - clause_beginning.ord + 1 > self.max_order:
-                self.annotate_node(clause_beginning, 'clause_beginning')
-                self.annotate_node(first_predicate_token, 'predicate_beginning')
+            if (max_ord := first_predicate_token.ord - clause_beginning.ord + 1) > self.max_order:
+                self.annotate_node('clause_beginning', clause_beginning)
+                self.annotate_node('predicate_beginning', first_predicate_token)
+
+                self.annotate_measurement('max_order', max_ord, clause_beginning, first_predicate_token)
+                self.annotate_parameter('max_order', self.max_order, clause_beginning, first_predicate_token)
 
                 self.advance_application_id()
 
@@ -357,7 +396,7 @@ class RuleVerbalNouns(Rule):
 
     def process_node(self, node):
         if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
-            self.annotate_node(node, 'verbal_noun')
+            self.annotate_node('verbal_noun', node)
             self.advance_application_id()
 
 
@@ -404,9 +443,12 @@ class RuleTooFewVerbs(Rule):
                 )
             ]
 
-            if len(verbs) / len(sentence) < self.min_verb_frac:
-                for verb in verbs:
-                    self.annotate_node(verb, 'verb')
+            if (min_frac := len(verbs) / len(sentence)) < self.min_verb_frac:
+                self.annotate_node('verb', *verbs)
+
+                self.annotate_measurement('min_verb_frac', min_frac, *verbs)
+                self.annotate_parameter('min_verb_frac', self.min_verb_frac, *verbs)
+                self.annotate_parameter('finite_only', self.finite_only, *verbs)
 
                 self.advance_application_id()
 
@@ -436,9 +478,16 @@ class RuleTooManyNegations(Rule):
 
             no_pos, no_neg = len(positives), len(negatives)
 
-            if no_neg > self.max_allowable_negations and no_neg / (no_pos + no_neg) > self.max_negation_frac:
-                for nd in negatives:
-                    self.annotate_node(nd, 'negative')
+            if (
+                no_neg > self.max_allowable_negations
+                and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
+            ):
+                self.annotate_node('negative', *negatives)
+
+                self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives)
+                self.annotate_measurement('max_allowable_negations', no_neg, *negatives)
+                self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives)
+                self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
 
                 self.advance_application_id()
 
@@ -454,7 +503,7 @@ class RuleWeakMeaningWords(Rule):
 
     def process_node(self, node):
         if node.lemma in self._weak_meaning_words:
-            self.annotate_node(node, 'weak_meaning_word')
+            self.annotate_node('weak_meaning_word', node)
             self.advance_application_id()
 
 
@@ -481,7 +530,7 @@ class RuleAbstractNouns(Rule):
 
     def process_node(self, node):
         if node.lemma in self._abstract_nouns:
-            self.annotate_node(node, 'abstract_noun')
+            self.annotate_node('abstract_noun', node)
             self.advance_application_id()
 
 
@@ -513,7 +562,7 @@ class RuleRelativisticExpressions(Rule):
                 # success listener
                 else:
                     for matching_node in nodes:
-                        self.annotate_node(matching_node, 'relativistic_expression')
+                        self.annotate_node('relativistic_expression', matching_node)
                         self.advance_application_id()
 
 
@@ -529,7 +578,7 @@ class RuleConfirmationExpressions(Rule):
 
     def process_node(self, node):
         if node.lemma in self._expressions:
-            self.annotate_node(node, 'confirmation_expression')
+            self.annotate_node('confirmation_expression', node)
 
 
 class RuleRedundantExpressions(Rule):
@@ -540,10 +589,6 @@ class RuleRedundantExpressions(Rule):
 
     rule_id: Literal['RuleRedundantExpressions'] = 'RuleRedundantExpressions'
 
-    def _annotate(self, *nodes: Node):
-        for nd in nodes:
-            self.annotate_node(nd, 'redundant_expression')
-
     def process_node(self, node):
         match node.lemma:
             # je nutné zdůraznit
@@ -551,7 +596,7 @@ class RuleRedundantExpressions(Rule):
                 if (aux := [c for c in node.children if c.lemma == 'být']) and (
                     inf := [c for c in node.children if c.lemma == 'zdůraznit']
                 ):
-                    self._annotate(node, aux[0], inf[0])
+                    self.annotate_node('redundant_expression', node, aux[0], inf[0])
                     self.advance_application_id()
 
             # z uvedeného je zřejmé
@@ -565,13 +610,13 @@ class RuleRedundantExpressions(Rule):
                     # without it possible being overwritten if there are multiple cs that match c.lemma == 'uvedený'
                     adp = [a for a in adj[0].children if a.lemma == 'z']
 
-                    self._annotate(node, aux[0], adj[0], adp[0])
+                    self.annotate_node('redundant_expression', node, aux[0], adj[0], adp[0])
                     self.advance_application_id()
 
             # vyvstala otázka
             case 'vyvstat':
                 if noun := [c for c in node.children if c.lemma == 'otázka']:
-                    self._annotate(node, noun[0])
+                    self.annotate_node('redundant_expression', node, noun[0])
                     self.advance_application_id()
 
             # nabízí se otázka
@@ -579,7 +624,7 @@ class RuleRedundantExpressions(Rule):
                 if (expl := [c for c in node.children if c.deprel == 'expl:pass']) and (
                     noun := [c for c in node.children if c.lemma == 'otázka']
                 ):
-                    self._annotate(node, expl[0], noun[0])
+                    self.annotate_node('redundant_expression', node, expl[0], noun[0])
                     self.advance_application_id()
 
             # v neposlední řadě
@@ -587,7 +632,7 @@ class RuleRedundantExpressions(Rule):
                 if (adj := [c for c in node.children if c.lemma == 'neposlední']) and (
                     adp := [c for c in node.children if c.lemma == 'v']
                 ):
-                    self._annotate(node, adj[0], adp[0])
+                    self.annotate_node('redundant_expression', node, adj[0], adp[0])
                     self.advance_application_id()
 
             # v kontextu věci
@@ -595,7 +640,7 @@ class RuleRedundantExpressions(Rule):
                 if (noun := [c for c in node.children if c.lemma == 'věc']) and (
                     adp := [c for c in node.children if c.lemma == 'v']
                 ):
-                    self._annotate(node, noun[0], adp[0])
+                    self.annotate_node('redundant_expression', node, noun[0], adp[0])
                     self.advance_application_id()
 
             # v rámci posuzování
@@ -607,7 +652,7 @@ class RuleRedundantExpressions(Rule):
                     # without it possible being overwritten if there are multiple cs that match c.lemma == 'v'
                     noun = [n for n in adp[0].children if n.lemma == 'rámec']
 
-                    self._annotate(node, adp[0], noun[0])
+                    self.annotate_node('redundant_expression', node, adp[0], noun[0])
                     self.advance_application_id()
 
 
@@ -619,16 +664,12 @@ class RuleTooLongExpressions(Rule):
 
     rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
 
-    def _annotate(self, *nodes: Node):
-        for nd in nodes:
-            self.annotate_node(nd, 'too_long_expression')
-
     def process_node(self, node):
         match node.lemma:
             # v důsledku toho
             case 'důsledek':
                 if (adp := node.parent).lemma == 'v' and adp.parent and (pron := adp.parent).upos in ('PRON', 'DET'):
-                    self._annotate(node, adp, pron)
+                    self.annotate_node('too_long_expression', node, adp, pron)
                     self.advance_application_id()
 
             # v případě, že
@@ -638,18 +679,18 @@ class RuleTooLongExpressions(Rule):
                     and (noun := node.parent.parent).lemma == 'případ'
                     and (adp := [c for c in noun.children if c.lemma == 'v'])
                 ):
-                    self._annotate(node, noun, adp[0])
+                    self.annotate_node('too_long_expression', node, noun, adp[0])
                     self.advance_application_id()
             # týkající se
             case 'týkající':
                 if expl := [c for c in node.children if c.deprel == 'expl:pv']:
-                    self._annotate(node, expl[0])
+                    self.annotate_node('too_long_expression', node, expl[0])
                     self.advance_application_id()
 
             # za účelem
             case 'účel':
                 if (adp := node.parent).lemma == 'za':
-                    self._annotate(node, adp)
+                    self.annotate_node('too_long_expression', node, adp)
                     self.advance_application_id()
 
 
@@ -661,10 +702,6 @@ class RuleAnaphoricReferences(Rule):
 
     rule_id: Literal['RuleAnaphoricReferences'] = 'RuleAnaphoricReferences'
 
-    def _annotate(self, *nodes: Node):
-        for node in nodes:
-            self.annotate_node(node, 'anaphoric_reference')
-
     def process_node(self, node):
         match node.lemma:
             # co se týče výše uvedeného
@@ -672,7 +709,7 @@ class RuleAnaphoricReferences(Rule):
             # z právě uvedeného je zřejmé
             case 'uvedený':
                 if adv := [c for c in node.children if c.lemma in ('vysoko', 'shora', 'právě')]:
-                    self._annotate(node, *adv)
+                    self.annotate_node('anaphoric_reference', node, *adv)
                     self.advance_application_id()
 
             # s ohledem na tuto skutečnost
@@ -680,7 +717,9 @@ class RuleAnaphoricReferences(Rule):
                 if (det := [c for c in node.children if c.udeprel == 'det' and c.feats['PronType'] == 'Dem']) and (
                     adp := [c for c in node.children if c.udeprel == 'case']
                 ):
-                    self._annotate(node, *det, *adp, *[desc for a in adp for desc in a.descendants()])
+                    self.annotate_node(
+                        'anaphoric_reference', node, *det, *adp, *[desc for a in adp for desc in a.descendants()]
+                    )
                     self.advance_application_id()
 
             # z logiky věci vyplývá
@@ -688,7 +727,9 @@ class RuleAnaphoricReferences(Rule):
                 if (noun := [c for c in node.children if c.lemma == 'věc']) and (
                     adp := [c for c in node.children if c.lemma == 'z']
                 ):
-                    self._annotate(node, *noun, *adp, *[desc for a in adp for desc in a.descendants()])
+                    self.annotate_node(
+                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants()]
+                    )
                     self.advance_application_id()
 
 
@@ -721,10 +762,10 @@ class RuleAmbiguousRegards(Rule):
             )
 
             if trajector and trajector.udeprel == 'obj':
-                self.annotate_node(sconj, 'sconj')
-                self.annotate_node(landmark, 'landmark')
-                self.annotate_node(comparative, 'comparative')
-                self.annotate_node(trajector, 'trajector')
+                self.annotate_node('sconj', sconj)
+                self.annotate_node('landmark', landmark)
+                self.annotate_node('comparative', comparative)
+                self.annotate_node('trajector', trajector)
 
                 self.advance_application_id()
 
