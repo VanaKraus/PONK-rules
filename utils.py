@@ -57,9 +57,9 @@ class StringBuildable(BaseModel):
         for child in cls.get_final_children():
             html += f'<h2>{child.__name__}</h2>'
             html += f'<button id={child.__name__}-button>Show</button>'
-            html += f'<div id={child.__name__} style="display:none">{
-                child.__doc__.replace("\n", "<br>").replace("    ", "")
-            }'
+            html += (f'<div id={child.__name__} style="display:none">'
+                     f'{child.__doc__.replace("\n", "<br>").replace("    ", "")}'
+                     )
             html += f'<h4>Parameters</h4>'
             html += f'<button id={child.__name__}-params-button>Show</button>'
             html += f'<ul id={child.__name__}-params style="display:none">'
