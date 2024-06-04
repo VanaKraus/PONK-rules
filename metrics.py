@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 
 
 class Metric(StringBuildable):
+    """
+    A base class for metrics.
+    """
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
 
@@ -45,6 +48,9 @@ class Metric(StringBuildable):
 
 
 class MetricSentenceCount(Metric):
+    """
+    A metric for counting sentences.
+    """
     metric_id: Literal['sent_count'] = 'sent_count'
 
     def apply(self, doc: Document) -> float:
@@ -52,16 +58,23 @@ class MetricSentenceCount(Metric):
 
 
 class MetricWordCount(Metric):
+    """
+    A metric for counting words.
+    """
     metric_id: Literal['word_count'] = 'word_count'
-    filter_punct: bool = True
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
 
     def apply(self, doc: Document) -> float:
         return len(Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else []))
 
 
 class MetricSyllableCount(Metric):
+    """
+    A metric for counting syllables.
+    """
     metric_id: Literal['syllab_count'] = 'syllab_count'
-    filter_punct: bool = True
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
 
     def apply(self, doc: Document) -> float:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
@@ -69,9 +82,12 @@ class MetricSyllableCount(Metric):
 
 
 class MetricCharacterCount(Metric):
+    """
+    A metric for counting characters.
+    """
     metric_id: Literal['char_count'] = 'char_count'
-    count_spaces: bool = False
-    filter_punct: bool = True
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
 
     def apply(self, doc: Document) -> float:
         filtered_nodes = Metric.negative_filter_nodes_on_upos(doc.nodes, ['PUNCT'] if self.filter_punct else [])
@@ -80,9 +96,20 @@ class MetricCharacterCount(Metric):
 
 
 class MetricCLI(Metric):
+    """
+    Coleman–Liau index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    (coef_1 * (chars / words) * 100) - (coef_2 * (sents / words) * 100) - const_1
+
+    where chars is the number of characters in the text, words is the number of words and
+    sents is the number of sentences.
+    """
     metric_id: Literal['cli'] = 'cli'
-    count_spaces: bool = False
-    filter_punct: bool = True
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     coef_1: float = 0.047
     coef_2: float = 0.286
     const_1: float = 12.9
@@ -95,10 +122,20 @@ class MetricCLI(Metric):
 
 
 class MetricARI(Metric):
-    """THIS IS ARIIIIII"""
+    """
+    Automatic readability index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * (chars / words) + coef_2 * (words / sents) - const_1
+
+    where chars is the number of characters in the text, words is the number of words and
+    sents is the number of sentences.
+    """
     metric_id: Literal['ari'] = 'ari'
-    count_spaces: bool = False
-    filter_punct: bool = True
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     coef_1: float = 3.666
     coef_2: float = 0.631
     const_1: float = 19.49
@@ -111,8 +148,11 @@ class MetricARI(Metric):
 
 
 class MetricHapaxCount(Metric):
+    """
+    The count of words that appear in the text only once.
+    """
     metric_id: Literal['num_hapax'] = 'num_hapax'
-    use_lemma: bool = True
+    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
 
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in super().get_word_counts(doc, self.use_lemma)]
@@ -120,8 +160,11 @@ class MetricHapaxCount(Metric):
 
 
 class MetricEntropy(Metric):
+    """
+    Measures the entropy of the text, considering either lemmas or word forms.
+    """
     metric_id: Literal['entropy'] = 'entropy'
-    use_lemma: bool = True
+    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
 
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma)]
@@ -131,8 +174,12 @@ class MetricEntropy(Metric):
 
 
 class MetricTTR(Metric):
+    """
+    Type-token ratio. Measures the ratio of types (lemmas) to tokens.
+    """
     metric_id: Literal['ttr'] = 'ttr'
-    filter_punct: bool = True
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
 
     def apply(self, doc: Document) -> float:
         counts = dict(Metric.get_word_counts(doc, use_lemma=True, filter_punct=self.filter_punct))
@@ -140,6 +187,9 @@ class MetricTTR(Metric):
 
 
 class MetricVerbDistance(Metric):
+    """
+    Measures the average distance between verbs.
+    """
     metric_id: Literal['verb_dist'] = 'verb_dist'
     include_inf: bool = True
 
@@ -160,6 +210,9 @@ class MetricVerbDistance(Metric):
 
 
 class MetricActivity(Metric):
+    """
+    Measures the activity of the text, i.e. the ratio of (#verbs)/(#verbs + #adjectives).
+    """
     metric_id: Literal['activity'] = 'activity'
 
     def apply(self, doc: Document) -> float:
@@ -169,9 +222,13 @@ class MetricActivity(Metric):
 
 
 class MetricHPoint(Metric):
+    """
+    Measures h-point, i.e. the index of the first non-function word when sorted by frequency.
+    """
     metric_id: Literal['hpoint'] = 'hpoint'
-    use_lemma: bool = True
-    filter_punct: bool = True
+    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
 
     def apply(self, doc: Document) -> float:
         counts = [item[1] for item in self.get_word_counts(doc, self.use_lemma, self.filter_punct)]
@@ -189,8 +246,12 @@ class MetricHPoint(Metric):
 
 
 class MetricAverageTokenLength(Metric):
+    """
+    Measures the average length of tokens.
+    """
     metric_id: Literal['atl'] = 'atl'
-    filter_punct: bool = True
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
 
     def apply(self, doc: Document) -> float:
         total_tokens = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
@@ -199,9 +260,13 @@ class MetricAverageTokenLength(Metric):
 
 
 class MetricMovingAverageTypeTokenRatio(Metric):
+    """
+    Measures Type-token ratio over chunks of text of length window_size and averages them.
+    """
     metric_id: Literal['mattr'] = 'mattr'
-    use_lemma: bool = True
-    filter_punct: bool = True
+    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     window_size: int = 100
 
     def apply(self, doc: Document) -> float:
@@ -220,8 +285,12 @@ class MetricMovingAverageTypeTokenRatio(Metric):
 
 
 class MetricMovingAverageMorphologicalRichness(Metric):
+    """
+    Measures the difference between MATTR using word forms and MATTR using lemmas for the same window size.
+    """
     metric_id: Literal['mamr'] = 'mamr'
-    filter_punct: bool = True
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     window_size: int = 100
 
     def apply(self, doc: Document) -> float:
@@ -234,9 +303,21 @@ class MetricMovingAverageMorphologicalRichness(Metric):
 
 
 class MetricFleschReadingEase(Metric):
+    """
+    Flesch reading ease index. Measures the difficulty of reading and comprehending the test on a scale from 0 to 100,
+    with 100 being the easiest to understand and 0 being the hardest.
+
+    The index is calculated according to this formula:
+
+    const_1 - coef_1 * (words / sents) - coef_2 * (syllabs / words)
+
+    where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
+    syllables
+    """
     metric_id: Literal['fre'] = 'fre'
-    count_spaces: bool = False
-    filter_punct: bool = True
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     coef_1: float = 1.672
     coef_2: float = 62.18
     const_1: float = 206.935
@@ -249,9 +330,20 @@ class MetricFleschReadingEase(Metric):
 
 
 class MetricFleschKincaidGradeLevel(Metric):
+    """
+    Flesch-Kincaid grade level index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * (words / sents) + coef_2 * (syllabs / words) - const_1
+
+    where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
+    syllables
+    """
     metric_id: Literal['fkgl'] = 'fkgl'
-    count_spaces: bool = False
-    filter_punct: bool = True
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     coef_1: float = 0.52
     coef_2: float = 9.133
     const_1: float = 16.393
@@ -264,6 +356,9 @@ class MetricFleschKincaidGradeLevel(Metric):
 
 
 class PolysyllabicMetric(Metric):
+    """
+    A base class for metrics utilizing a threshold of syllabic length.
+    """
     syllab_threshold: int = 3
 
     def _is_word_complex(self, word: str):
@@ -271,8 +366,19 @@ class PolysyllabicMetric(Metric):
 
 
 class MetricGunningFog(PolysyllabicMetric):
+    """
+    Gunning fog index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * ((words/sents) + coef_2 * (complex_words/words))
+
+    where words is the number of words in the text, sents is the number of sentences and complex_words is the number of
+    words longer than the syllabic threshold.
+    """
     metric_id: Literal['gf'] = 'gf'
-    filter_punct: bool = True
+    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+
     coef_1: float = 0.4
     coef_2: float = 100
 
@@ -285,6 +391,18 @@ class MetricGunningFog(PolysyllabicMetric):
 
 # Modified version of SMOG. We do not rely on sampling
 class MetricSMOG(PolysyllabicMetric):
+    """
+    SMOG index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * sqrt(complex_words * 90) / sents + const_1
+
+    where words is the number of words in the text, sents is the number of sentences and complex_words is the number of
+    words longer than the syllabic threshold.
+
+    The formula for this metric is modified, as the original relied on random sampling from the text.
+    """
     metric_id: Literal['smog'] = 'smog'
     coef_1: float = 1.043
     const_1: float = 3.1291
@@ -294,6 +412,50 @@ class MetricSMOG(PolysyllabicMetric):
         complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
         return self.coef_1 * sqrt(complex_words * 90) / sents + self.const_1
 
+
+# class MetricAvgPredSubDist(Metric):
+#     metric_id: Literal['avg_pred_sub'] = 'avg_pred_sub'
+#     include_clausal_subjects: bool = False
+#
+#     # YUCK
+#     def _get_pred_subj_dist(self, tree):
+#         import util
+#         for node in tree.descendants:
+#             if node.udeprel == 'nsubj' or (self.include_clausal_subjects and node.udeprel == 'csubj'):
+#                 # locate predicate
+#                 pred = node.parent
+#
+#                 # if the predicate is analytic, select the (non-conditional) auxiliary or the copula
+#                 if finite_verbs := [
+#                     nd for nd in pred.children if nd.udeprel == 'cop' or (nd.udeprel == 'aux' and nd.feats['Mood'] != 'Cnd')
+#                 ]:
+#                     pred = finite_verbs[0]
+#
+#                 # locate subject
+#                 subj = node
+#                 if node.udeprel == 'csubj':
+#                     clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+#                     if node.ord < pred.ord:
+#                         subj = clause[-1]
+#                     else:
+#                         subj = clause[0]
+#
+#                 return abs(subj.ord - pred.ord)
+#         return None
+#
+#     def apply(self, doc: Document) -> float:
+#         total_sents = len(doc.bundles)
+#         total_dist = 0
+#         for bundle in doc.bundles:
+#             if not 0 < len(bundle.trees) < 2:
+#                 raise ValueError('Too many trees in a bundle :(')
+#             tree = bundle.trees[0]
+#             dist = self._get_pred_subj_dist(tree)
+#             if dist:
+#                 total_dist += dist
+#             else:
+#                 ... # really dont know what should happen if this is the case
+#         return total_dist / total_sents
 
 class MetricsWrapper(BaseModel):
     metric: Union[*Metric.get_final_children()] = Field(..., discriminator='metric_id')

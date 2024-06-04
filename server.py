@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from udapi.core.document import Document
 from udapi.block.read.conllu import Conllu as ConlluReader
 from io import FileIO, TextIOWrapper
@@ -21,6 +22,11 @@ app = FastAPI(
 @app.get("/")
 def root():
     return {"this is": "dog"}
+
+
+@app.get("/docs/foo", response_class=HTMLResponse)
+def asdf():
+    return Rule.generate_doc_html() + Metric.generate_doc_html() + Rule.generate_doc_footer()
 
 
 class MainRequest(BaseModel):
