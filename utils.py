@@ -57,8 +57,21 @@ class StringBuildable(BaseModel):
         for child in cls.get_final_children():
             html += f'<h2>{child.__name__}</h2>'
             html += f'<button id={child.__name__}-button>Show</button>'
+
+            docstring = child.__doc__
+            attrs = None
+            if 'Attributes:' in docstring:
+                import re
+                split_docstring = docstring.split('Attributes:')
+                docstring = split_docstring[0]
+                attrs = split_docstring[1].splitlines()
+                attrs = [re.sub(r'  +', '', attr) for attr in attrs]
+                attrs = [attr for attr in attrs if attr != '']
+                attrs = [re.sub(r' \([^)]+\): ', ':', attr).split(':') for attr in attrs]
+                attrs = {attr[0]: attr[1] for attr in attrs}
+
             html += (f'<div id={child.__name__} style="display:none">'
-                     f'{child.__doc__.replace("\n", "<br>").replace("    ", "")}'
+                     f'{docstring.replace(chr(10), "<br>").replace("    ", "")}'
                      )
             html += f'<h4>Parameters</h4>'
             html += f'<button id={child.__name__}-params-button>Show</button>'
@@ -70,8 +83,9 @@ class StringBuildable(BaseModel):
                     continue
                 html += (f'<li><b>{name}</b>: '
                          f'{field_info.annotation.__name__} '
-                         f'{' = ' + str(field_info.default) if field_info.default is not None else ''}'
-                         f'{'<i>' + field_info.description + '</i>' if field_info.description else ''}'
+                         f'{" = " + str(field_info.default) if field_info.default is not None else ""} '
+                         f'{"<i>" + field_info.description + "</i>" if field_info.description else ""}'
+                         f'{"<i>" + attrs[name] + "</i>" if attrs and attrs.get(name) is not None else ""}'
                          f'</li>')
             html += '</ul>'
             html += '</div>'
