@@ -48,6 +48,9 @@ class Metric(StringBuildable):
 
 
 class MetricSentenceCount(Metric):
+    """
+    A metric for counting sentences.
+    """
     metric_id: Literal['sent_count'] = 'sent_count'
 
     def apply(self, doc: Document) -> float:
@@ -125,6 +128,7 @@ class MetricARI(Metric):
     The index is calculated according to this formula:
 
     coef_1 * (chars / words) + coef_2 * (words / sents) - const_1
+
     where chars is the number of characters in the text, words is the number of words and
     sents is the number of sentences.
     """
