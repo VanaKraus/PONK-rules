@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from pydantic import BaseModel
+from typing import Type
 
 
 class StringBuildable(BaseModel):
@@ -18,7 +18,7 @@ class StringBuildable(BaseModel):
         return {sub.id(): sub for sub in cls.__subclasses__()}
 
     @classmethod
-    def get_final_children(cls) -> list[type]:
+    def get_final_children(cls) -> list[Type['StringBuildable']]:
         children = cls.__subclasses__()
         for child in children:
             if child.__subclasses__():
@@ -48,6 +48,56 @@ class StringBuildable(BaseModel):
                 return f(*args, **kwargs)
             return wrapper
         return decorate
+
+    @classmethod
+    def generate_doc_html(cls):
+        html = f'<h1>{cls.__name__}</h1>'
+        html += f'<button id={cls.__name__}-button>Show</button>'
+        html += f'<div id={cls.__name__} style="display:none">'
+        for child in cls.get_final_children():
+            html += f'<h2>{child.__name__}</h2>'
+            html += f'<button id={child.__name__}-button>Show</button>'
+            html += f'<div id={child.__name__} style="display:none">{
+                child.__doc__.replace("\n", "<br>").replace("    ", "")
+            }'
+            html += f'<h4>Parameters</h4>'
+            html += f'<button id={child.__name__}-params-button>Show</button>'
+            html += f'<ul id={child.__name__}-params style="display:none">'
+            for param in child.model_fields.items():
+                name = param[0]
+                field_info = param[1]
+                if field_info.json_schema_extra and field_info.json_schema_extra.get('hidden'):
+                    continue
+                html += (f'<li><b>{name}</b>: '
+                         f'{field_info.annotation.__name__} '
+                         f'{' = ' + str(field_info.default) if field_info.default is not None else ''}'
+                         f'{'<i>' + field_info.description + '</i>' if field_info.description else ''}'
+                         f'</li>')
+            html += '</ul>'
+            html += '</div>'
+
+        html += '</div>'
+        return html
+
+    @staticmethod
+    def generate_doc_footer():
+        return """<script>
+        var buttons = document.getElementsByTagName('button');
+        for (i = 0; i < buttons.length; i++) {
+          buttons[i].addEventListener("click", function() {
+            var id = this.id.replace('-button', '');
+            var content = document.getElementById(id);
+            if (content.style.display === "block") {
+              content.style.display = "none";
+              this.innerHTML = 'Show';
+            } else {
+              content.style.display = "block";
+              this.innerHTML = 'Hide';
+            }
+          });
+        }
+        </script>
+        """
 
 
 MINIMAL_CONLLU = """# newdoc
