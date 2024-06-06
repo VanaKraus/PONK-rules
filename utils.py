@@ -65,7 +65,7 @@ class StringBuildable(BaseModel):
                 split_docstring = docstring.split('Attributes:')
                 docstring = split_docstring[0]
                 attrs = split_docstring[1].splitlines()
-                attrs = [re.sub(r'  +', '', attr) for attr in attrs]
+                attrs = [re.sub(r'  +', ' ', attr).strip() for attr in attrs]
                 attrs = [attr for attr in attrs if attr != '']
                 attrs = [re.sub(r' \([^)]+\): ', ':', attr).split(':') for attr in attrs]
                 attrs = {attr[0]: attr[1] for attr in attrs}

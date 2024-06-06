@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field
 
 import os
 
+RULE_ANNOTATION_PREFIX = 'PonkApp1'
+
 
 class Rule(StringBuildable):
     detect_only: bool = True
@@ -32,7 +34,7 @@ class Rule(StringBuildable):
         return cls.__name__
 
     def annotate_node(self, annotation: str, *node: Node, flag: str | None = None):
-        key = f"{self.__class__.id()}:{self.process_id}"
+        key = f"{RULE_ANNOTATION_PREFIX}:{self.__class__.id()}:{self.process_id}"
         if flag:
             key += f":{flag}"
         value = annotation
