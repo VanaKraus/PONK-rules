@@ -20,14 +20,21 @@ class Metric(StringBuildable):
 
     @staticmethod
     def get_word_counts(nodes: List[Node], use_lemma=False,
-                        from_to: Tuple[int, int] | None = None) -> Iterator[Tuple[str, int]]:
+                        from_to: Tuple[int, int] | None = None) -> dict[str, int]:
         if from_to:
             nodes = nodes[from_to[0]:from_to[1]]
         all_words = Metric.get_node_texts(nodes, use_lemma)
-        unique_words = set(all_words)
-        counts = map(lambda x: all_words.count(x), unique_words)
-        return zip(unique_words, counts)
+        return Metric.count_occurrences_of_unique_texts(all_words)
 
+    @staticmethod
+    def count_occurrences_of_unique_texts(node_texts: List[str]):
+        result = {}
+        for text in node_texts:
+            if result.get(text) is None:
+                result[text] = 1
+            else:
+                result[text] += 1
+        return result
     @staticmethod
     def filter_nodes_on_upos(nodes: Iterator[Node], values: List[str], negative=False) -> List[Node]:
         return [node for node in nodes if ((node.upos in values) != negative)]
@@ -41,7 +48,7 @@ class Metric(StringBuildable):
         return Metric.negative_filter_nodes_on_upos(nodes, ['PUNCT'])
 
     @staticmethod
-    def get_node_texts(nodes: Iterator[Node], use_lemma=False):
+    def get_node_texts(nodes: Iterator[Node], use_lemma=False) -> List[str]:
         return [node.form if not use_lemma else node.lemma for node in nodes]
 
     @staticmethod
@@ -55,6 +62,7 @@ class MetricPunctExcluding(Metric):
 
     def get_applicable_nodes(self, doc: Document) -> List[Node]:
         return self.filter_nodes_on_punct(doc.nodes) if self.filter_punct else doc.nodes
+
 
 class MetricSentenceCount(Metric):
     """
@@ -157,7 +165,7 @@ class MetricHapaxCount(MetricPunctExcluding):
     use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
 
     def apply(self, doc: Document) -> float:
-        counts = [item[1] for item in super().get_word_counts(self.get_applicable_nodes(doc), self.use_lemma)]
+        counts = list(self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values())
         return counts.count(1)
 
 
@@ -169,7 +177,7 @@ class MetricEntropy(MetricPunctExcluding):
     use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
 
     def apply(self, doc: Document) -> float:
-        counts = [item[1] for item in self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma)]
+        counts = self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values()
         n_words = sum(counts)
         probs = map(lambda x: x / n_words, counts)
         return -sum(prob * log2(prob) for prob in probs)
@@ -182,9 +190,8 @@ class MetricTTR(MetricPunctExcluding):
     metric_id: Literal['ttr'] = 'ttr'
 
     def apply(self, doc: Document) -> float:
-        counts = dict(Metric.get_word_counts(self.get_applicable_nodes(doc),
-                                             use_lemma=True))
-        return len(counts) / sum(count for lemma, count in counts.items())
+        counts = Metric.get_word_counts(self.get_applicable_nodes(doc), use_lemma=True)
+        return len(counts) / sum(counts.values())
 
 
 class MetricVerbDistance(Metric):
@@ -230,9 +237,8 @@ class MetricHPoint(MetricPunctExcluding):
     metric_id: Literal['hpoint'] = 'hpoint'
     use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
 
-
     def apply(self, doc: Document) -> float:
-        counts = [item[1] for item in self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma)]
+        counts = list(self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values())
         counts.sort(reverse=True)
         for i in range(len(counts)):
             if i + 1 == counts[i]:
@@ -274,11 +280,10 @@ class MetricMovingAverageTypeTokenRatio(MetricPunctExcluding):
         total_words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         big_sum = 0
         filtered_nodes = self.get_applicable_nodes(doc)
+        filtered_texts = self.get_node_texts(filtered_nodes, self.use_lemma)
+
         for i in range(int(total_words) - self.window_size):
-            counts = dict(Metric.get_word_counts(filtered_nodes,
-                                                 use_lemma=self.use_lemma,
-                                                 from_to=(i, i + self.window_size)
-                                                 ))
+            counts = set(filtered_texts[i:i+self.window_size])
             big_sum += len(counts)
 
         return big_sum / (self.window_size * (total_words - self.window_size + 1))
