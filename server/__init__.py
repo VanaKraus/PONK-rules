@@ -5,7 +5,7 @@ from io import TextIOWrapper
 
 from pydantic import BaseModel, Field
 
-from utils import MINIMAL_CONLLU
+from document_applicables import MINIMAL_CONLLU
 
 from server.api_helpers import *
 

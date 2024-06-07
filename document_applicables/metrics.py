@@ -6,12 +6,12 @@ from typing import Iterator, Tuple, List, Literal, Union
 
 from math import log2, sqrt
 
-from utils import StringBuildable
+from document_applicables import Documentable
 
 from pydantic import BaseModel, Field
 
 
-class Metric(StringBuildable):
+class Metric(Documentable):
     """
     A base class for metrics.
     """

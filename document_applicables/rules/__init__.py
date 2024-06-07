@@ -1,13 +1,12 @@
 from __future__ import annotations
-import util
+import document_applicables.rules.util
 
 from udapi.core.block import Block
 from udapi.core.node import Node
-from udapi.core.root import Root
 from udapi.core.document import Document
 from typing import Literal, Any, Union
 
-from utils import StringBuildable
+from document_applicables import Documentable
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +15,7 @@ import os
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 
-class Rule(StringBuildable):
+class Rule(Documentable):
     detect_only: bool = True
     process_id: str = Field(default_factory=lambda: os.urandom(4).hex(), hidden=True)
     modified_roots: set[Any] = Field(default=set(), hidden=True)  # FIXME: This should not be Any, but rather Root
@@ -433,8 +432,8 @@ class RuleTooFewVerbs(Rule):
                 for nd in sentence
                 if self.is_verb(nd)
                 and not (
-                    util.is_aux(nd, grammatical_only=True)
-                    and (
+                        util.is_aux(nd, grammatical_only=True)
+                        and (
                         self.is_verb(nd.parent)
                         or [
                             preceding_nd

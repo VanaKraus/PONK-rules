@@ -1,5 +1,5 @@
-from metrics import Metric, MetricsWrapper
-from rules import Rule, RuleAPIWrapper, RuleBlockWrapper
+from document_applicables.metrics import Metric, MetricsWrapper
+from document_applicables.rules import Rule, RuleAPIWrapper, RuleBlockWrapper
 from udapi.core.document import Document
 from fastapi import HTTPException
 
