@@ -135,3 +135,9 @@ cython_debug/
 # Directory for storing files which are not part of the repo
 _local/
 .vscode/
+
+.idea/
+conllu/
+data/
+models/
+output/
