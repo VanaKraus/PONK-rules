@@ -122,14 +122,14 @@ class RuleDoubleAdpos(Rule):
 
                 if cconj:
                     self.annotate_node('cconj', cconj)
+                    self.annotate_measurement('max_allowable_distance', dst, cconj, parent_adpos, coord_el1, coord_el2)
+                    self.annotate_parameter(
+                        'max_allowable_distance', self.max_allowable_distance, cconj, parent_adpos, coord_el1, coord_el2
+                    )
                 self.annotate_node('orig_adpos', parent_adpos)
                 self.annotate_node('coord_el1', coord_el1)
                 self.annotate_node('coord_el2', coord_el2)
 
-                self.annotate_measurement('max_allowable_distance', dst, cconj, parent_adpos, coord_el1, coord_el2)
-                self.annotate_parameter(
-                    'max_allowable_distance', self.max_allowable_distance, cconj, parent_adpos, coord_el1, coord_el2
-                )
 
                 self.advance_application_id()
 
