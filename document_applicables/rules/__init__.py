@@ -118,17 +118,21 @@ class RuleDoubleAdpos(Rule):
                         correction.shift_before_node(coord_el2.descendants(add_self=True)[0])
 
                     for node_to_annotate in correction.descendants(add_self=True):
+
                         self.annotate_node('add', node_to_annotate)
 
-                if cconj:
-                    self.annotate_node('cconj', cconj)
                 self.annotate_node('orig_adpos', parent_adpos)
                 self.annotate_node('coord_el1', coord_el1)
                 self.annotate_node('coord_el2', coord_el2)
 
-                self.annotate_measurement('max_allowable_distance', dst, cconj, parent_adpos, coord_el1, coord_el2)
+                if cconj:
+                    self.annotate_node('cconj', cconj)
+                    self.annotate_measurement('max_allowable_distance', dst, cconj)
+                    self.annotate_parameter('max_allowable_distance', self.max_allowable_distance, cconj)
+
+                self.annotate_measurement('max_allowable_distance', dst, parent_adpos, coord_el1, coord_el2)
                 self.annotate_parameter(
-                    'max_allowable_distance', self.max_allowable_distance, cconj, parent_adpos, coord_el1, coord_el2
+                    'max_allowable_distance', self.max_allowable_distance, parent_adpos, coord_el1, coord_el2
                 )
 
                 self.advance_application_id()
@@ -432,8 +436,8 @@ class RuleTooFewVerbs(Rule):
                 for nd in sentence
                 if self.is_verb(nd)
                 and not (
-                        util.is_aux(nd, grammatical_only=True)
-                        and (
+                    util.is_aux(nd, grammatical_only=True)
+                    and (
                         self.is_verb(nd.parent)
                         or [
                             preceding_nd
