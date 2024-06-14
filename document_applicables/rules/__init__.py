@@ -1,16 +1,16 @@
 from __future__ import annotations
-import document_applicables.rules.util
+
+from typing import Literal, Any, Union
+import os
 
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
-from typing import Literal, Any, Union
-
-from document_applicables import Documentable
-
 from pydantic import BaseModel, Field
 
-import os
+from document_applicables import Documentable
+from document_applicables.rules import util
+
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
@@ -375,10 +375,6 @@ class RulePredAtClauseBeginning(Rule):
             # sort by order in the sentence
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
-
-            # if first_predicate_token has already been annotated by this rule
-            if l := [k for k, _ in first_predicate_token.misc.items() if k.split(':')[0] == self.rule_id]:
-                return
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
             if (max_ord := first_predicate_token.ord - clause_beginning.ord + 1) > self.max_order:
