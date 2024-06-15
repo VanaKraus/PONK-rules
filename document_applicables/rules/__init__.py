@@ -12,6 +12,8 @@ from document_applicables import Documentable
 from document_applicables.rules import util
 
 
+from math import sqrt
+
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 
@@ -21,6 +23,7 @@ class Rule(Documentable):
     modified_roots: set[Any] = Field(default=set(), hidden=True)  # FIXME: This should not be Any, but rather Root
     application_count: int = Field(default=0, hidden=True)
     average_measured_values: dict[str, float] = Field(default={}, hidden=True)
+    measured_values: dict[str, list[float]] = Field(default={}, hidden=True)
 
     def model_post_init(self, __context: Any) -> None:
         self.process_id = Rule.get_application_id()
@@ -42,11 +45,16 @@ class Rule(Documentable):
         for nd in node:
             nd.misc[key] = value
 
-    def annotate_measurement(self, m_name: str, m_value: float, *node):
-        self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
+    def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (
                 ((self.average_measured_values.get(m_name) or 0) * self.application_count + m_value)
                 / (self.application_count + 1))
+        self.measured_values[m_name] = (self.measured_values.get(m_name) or []) + [m_value]
+        # FIXME: this is slow, but probably not relevant
+
+    def annotate_measurement(self, m_name: str, m_value: float, *node):
+        self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
+        self.do_measurement_calculations(m_name=m_name, m_value=m_value)
 
     def annotate_parameter(self, p_name: str, p_value, *node):
         self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
@@ -62,6 +70,7 @@ class Rule(Documentable):
     def reset_application_count(self):
         self.application_count = 0
         self.average_measured_values = {}
+        self.measured_values = {}
 
     def process_node(self, node: Node):
         raise NotImplementedError('A rule is expected to have a \'process_node\' method.')
