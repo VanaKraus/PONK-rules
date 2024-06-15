@@ -82,7 +82,7 @@ for directory in dirs:
         rule_results = {rule.rule_id: rule.application_count for rule in rules}
         avg_measures = [{rule.rule_id + ':' + name: value for name, value in rule.average_measured_values.items()} for
                         rule in rules if rule.average_measured_values]
-        sds = [{rule.rule_id + ':' + name + ':sd': stdev(value) for name, value in rule.measured_values.items()} for
+        sds = [{rule.rule_id + ':' + name + ':sd': stdev(value) if len(value) > 1 else 0 for name, value in rule.measured_values.items()} for
                rule in rules if rule.average_measured_values]
         measurements = [{rule.rule_id + ':' + name + ':meas': value for name, value in rule.measured_values.items()} for
                         rule in rules if rule.average_measured_values]
