@@ -1,16 +1,16 @@
 from __future__ import annotations
-import document_applicables.rules.util
+
+from typing import Literal, Any, Union
+import os
 
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
-from typing import Literal, Any, Union
-
-from document_applicables import Documentable
-
 from pydantic import BaseModel, Field
 
-import os
+from document_applicables import Documentable
+from document_applicables.rules import util
+
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
@@ -118,17 +118,21 @@ class RuleDoubleAdpos(Rule):
                         correction.shift_before_node(coord_el2.descendants(add_self=True)[0])
 
                     for node_to_annotate in correction.descendants(add_self=True):
+
                         self.annotate_node('add', node_to_annotate)
 
-                if cconj:
-                    self.annotate_node('cconj', cconj)
                 self.annotate_node('orig_adpos', parent_adpos)
                 self.annotate_node('coord_el1', coord_el1)
                 self.annotate_node('coord_el2', coord_el2)
 
-                self.annotate_measurement('max_allowable_distance', dst, cconj, parent_adpos, coord_el1, coord_el2)
+                if cconj:
+                    self.annotate_node('cconj', cconj)
+                    self.annotate_measurement('max_allowable_distance', dst, cconj)
+                    self.annotate_parameter('max_allowable_distance', self.max_allowable_distance, cconj)
+
+                self.annotate_measurement('max_allowable_distance', dst, parent_adpos, coord_el1, coord_el2)
                 self.annotate_parameter(
-                    'max_allowable_distance', self.max_allowable_distance, cconj, parent_adpos, coord_el1, coord_el2
+                    'max_allowable_distance', self.max_allowable_distance, parent_adpos, coord_el1, coord_el2
                 )
 
                 self.advance_application_id()
@@ -372,10 +376,6 @@ class RulePredAtClauseBeginning(Rule):
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
-            # if first_predicate_token has already been annotated by this rule
-            if l := [k for k, _ in first_predicate_token.misc.items() if k.split(':')[0] == self.rule_id]:
-                return
-
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
             if (max_ord := first_predicate_token.ord - clause_beginning.ord + 1) > self.max_order:
                 self.annotate_node('clause_beginning', clause_beginning)
@@ -432,8 +432,8 @@ class RuleTooFewVerbs(Rule):
                 for nd in sentence
                 if self.is_verb(nd)
                 and not (
-                        util.is_aux(nd, grammatical_only=True)
-                        and (
+                    util.is_aux(nd, grammatical_only=True)
+                    and (
                         self.is_verb(nd.parent)
                         or [
                             preceding_nd
