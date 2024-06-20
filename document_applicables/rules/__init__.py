@@ -40,10 +40,7 @@ class Rule(Documentable):
         key = f"{RULE_ANNOTATION_PREFIX}:{self.__class__.id()}:{self.process_id}"
         if flag:
             key += f":{flag}"
-        value = annotation
-
-        for nd in node:
-            nd.misc[key] = value
+        super().annotate_node(key, annotation, *node)
 
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (

@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile
 from fastapi.responses import HTMLResponse
-from udapi.block.read.conllu import Conllu as ConlluReader
 from io import TextIOWrapper
 
 from pydantic import BaseModel, Field
@@ -21,7 +20,7 @@ def root():
     return {"this is": "dog"}
 
 
-@app.get("/docs/foo", response_class=HTMLResponse)
+@app.get("/docs/foo", response_class=HTMLResponse, tags=['visual'])
 def asdf():
     return Rule.generate_doc_html() + Metric.generate_doc_html() + Rule.generate_doc_footer()
 
@@ -47,10 +46,13 @@ def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
 
 @app.post('/raw', tags=['ponk_rules'])
 def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> MainReply:
-    reader = ConlluReader(filehandle=TextIOWrapper(file.file))
-    doc = Document()
-    reader.apply_on_document(doc)
+    doc = build_doc_from_upload(file)
     metric_list, rule_list = select_profile(profile)
     metrics = compute_metrics(metric_list, doc)
     modified_doc = apply_rules(rule_list, doc)
     return MainReply(modified_conllu=modified_doc, metrics=metrics)
+
+@app.post('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
+def visualize_mattr(file: UploadFile):
+    doc = build_doc_from_upload(file)
+    return build_visualization_html(doc)
