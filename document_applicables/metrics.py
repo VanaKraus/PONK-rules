@@ -316,15 +316,18 @@ class MetricMovingAverageMorphologicalRichness(MetricPunctExcluding):
 
     window_size: int = 100
 
+    annotation_key1: str = Field(default='mamr1', hidden=True)
+    annotation_key2: str = Field(default='mamr2', hidden=True)
+
     def apply(self, doc: Document) -> float:
         return MetricMovingAverageTypeTokenRatio(use_lemma=False,
                                                  filter_punct=self.filter_punct,
                                                  window_size=self.window_size,
-                                                 annotation_key='mamr1').apply(doc) - \
+                                                 annotation_key=self.annotation_key1).apply(doc) - \
             MetricMovingAverageTypeTokenRatio(use_lemma=True,
                                               filter_punct=self.filter_punct,
                                               window_size=self.window_size,
-                                              annotation_key='mamr2').apply(doc)
+                                              annotation_key=self.annotation_key2).apply(doc)
 
 
 class MetricFleschReadingEase(MetricPunctExcluding):
