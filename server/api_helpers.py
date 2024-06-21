@@ -103,7 +103,7 @@ def word_opacity_pair_to_html(word: str, opacity: float):
 
 def build_visualization_html(doc: Document):
     html = ''
-    for word, opacity in mamr_calculate(doc):
+    for word, opacity in mattr_calculate(doc):
         html += word_opacity_pair_to_html(word, opacity) + '\n'
     return html
 

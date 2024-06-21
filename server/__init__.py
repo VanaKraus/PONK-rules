@@ -52,7 +52,20 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
     modified_doc = apply_rules(rule_list, doc)
     return MainReply(modified_conllu=modified_doc, metrics=metrics)
 
+
 @app.post('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
 def visualize_mattr(file: UploadFile):
     doc = build_doc_from_upload(file)
     return build_visualization_html(doc)
+
+
+@app.get('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
+def vizualize_ui():
+    return """
+    <form method='post' target='_self' enctype='multipart/form-data'>
+        <label> Give conllu:
+            <input name='file' type=file>
+        </label> <br>
+        <button> Send </button>
+    </form>
+    """
