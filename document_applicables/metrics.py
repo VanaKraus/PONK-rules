@@ -5,6 +5,7 @@ from udapi.core.node import Node
 from typing import Iterator, Tuple, List, Literal, Union
 
 from math import log2, sqrt
+from statistics import mean
 
 from document_applicables import Documentable
 
@@ -274,6 +275,18 @@ class MetricMovingAverageTypeTokenRatio(MetricPunctExcluding):
 
     window_size: int = 100
 
+    annotation_key: str = Field(default='mattr', hidden=True)
+
+    def add_to_annotation_list(self, value: float, node: Node):
+        self.annotate_node(self.annotation_key,
+                           (self.get_node_annotation(self.annotation_key, node) or []) + [value],
+                           node)
+
+    def calc_avg_value(self, node: Node):
+        self.annotate_node(self.annotation_key,
+                           mean(self.get_node_annotation(self.annotation_key, node)),
+                           node)
+
     def apply(self, doc: Document) -> float:
         # FIXME: this is horribly slow
         # FIXEDME: this is now less slow
@@ -282,10 +295,16 @@ class MetricMovingAverageTypeTokenRatio(MetricPunctExcluding):
         filtered_nodes = self.get_applicable_nodes(doc)
         filtered_texts = self.get_node_texts(filtered_nodes, self.use_lemma)
 
-        for i in range(int(total_words) - self.window_size):
-            counts = set(filtered_texts[i:i+self.window_size])
-            big_sum += len(counts)
+        for i in range(int(total_words) - self.window_size + 1):
+            uniques = set(filtered_texts[i:i+self.window_size])
+            count = len(uniques)
+            big_sum += count
+            for node in filtered_nodes[i:i+self.window_size]:
+                self.add_to_annotation_list(count / self.window_size, node)
 
+        if total_words >= self.window_size:
+            for node in filtered_nodes:
+                self.calc_avg_value(node)
         return big_sum / (self.window_size * (total_words - self.window_size + 1))
 
 
@@ -297,13 +316,18 @@ class MetricMovingAverageMorphologicalRichness(MetricPunctExcluding):
 
     window_size: int = 100
 
+    annotation_key1: str = Field(default='mamr1', hidden=True)
+    annotation_key2: str = Field(default='mamr2', hidden=True)
+
     def apply(self, doc: Document) -> float:
         return MetricMovingAverageTypeTokenRatio(use_lemma=False,
                                                  filter_punct=self.filter_punct,
-                                                 window_size=self.window_size).apply(doc) - \
+                                                 window_size=self.window_size,
+                                                 annotation_key=self.annotation_key1).apply(doc) - \
             MetricMovingAverageTypeTokenRatio(use_lemma=True,
                                               filter_punct=self.filter_punct,
-                                              window_size=self.window_size).apply(doc)
+                                              window_size=self.window_size,
+                                              annotation_key=self.annotation_key2).apply(doc)
 
 
 class MetricFleschReadingEase(MetricPunctExcluding):
