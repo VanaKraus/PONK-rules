@@ -2,12 +2,14 @@ from document_applicables.metrics import Metric, MetricsWrapper
 from document_applicables.rules import Rule, RuleAPIWrapper, RuleBlockWrapper
 from udapi.core.document import Document
 from fastapi import HTTPException
+from server.profiles import profiles
+
 
 def select_profile(profile_str: str) -> (list[Metric] | None , list[Rule] | None):
     # return appropriate set of rules and metrics based on the profiles selected
     # for now, just return the defaults
     print(f'Profile {profile_str} has been selected.')
-    return None, None
+    return profiles.get(profile_str) or (None, None)
 
 
 def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None):
