@@ -1,8 +1,9 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Form
 from fastapi.responses import HTMLResponse
 from io import TextIOWrapper
 
 from pydantic import BaseModel, Field
+from typing import Annotated
 
 from document_applicables import MINIMAL_CONLLU
 
@@ -54,18 +55,21 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
 
 
 @app.post('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
-def visualize_mattr(file: UploadFile):
+def visualize_mattr(file: UploadFile, window_size: Annotated[int, Form()]):
     doc = build_doc_from_upload(file)
-    return build_visualization_html(doc)
+    return build_visualization_html(doc, window_size)
 
 
 @app.get('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
 def vizualize_ui():
     return """
     <form method='post' target='_self' enctype='multipart/form-data'>
-        <label> Give conllu:
+        <label> Conllu:
             <input name='file' type=file>
         </label> <br>
+        <label> Window size:
+            <input name='window_size' type=number step=1 min=1 value='100'>
+        </label><br>
         <button> Send </button>
     </form>
     """
