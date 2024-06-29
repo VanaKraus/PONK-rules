@@ -36,7 +36,7 @@ def compute_metrics(metric_list: list[Metric] | None, doc: Document) -> list[dic
     if metric_list is None:
         # return all available metrics
         metric_list = [subclass() for subclass in Metric.get_final_children()]
-    return [{re.sub(r'([a-z])([A-Z])', '\1 \2',
+    return [{re.sub(r'([a-z])([A-Z])', r'\1 \2',
                     metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
             for metric in metric_list]
 
