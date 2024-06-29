@@ -54,10 +54,10 @@ def try_build_conllu_from_string(conllu_string: str) -> Document:
     return doc
 
 
-def mattr_calculate(doc: Document) -> list[tuple[str, float]]:
+def mattr_calculate(doc: Document, window_size: int) -> list[tuple[str, float]]:
     from document_applicables.metrics import MetricMovingAverageTypeTokenRatio
     from statistics import stdev
-    metric = MetricMovingAverageTypeTokenRatio(window_size=100)
+    metric = MetricMovingAverageTypeTokenRatio(window_size=window_size, annotate=True)
     anot_key = metric.annotation_key
     mean_mattr = metric.apply(doc)
     mattr_per_token = [metric.get_node_annotation(anot_key, node) for node in doc.nodes
@@ -71,10 +71,10 @@ def mattr_calculate(doc: Document) -> list[tuple[str, float]]:
     return [(node.form, node.misc[anot_key]) for node in doc.nodes]
 
 
-def mamr_calculate(doc: Document) -> list[tuple[str, float]]:
+def mamr_calculate(doc: Document, window_size: int) -> list[tuple[str, float]]:
     from document_applicables.metrics import MetricMovingAverageMorphologicalRichness
     from statistics import stdev
-    metric = MetricMovingAverageMorphologicalRichness()
+    metric = MetricMovingAverageMorphologicalRichness(window_size=window_size, annotate=True)
     def get_node_mamr(node: Node):
         anot1 = metric.get_node_annotation(anot_key1, node)
         anot2 = metric.get_node_annotation(anot_key2, node)
@@ -101,9 +101,9 @@ def word_opacity_pair_to_html(word: str, opacity: float):
     return f'<span style="background-color:rgba({red},{green},0,{opacity})">{word} </span>'
 
 
-def build_visualization_html(doc: Document):
+def build_visualization_html(doc: Document, window_size: int):
     html = ''
-    for word, opacity in mattr_calculate(doc):
+    for word, opacity in mattr_calculate(doc, window_size):
         html += word_opacity_pair_to_html(word, opacity) + '\n'
     return html
 

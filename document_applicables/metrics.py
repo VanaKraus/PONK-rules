@@ -266,14 +266,21 @@ class MetricAverageTokenLength(MetricPunctExcluding):
         return total_chars / total_tokens
 
 
-class MetricMovingAverageTypeTokenRatio(MetricPunctExcluding):
+class MetricMovingAverageBase(MetricPunctExcluding):
+    """
+    Base class for metrics working with a sliding window
+    """
+    window_size: int = 100
+
+    annotate: bool = Field(default=False, hidden=True)
+
+
+class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
     """
     Measures Type-token ratio over chunks of text of length window_size and averages them.
     """
     metric_id: Literal['mattr'] = 'mattr'
     use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
-
-    window_size: int = 100
 
     annotation_key: str = Field(default='mattr', hidden=True)
 
@@ -299,16 +306,17 @@ class MetricMovingAverageTypeTokenRatio(MetricPunctExcluding):
             uniques = set(filtered_texts[i:i+self.window_size])
             count = len(uniques)
             big_sum += count
-            for node in filtered_nodes[i:i+self.window_size]:
-                self.add_to_annotation_list(count / self.window_size, node)
+            if self.annotate:
+                for node in filtered_nodes[i:i+self.window_size]:
+                    self.add_to_annotation_list(count / self.window_size, node)
 
-        if total_words >= self.window_size:
+        if self.annotate and total_words >= self.window_size:
             for node in filtered_nodes:
                 self.calc_avg_value(node)
         return big_sum / (self.window_size * (total_words - self.window_size + 1))
 
 
-class MetricMovingAverageMorphologicalRichness(MetricPunctExcluding):
+class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
     """
     Measures the difference between MATTR using word forms and MATTR using lemmas for the same window size.
     """
@@ -323,10 +331,12 @@ class MetricMovingAverageMorphologicalRichness(MetricPunctExcluding):
         return MetricMovingAverageTypeTokenRatio(use_lemma=False,
                                                  filter_punct=self.filter_punct,
                                                  window_size=self.window_size,
+                                                 annotate=self.annotate,
                                                  annotation_key=self.annotation_key1).apply(doc) - \
             MetricMovingAverageTypeTokenRatio(use_lemma=True,
                                               filter_punct=self.filter_punct,
                                               window_size=self.window_size,
+                                              annotate=self.annotate,
                                               annotation_key=self.annotation_key2).apply(doc)
 
 
