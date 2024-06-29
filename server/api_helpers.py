@@ -10,6 +10,8 @@ from server.profiles import profiles
 from udapi.block.read.conllu import Conllu as ConlluReader
 from io import TextIOBase, TextIOWrapper
 
+import re
+
 
 def select_profile(profile_str: str) -> (list[Metric] | None, list[Rule] | None):
     # return appropriate set of rules and metrics based on the profiles selected
@@ -34,7 +36,9 @@ def compute_metrics(metric_list: list[Metric] | None, doc: Document) -> list[dic
     if metric_list is None:
         # return all available metrics
         metric_list = [subclass() for subclass in Metric.get_final_children()]
-    return [{metric.metric_id: metric.apply(doc)} for metric in metric_list]
+    return [{re.sub(r'([a-z])([A-Z])', r'\1 \2',
+                    metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
+            for metric in metric_list]
 
 
 def apply_rules(rule_list: list[Rule] | None, doc: Document) -> str:
