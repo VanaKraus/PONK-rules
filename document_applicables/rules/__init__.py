@@ -492,8 +492,8 @@ class RuleTooManyNegations(Rule):
         if node.udeprel == 'root':
             clause = util.get_clause(node, without_punctuation=True, node_is_root=True)
 
-            positives = [nd for nd in clause if 'Polarity' in nd.feats and nd.feats['Polarity'] == 'Pos']
-            negatives = [nd for nd in clause if 'Polarity' in nd.feats and nd.feats['Polarity'] == 'Neg']
+            positives = [nd for nd in clause if self._is_positive(nd)]
+            negatives = [nd for nd in clause if self._is_negative(nd)]
 
             no_pos, no_neg = len(positives), len(negatives)
 
@@ -509,6 +509,19 @@ class RuleTooManyNegations(Rule):
                 self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
 
                 self.advance_application_id()
+
+    @staticmethod
+    def _is_positive(node) -> bool:
+        # the aim is to capture (positives and) pronouns denoting an entity (not asking for it or relating it)
+        return ('Polarity' in node.feats and node.feats['Polarity'] == 'Pos') or (
+            'PronType' in node.feats and node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind')
+        )
+
+    @staticmethod
+    def _is_negative(node) -> bool:
+        return ('Polarity' in node.feats and node.feats['Polarity'] == 'Neg') or (
+            'PronType' in node.feats and node.feats['PronType'] == 'Neg'
+        )
 
 
 class RuleWeakMeaningWords(Rule):
