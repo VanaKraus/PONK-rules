@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Type
+from udapi.core.node import Node
 
 
 class Documentable(BaseModel):
@@ -21,6 +22,13 @@ class Documentable(BaseModel):
                 children.remove(child)
                 children += child.__subclasses__()
         return children
+
+    def annotate_node(self, key: str, annotation, *node: Node):
+        for nd in node:
+            nd.misc[key] = annotation
+
+    def get_node_annotation(self, key: str, node: Node):
+        return node.misc.get(key)
 
     @classmethod
     def generate_doc_html(cls):

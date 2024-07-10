@@ -1,9 +1,9 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Form
 from fastapi.responses import HTMLResponse
-from udapi.block.read.conllu import Conllu as ConlluReader
 from io import TextIOWrapper
 
 from pydantic import BaseModel, Field
+from typing import Annotated
 
 from document_applicables import MINIMAL_CONLLU
 
@@ -21,7 +21,7 @@ def root():
     return {"this is": "dog"}
 
 
-@app.get("/docs/foo", response_class=HTMLResponse)
+@app.get("/docs/foo", response_class=HTMLResponse, tags=['visual'])
 def asdf():
     return Rule.generate_doc_html() + Metric.generate_doc_html() + Rule.generate_doc_footer()
 
@@ -47,10 +47,29 @@ def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
 
 @app.post('/raw', tags=['ponk_rules'])
 def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> MainReply:
-    reader = ConlluReader(filehandle=TextIOWrapper(file.file))
-    doc = Document()
-    reader.apply_on_document(doc)
+    doc = build_doc_from_upload(file)
     metric_list, rule_list = select_profile(profile)
     metrics = compute_metrics(metric_list, doc)
     modified_doc = apply_rules(rule_list, doc)
     return MainReply(modified_conllu=modified_doc, metrics=metrics)
+
+
+@app.post('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
+def visualize_mattr(file: UploadFile, window_size: Annotated[int, Form()]):
+    doc = build_doc_from_upload(file)
+    return build_visualization_html(doc, window_size)
+
+
+@app.get('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
+def vizualize_ui():
+    return """
+    <form method='post' target='_self' enctype='multipart/form-data'>
+        <label> Conllu:
+            <input name='file' type=file>
+        </label> <br>
+        <label> Window size:
+            <input name='window_size' type=number step=1 min=1 value='100'>
+        </label><br>
+        <button> Send </button>
+    </form>
+    """
