@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from numbers import Number
 from typing import Literal, Any, Union
 import os
 
@@ -11,8 +12,6 @@ from pydantic import BaseModel, Field
 from document_applicables import Documentable
 from document_applicables.rules import util
 
-
-from math import sqrt
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
@@ -44,16 +43,16 @@ class Rule(Documentable):
 
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (
-                ((self.average_measured_values.get(m_name) or 0) * self.application_count + m_value)
-                / (self.application_count + 1))
+            (self.average_measured_values.get(m_name) or 0) * self.application_count + m_value
+        ) / (self.application_count + 1)
         self.measured_values[m_name] = (self.measured_values.get(m_name) or []) + [m_value]
         # FIXME: this is slow, but probably not relevant
 
-    def annotate_measurement(self, m_name: str, m_value: float, *node):
+    def annotate_measurement(self, m_name: str, m_value: Number, *node):
         self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
         self.do_measurement_calculations(m_name=m_name, m_value=m_value)
 
-    def annotate_parameter(self, p_name: str, p_value, *node):
+    def annotate_parameter(self, p_name: str, p_value: Number, *node):
         self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
 
     def after_process_document(self, document):
@@ -141,7 +140,6 @@ class RuleDoubleAdpos(Rule):
                 self.annotate_node('orig_adpos', parent_adpos)
                 self.annotate_node('coord_el1', coord_el1)
                 self.annotate_node('coord_el2', coord_el2)
-
 
                 self.advance_application_id()
 
@@ -482,8 +480,8 @@ class RuleTooManyNegations(Rule):
         if node.udeprel == 'root':
             clause = util.get_clause(node, without_punctuation=True, node_is_root=True)
 
-            positives = [nd for nd in clause if 'Polarity' in nd.feats and nd.feats['Polarity'] == 'Pos']
-            negatives = [nd for nd in clause if 'Polarity' in nd.feats and nd.feats['Polarity'] == 'Neg']
+            positives = [nd for nd in clause if self._is_positive(nd)]
+            negatives = [nd for nd in clause if self._is_negative(nd)]
 
             no_pos, no_neg = len(positives), len(negatives)
 
@@ -499,6 +497,19 @@ class RuleTooManyNegations(Rule):
                 self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
 
                 self.advance_application_id()
+
+    @staticmethod
+    def _is_positive(node) -> bool:
+        # the aim is to capture (positives and) pronouns denoting an entity (not asking for it or relating it)
+        return ('Polarity' in node.feats and node.feats['Polarity'] == 'Pos') or (
+            'PronType' in node.feats and node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind')
+        )
+
+    @staticmethod
+    def _is_negative(node) -> bool:
+        return ('Polarity' in node.feats and node.feats['Polarity'] == 'Neg') or (
+            'PronType' in node.feats and node.feats['PronType'] == 'Neg'
+        )
 
 
 class RuleWeakMeaningWords(Rule):
