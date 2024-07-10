@@ -87,7 +87,7 @@ class RuleDoubleAdpos(Rule):
     """
 
     rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
-    max_allowable_distance: int = 3
+    max_allowable_distance: int = 4
 
     def process_node(self, node: Node):
         if node.deprel != 'conj' or node.parent.parent is None:  # in case parent_adpos doesn't have a parent
@@ -419,7 +419,7 @@ class RuleTooFewVerbs(Rule):
     """
 
     rule_id: Literal['RuleTooFewVerbs'] = 'RuleTooFewVerbs'
-    min_verb_frac: float = 0.05
+    min_verb_frac: float = 0.06
     finite_only: bool = False
 
     def is_verb(self, node):
