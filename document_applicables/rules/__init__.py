@@ -519,7 +519,16 @@ class RuleWeakMeaningWords(Rule):
     """
 
     rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
-    _weak_meaning_words: list[str] = ['dopadat', 'zaměřit', 'poukázat', 'ovlivnit', 'postup', 'obdobně', 'velmi']
+    _weak_meaning_words: list[str] = [
+        'dopadat',
+        'zaměřit',
+        'poukázat',
+        'ovlivnit',
+        'provádět',
+        'postup',
+        'obdobně',
+        'velmi',
+    ]
 
     def process_node(self, node):
         if node.lemma in self._weak_meaning_words:
