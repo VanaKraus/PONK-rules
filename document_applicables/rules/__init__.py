@@ -799,6 +799,111 @@ class RuleAmbiguousRegards(Rule):
                 self.advance_application_id()
 
 
+class RuleLiteraryStyle(Rule):
+    """Capture expressions associated with literary style.
+
+    Inspiration: Sgall & Panevová (2014, pp. 42, 66–69, 79–82).
+    """
+
+    rule_id: Literal['RuleLiteraryStyle'] = 'RuleLiteraryStyle'
+
+    def process_node(self, node: Node):
+        # vinni jsou
+        if (
+            node.lemma == 'vinný'
+            and 'Variant' in node.feats
+            and node.feats['Variant'] == 'Short'
+            and (auxiliaries := [c for c in node.children if c.upos == 'AUX'])
+        ):
+            self.annotate_node('být_vinnen', node, *auxiliaries)
+
+        # na vině jsou
+        elif (
+            node.form.lower() == 'vině'
+            and (adps := [c for c in node.children if c.lemma == 'na'])
+            and (parent := node.parent)
+            and parent.lemma == 'být'
+        ):
+            self.annotate_node('být_na_vině', node, *adps, parent)
+
+        # genetive objects
+        elif (
+            node.deprel in ('obj', 'iobj', 'obl:arg')
+            and 'Case' in node.feats
+            and node.feats['Case'] == 'Gen'
+            and (parent := node.parent)
+            and parent.lemma
+            in (
+                'užít',
+                'uživší',
+                'užívat',
+                'užívající',
+                'využít',
+                'využivší',
+                'využívat',
+                'využívající',
+                'přát',
+                'přející',
+                'žádat',
+                'žádající',
+            )
+            # filter out prepositional genitives
+            # and genitives depending on a two-form-declination word
+            and not (dpndnts := [c for c in node.children if c.deprel == 'case' or 'NumType' in c.feats])
+            # deverbative parents only
+            and 'VerbForm' in parent.feats
+        ):
+            self.annotate_node('genitive_object', node)
+            self.annotate_node('gen_obj_head', parent)
+
+        # short adjective forms
+        elif (
+            node.upos == 'ADJ'
+            and 'Variant' in node.feats
+            and node.feats['Variant'] == 'Short'
+            and 'VerbForm' not in node.feats  # rule out passive participles
+            and node.lemma not in ('rád', 'bosý')
+        ):
+            self.annotate_node('short_adjective_variant', node)
+
+        # pronoun "jej"
+        elif (
+            node.form.lower() == 'jej'
+            and node.upos == 'PRON'
+            and (node.feats['Case'] == 'Gen' or 'Neut' in node.feats['Gender'].split(','))
+        ):
+            self.annotate_node('jej_pronoun_form', node)
+
+        elif node.lemma in ('jenž', 'jehož'):
+            self.annotate_node('jenž', node)
+
+        # some subordinate conjunctions
+        elif node.lemma in ('jestliže', 'pakliže', 'li', 'poněvadž', 'jelikož') and node.upos == 'SCONJ':
+            self.annotate_node('subordinate_conjunction', node)
+
+
+class RuleDoubleComparison(Rule):
+    """Capture constructions with a comparison auxiliary modifying a head with a non-positive degree of comparison.
+
+    Inspiration: Sgall & Panevová (2014, p. 67).
+    """
+
+    rule_id: Literal['RuleDoubleComparison'] = 'RuleDoubleComparison'
+
+    def process_node(self, node: Node):
+        if (
+            node.lemma in ('více', 'méně', 'míň')
+            and 'Degree' in node.feats
+            and node.feats['Degree'] != 'Pos'
+            and (parent := node.parent)
+            and node.udeprel == 'advmod'
+            and 'Degree' in parent.feats
+            and parent.feats['Degree'] == node.feats['Degree']
+        ):
+            self.annotate_node('head', parent)
+            self.annotate_node('modifier', node)
+
+
 class RuleBlockWrapper(Block):
     def __init__(self, rule: Rule):
         Block.__init__(self)
