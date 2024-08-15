@@ -904,6 +904,144 @@ class RuleDoubleComparison(Rule):
             self.annotate_node('modifier', node)
 
 
+class RuleTooManyNominalConstructions(Rule):
+    """Capture clauses with too many nominal constructions.
+
+    Inspiration: Sgall & Panevová (2014, p. 41).
+
+    Attributes:
+        max_noun_frac (float): the highest (# of nouns / # of words) \
+            fraction value for the clause to not be considered an issue.
+        max_allowable_nouns (int): the highest # of nouns in the clause for the rule \
+            to remain inhibited.
+    """
+
+    rule_id: Literal['RuleTooManyNominalConstructions'] = 'RuleTooManyNominalConstructions'
+    max_noun_frac: float = 0.5
+    max_allowable_nouns: int = 3
+
+    # drafts: 1. min_noun_frac, 2. capture long noun sequences
+
+    def process_node(self, node: Node):
+        if util.is_clause_root(node):
+            clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+
+            nouns = [
+                n
+                for n in clause
+                if n.upos == 'NOUN' and (n.ord == 1 or not util.is_proper_noun(n, look_at_parents=True))
+            ]
+
+            if (l := len(nouns)) > self.max_allowable_nouns and float(l) / len(clause) > self.max_noun_frac:
+                self.annotate_node('noun', *nouns)
+
+
+class RuleReflexivePassWithAnimSubj(Rule):
+    """Capture reflexive passives used with animate subjects.
+
+    Inspiration: Sgall & Panevová (2014, pp. 71-72).
+    """
+
+    rule_id: Literal['RuleReflexivePassWithAnimSubj'] = 'RuleReflexivePassWithAnimSubj'
+
+    def process_node(self, node: Node):
+        if (
+            node.deprel == 'expl:pass'
+            and (verb := node.parent)
+            and (subj := [s for s in verb.children if s.udeprel == 'nsubj'])
+            and 'Animacy' in subj[0].feats
+            and subj[0].feats['Animacy'] == 'Anim'
+        ):
+            self.annotate_node('refl_pass', node, verb)
+            self.annotate_node('subj', subj[0])
+
+
+class RuleWrongCase(Rule):
+    """Catches wrong case usage with certain valency dependencies.
+
+    Inspiration: Sgall & Panevová (2014, p. 85).
+    """
+
+    rule_id: Literal['RuleWrongCase'] = 'RuleWrongCase'
+
+    def process_node(self, node: Node):
+        # pokoušeli se zabránit takové důsledky
+        if node.lemma in ('zabránit', 'zabraňovat') and (
+            accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+        ):
+            for acc in accs:
+                if not bool([c for c in acc.children if c.udeprel == 'case']):
+                    self.annotate_node('verb', node)
+                    self.annotate_node('accusative', acc)
+
+        # pokoušeli se zamezit takovým důsledkům
+        elif node.lemma in ('zamezit', 'zamezovat') and (
+            dats := [d for d in node.children if d.udeprel == 'obl' and 'Case' in d.feats and d.feats['Case'] == 'Dat']
+        ):
+            for dat in dats:
+                if not bool([c for c in dat.children if c.udeprel == 'case']):
+                    self.annotate_node('verb', node)
+                    self.annotate_node('dative', dat)
+
+        # nemusíte zodpovědět na tyto otázky
+        elif node.lemma in ('zodpovědět', 'zodpovídat') and (
+            accs := [a for a in node.children if a.udeprel == 'obl' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+        ):
+            for acc in accs:
+                if (cases := [c for c in acc.children if c.udeprel == 'case']) and cases[0].lemma == 'na':
+                    self.annotate_node('verb', node)
+                    self.annotate_node('accusative', acc)
+                    self.annotate_node('preposition', cases[0])
+
+        # nemusíte odpovědět tyto otázky
+        elif node.lemma in ('odpovědět', 'odpovídat') and (
+            accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+        ):
+            for acc in accs:
+                cases = [c for c in acc.children if c.udeprel == 'case']
+
+                if not bool(cases):
+                    self.annotate_node('verb', node)
+                    self.annotate_node('accusative', acc)
+
+                elif cases[0].lemma != 'na':
+                    self.annotate_node('verb', node)
+                    self.annotate_node('accusative', acc)
+                    self.annotate_node('preposition', cases[0])
+
+        # hovořit/mluvit něco
+        elif node.lemma in ('hovořit', 'mluvit') and (
+            accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+        ):
+            print(node)
+            for acc in accs:
+                print(acc)
+                if not bool([c for c in acc.children if c.udeprel == 'case']):
+                    self.annotate_node('verb', node)
+                    self.annotate_node('accusative', acc)
+
+        # mimo + !ACC
+        elif (
+            node.lemma == 'mimo'
+            and node.udeprel == 'case'
+            and 'Case' in (noun := node.parent).feats
+            and noun.feats['Case'] != 'Acc'
+        ):
+            self.annotate_node('preposition', node)
+            self.annotate_node('not_accusative', noun)
+
+        # kromě + !GEN
+        # not sure if UDPipe is able to parse kromě with any other case than GEN
+        elif (
+            node.lemma == 'kromě'
+            and node.udeprel == 'case'
+            and 'Case' in (noun := node.parent).feats
+            and noun.feats['Case'] != 'Gen'
+        ):
+            self.annotate_node('preposition', node)
+            self.annotate_node('not_genitive', noun)
+
+
 class RuleBlockWrapper(Block):
     def __init__(self, rule: Rule):
         Block.__init__(self)

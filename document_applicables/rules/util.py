@@ -80,3 +80,28 @@ def get_clause(
         clause = [nd for nd in clause if nd.upos != 'PUNCT']
 
     return clause
+
+
+class NotANounException(Exception):
+    pass
+
+
+class ClauseBeginningException(Exception):
+    pass
+
+
+def is_proper_noun(node: Node, clause_not_capitalized: bool = False, look_at_parents: bool = False) -> bool:
+    if node.upos != 'NOUN':
+        raise NotANounException(f'{node} is not a noun')
+    if not clause_not_capitalized and node.ord <= 1:
+        raise ClauseBeginningException(f'{node} at the beginning of a clause')
+
+    result = node.form == node.form.capitalize()
+
+    if look_at_parents:
+        try:
+            result |= is_proper_noun(node.parent)
+        except (NotANounException, ClauseBeginningException):
+            pass
+
+    return result
