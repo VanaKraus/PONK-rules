@@ -527,7 +527,7 @@ class RuleTooManyNegations(Rule):
 class RuleWeakMeaningWords(Rule):
     """Capture semantically weak words.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39).
+    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86).
     """
 
     rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
@@ -535,11 +535,16 @@ class RuleWeakMeaningWords(Rule):
         'dopadat',
         'zaměřit',
         'poukázat',
+        'poukazovat',
         'ovlivnit',
+        'ovlivňovat',
         'provádět',
+        'provést',
         'postup',
         'obdobně',
         'velmi',
+        'uskutečnit',
+        'uskutečňovat',
     ]
 
     def process_node(self, node):
@@ -969,7 +974,7 @@ class RuleReflexivePassWithAnimSubj(Rule):
 
 
 class RuleWrongCase(Rule):
-    """Catches wrong case usage with certain valency dependencies.
+    """Capture wrong case usage with certain valency dependencies.
 
     Inspiration: Sgall & Panevová (2014, p. 85).
     """
@@ -1025,9 +1030,7 @@ class RuleWrongCase(Rule):
         elif node.lemma in ('hovořit', 'mluvit') and (
             accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
         ):
-            print(node)
             for acc in accs:
-                print(acc)
                 if not bool([c for c in acc.children if c.udeprel == 'case']):
                     self.annotate_node('verb', node)
                     self.annotate_node('accusative', acc)
@@ -1052,6 +1055,37 @@ class RuleWrongCase(Rule):
         ):
             self.annotate_node('preposition', node)
             self.annotate_node('not_genitive', noun)
+
+
+class RuleIncompleteConjunction(Rule):
+    """Capture incomplete multi-token conjunctions.
+
+    Inspiration: Sgall & Panevová (2014, p. 85).
+    """
+
+    rule_id: Literal['RuleIncompleteConjunction'] = 'RuleIncompleteConjunction'
+
+    def process_node(self, node: Node):
+        if node.lemma == 'jednak':
+            conjunctions = [c for c in node.root.descendants() if c != node and c.lemma == 'jednak']
+
+            if len(conjunctions) == 0:
+                self.annotate_node('conj_part', node)
+
+
+class RuleFunctionWordRepetition(Rule):
+    """Capture repeating function words.
+
+    Inspiration: Sgall & Panevová (2014, p. 88).
+    """
+
+    rule_id: Literal['RuleFunctionWordRepetition'] = 'RuleFunctionWordRepetition'
+
+    def process_node(self, node: Node):
+        if node.upos in ('ADP', 'SCONJ', 'CCONJ') and (
+            following_node := [n for n in node.root.descendants() if n.ord == node.ord + 1 and n.lemma == node.lemma]
+        ):
+            self.annotate_node('repetition', node, following_node[0])
 
 
 class RuleBlockWrapper(Block):
