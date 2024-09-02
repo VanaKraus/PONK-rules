@@ -90,8 +90,10 @@ class ClauseBeginningException(Exception):
     pass
 
 
-def is_proper_noun(node: Node, clause_not_capitalized: bool = False, look_at_parents: bool = False) -> bool:
-    return node.upos == 'PROPN'
+def is_named_entity(node: Node, clause_not_capitalized: bool = False, look_at_parents: bool = False) -> bool:
+    # TODO: requires overhaul
+
+    result = node.upos == 'PROPN'
 
     # if node.upos != 'NOUN':
     #     raise NotANounException(f'{node} is not a noun')
@@ -100,10 +102,11 @@ def is_proper_noun(node: Node, clause_not_capitalized: bool = False, look_at_par
 
     # result = node.form == node.form.capitalize()
 
-    # if look_at_parents:
-    #     try:
-    #         result |= is_proper_noun(node.parent)
-    #     except (NotANounException, ClauseBeginningException):
-    #         pass
+    if look_at_parents and not result:
+        try:
+            # this can turn result to True if the node is an ADP/CCONJ/DET within a multi-word named entity
+            result |= is_named_entity(node.parent)
+        except (NotANounException, ClauseBeginningException):
+            pass
 
-    # return result
+    return result

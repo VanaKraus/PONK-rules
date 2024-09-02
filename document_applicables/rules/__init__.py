@@ -16,9 +16,6 @@ from document_applicables import Documentable
 from document_applicables.rules import util
 
 
-# FIXME: POS label of proper nouns is PROPN. check that this is accounted for!
-
-
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 
@@ -940,8 +937,6 @@ class RuleTooManyNominalConstructions(Rule):
     max_noun_frac: float = 0.5
     max_allowable_nouns: int = 3
 
-    # drafts: 1. min_noun_frac, 2. capture long noun sequences
-
     def process_node(self, node: Node):
         if util.is_clause_root(node):
             clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
@@ -949,7 +944,7 @@ class RuleTooManyNominalConstructions(Rule):
             nouns = [
                 n
                 for n in clause
-                if n.upos == 'NOUN' and (n.ord == 1 or not util.is_proper_noun(n, look_at_parents=True))
+                if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n, look_at_parents=True))
             ]
 
             if (l := len(nouns)) > self.max_allowable_nouns and float(l) / len(clause) > self.max_noun_frac:
@@ -1092,13 +1087,16 @@ class RuleFunctionWordRepetition(Rule):
 
 
 class RulePossessiveGenitive(Rule):
-    # FIXME: docstring
+    """Capture unnecessary or badly placed possessive genitives.
+
+    Inspiration: Sgall & Panevová (2014, p. 91).
+    """
 
     rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
 
     def process_node(self, node: Node):
         if (
-            util.is_proper_noun(node)
+            util.is_named_entity(node)
             and node.feats['Case'] == 'Gen'
             and node.udeprel == 'nmod'
             and len(node.children) == 0
