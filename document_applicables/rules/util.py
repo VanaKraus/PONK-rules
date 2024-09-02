@@ -91,17 +91,19 @@ class ClauseBeginningException(Exception):
 
 
 def is_proper_noun(node: Node, clause_not_capitalized: bool = False, look_at_parents: bool = False) -> bool:
-    if node.upos != 'NOUN':
-        raise NotANounException(f'{node} is not a noun')
-    if not clause_not_capitalized and node.ord <= 1:
-        raise ClauseBeginningException(f'{node} at the beginning of a clause')
+    return node.upos == 'PROPN'
 
-    result = node.form == node.form.capitalize()
+    # if node.upos != 'NOUN':
+    #     raise NotANounException(f'{node} is not a noun')
+    # if not clause_not_capitalized and node.ord <= 1:
+    #     raise ClauseBeginningException(f'{node} at the beginning of a clause')
 
-    if look_at_parents:
-        try:
-            result |= is_proper_noun(node.parent)
-        except (NotANounException, ClauseBeginningException):
-            pass
+    # result = node.form == node.form.capitalize()
 
-    return result
+    # if look_at_parents:
+    #     try:
+    #         result |= is_proper_noun(node.parent)
+    #     except (NotANounException, ClauseBeginningException):
+    #         pass
+
+    # return result
