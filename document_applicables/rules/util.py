@@ -1,7 +1,10 @@
+import re
+
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
 
-import re
+# FIXME: cyclic import
+from document_applicables import rules
 
 
 def clone_node(
@@ -37,8 +40,8 @@ def clone_node(
 def is_aux(node: Node, grammatical_only: bool = False) -> bool:
     if grammatical_only:
         return node.udeprel in ('aux', 'cop') or node.deprel == 'expl:pass'
-    else:
-        return node.udeprel in ('aux', 'expl', 'cop')
+
+    return node.udeprel in ('aux', 'expl', 'cop')
 
 
 def is_finite_verb(node: Node) -> bool:
@@ -110,3 +113,8 @@ def is_named_entity(node: Node, clause_not_capitalized: bool = False, look_at_pa
             pass
 
     return result
+
+
+def rules_applied(node: Node) -> set[str]:
+    rule_annotations = [m.split(':') for m in node.misc if m.startswith(f'{rules.RULE_ANNOTATION_PREFIX}:')]
+    return {annotation[1] for annotation in rule_annotations}
