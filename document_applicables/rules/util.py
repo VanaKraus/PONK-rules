@@ -85,12 +85,42 @@ def get_clause(
     return clause
 
 
-class NotANounException(Exception):
-    pass
+class NEregister:
+    '''Keeps track of named entities visited.'''
 
+    _reg: set[str] = {}
 
-class ClauseBeginningException(Exception):
-    pass
+    def __init__(self, *node):
+        for nd in node:
+            self.is_registered_ne(nd)
+
+    def is_registered_ne(self, node) -> bool:
+        """Checks if the node is a named entity and if it has already been visited. If the node is \
+            a not-yet-visited NE, the NE code gets registered.
+
+        Args:
+            node
+
+        Returns:
+            bool: returns True if the node is an already-visited NE. Returns False if the node isn't a NE, \
+                or if the NE hasn't been visited yet.
+        """
+
+        if not is_named_entity(node):
+            return False
+
+        result = False
+
+        for code in node.misc['NE'].split('-'):
+            if code in self._reg:
+                result |= True
+            else:
+                if len(self._reg) == 0:
+                    self._reg = {code}
+                else:
+                    self._reg |= {code}
+
+        return result
 
 
 def is_named_entity(node: Node) -> bool:
