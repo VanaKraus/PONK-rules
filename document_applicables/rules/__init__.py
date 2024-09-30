@@ -1156,15 +1156,21 @@ class RuleCaseRepetition(Rule):
         self._tracked_pos = ('NOUN', 'ADJ') if self.include_adjectives else ('NOUN')
 
     def process_node(self, node: Node):
-        if node.upos in self._tracked_pos and 'Case' in node.feats and not util.is_named_entity(node):
+        if node.upos in self._tracked_pos and 'Case' in node.feats:
             descendants = node.root.descendants()
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
             ]
 
             while len(following_nodes) >= self.max_repetition_count:
+                ne_reg = util.NEregister(node)
+
                 same_case_nodes = [
-                    n for n in following_nodes if n.upos in self._tracked_pos and n.feats['Case'] == node.feats['Case']
+                    n
+                    for n in following_nodes
+                    if n.upos in self._tracked_pos
+                    and n.feats['Case'] == node.feats['Case']
+                    and not ne_reg.is_registered_ne(n)
                 ]
 
                 if len(same_case_nodes) <= self.max_repetition_count:
