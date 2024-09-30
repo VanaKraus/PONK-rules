@@ -949,11 +949,7 @@ class RuleTooManyNominalConstructions(Rule):
         if util.is_clause_root(node):
             clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
 
-            nouns = [
-                n
-                for n in clause
-                if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n, look_at_parents=True))
-            ]
+            nouns = [n for n in clause if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n))]
 
             if (l := len(nouns)) > self.max_allowable_nouns and float(l) / len(clause) > self.max_noun_frac:
                 self.annotate_node('noun', *nouns)
@@ -1150,11 +1146,7 @@ class RuleCaseRepetition(Rule):
         self._tracked_pos = ('NOUN', 'ADJ') if self.include_adjectives else ('NOUN')
 
     def process_node(self, node: Node):
-        if (
-            node.upos in self._tracked_pos
-            and 'Case' in node.feats
-            and not util.is_named_entity(node, look_at_parents=True)
-        ):
+        if node.upos in self._tracked_pos and 'Case' in node.feats and not util.is_named_entity(node):
             descendants = node.root.descendants()
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
