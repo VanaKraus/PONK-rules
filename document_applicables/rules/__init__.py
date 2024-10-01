@@ -365,12 +365,11 @@ class RuleLongSentences(Rule):
             beginning, end = descendants[0], descendants[-1]
 
             if (max_length := end.ord - beginning.ord) >= self.max_length:
-                self.annotate_node('beginning', beginning)
-                self.annotate_node('end', end)
+                self.annotate_node('long_sentence', *descendants)
 
-                self.annotate_measurement('max_length', max_length, beginning, end)
-                self.annotate_parameter('max_length', self.max_length, beginning, end)
-                self.annotate_parameter('without_punctuation', self.without_punctuation, beginning, end)
+                self.annotate_measurement('max_length', max_length, *descendants)
+                self.annotate_parameter('max_length', self.max_length, *descendants)
+                self.annotate_parameter('without_punctuation', self.without_punctuation, *descendants)
 
                 self.advance_application_id()
 
