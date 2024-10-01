@@ -191,7 +191,7 @@ class RulePredSubjDistance(Rule):
     """Capture subjects that are too distant from their predicates \
         (or their auxiliaries/copulas when present).
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 53-54).
+    Inspiration: Šamánková & Kubíková (2022, pp. 53-54), Šváb (2023, pp. 21–22).
 
     Attributes:
         max_distance (int): how far apart the subject and the predicate can be \
@@ -343,7 +343,7 @@ class RuleMultiPartVerbs(Rule):
 class RuleLongSentences(Rule):
     """Capture sentences that are too long.
 
-    Inspiration: Šamánková & Kubíková (2022, p. 51).
+    Inspiration: Šamánková & Kubíková (2022, p. 51), Šváb (2023, pp. 17–18).
 
     Attributes:
         max_length (int): how long the sentence can be to not be considered an issue.
@@ -1201,8 +1201,8 @@ class RulePossessiveGenitive(Rule):
     def process_node(self, node: Node):
         if (
             util.is_named_entity(node)
-            and node.feats['Case'] == 'Gen'
             and node.udeprel == 'nmod'
+            and node.feats['Case'] == 'Gen'
             and len(node.children) == 0
         ):
             dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
