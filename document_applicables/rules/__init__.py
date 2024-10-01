@@ -172,7 +172,7 @@ class RuleDoubleAdpos(Rule):
 class RulePassive(Rule):
     """Capture be-passives.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 39-40).
+    Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2023, p. 27).
     """
 
     rule_id: Literal['RulePassive'] = 'RulePassive'
@@ -417,7 +417,7 @@ class RulePredAtClauseBeginning(Rule):
 class RuleVerbalNouns(Rule):
     """Capture verbal nouns.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 38-39).
+    Inspiration: Šamánková & Kubíková (2022, pp. 38-39), Šváb (2023, p. 30).
     """
 
     rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
@@ -484,7 +484,7 @@ class RuleTooFewVerbs(Rule):
 class RuleTooManyNegations(Rule):
     """Capture sentences with too many negations.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 40-41).
+    Inspiration: Šamánková & Kubíková (2022, pp. 40-41), Šváb (2023, p. 33).
 
     Attributes:
         max_negation_frac (float): the highest (# of negations / # of words with polarity) \
@@ -536,7 +536,7 @@ class RuleTooManyNegations(Rule):
 class RuleWeakMeaningWords(Rule):
     """Capture semantically weak words.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86).
+    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86), Šváb (2023, p. 32).
     """
 
     rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
@@ -949,6 +949,8 @@ class RuleTooManyNominalConstructions(Rule):
         max_allowable_nouns (int): the highest # of nouns in the clause for the rule \
             to remain inhibited.
     """
+
+    # TODO: consider reworking the rule similarly to RuleCaseRepetition. It would help with aligning more with Šváb.
 
     rule_id: Literal['RuleTooManyNominalConstructions'] = 'RuleTooManyNominalConstructions'
     max_noun_frac: float = 0.5
