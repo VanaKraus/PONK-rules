@@ -704,7 +704,7 @@ class RuleRedundantExpressions(Rule):
 class RuleTooLongExpressions(Rule):
     """Capture expressions that could be shortened.
 
-    Inspiration: Šamánková & Kubíková (2022, p. 44).
+    Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118)
     """
 
     rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
@@ -714,7 +714,7 @@ class RuleTooLongExpressions(Rule):
             # v důsledku toho
             case 'důsledek':
                 if (adp := node.parent).lemma == 'v' and adp.parent and (pron := adp.parent).upos in ('PRON', 'DET'):
-                    self.annotate_node('too_long_expression', node, adp, pron)
+                    self.annotate_node('v_důsledku_toho', node, adp, pron)
                     self.advance_application_id()
 
             # v případě, že
@@ -724,18 +724,102 @@ class RuleTooLongExpressions(Rule):
                     and (noun := node.parent.parent).lemma == 'případ'
                     and (adp := [c for c in noun.children if c.lemma == 'v'])
                 ):
-                    self.annotate_node('too_long_expression', node, noun, adp[0])
+                    self.annotate_node('v_případě_že', node, noun, *adp)
                     self.advance_application_id()
             # týkající se
             case 'týkající':
                 if expl := [c for c in node.children if c.deprel == 'expl:pv']:
-                    self.annotate_node('too_long_expression', node, expl[0])
+                    self.annotate_node('týkající_se', node, *expl)
                     self.advance_application_id()
 
             # za účelem
             case 'účel':
                 if (adp := node.parent).lemma == 'za':
-                    self.annotate_node('too_long_expression', node, adp)
+                    self.annotate_node('za_účelem', node, adp)
+                    self.advance_application_id()
+
+            # jste oprávněn
+            case 'oprávněný':
+                if aux := [c for c in node.children if c.upos == 'AUX']:
+                    self.annotate_node('jste_oprávněn', node, *aux)
+                    self.advance_application_id()
+
+            # uděluje/vyjadřuje souhlas
+            case 'souhlas':
+                if (verb := node.parent).lemma in ('udělovat', 'vyjadřovat') and node.udeprel == 'obj':
+                    self.annotate_node('uděluje_vyjadřuje_souhlas', node, verb)
+                    self.advance_application_id()
+
+            # dát do nájmu
+            case 'nájem':
+                if (
+                    node.feats['Case'] == 'Gen'
+                    and (adp := [c for c in node.children if c.lemma == 'do'])
+                    and (verb := node.parent).lemma == 'dát'
+                ):
+                    self.annotate_node('dát_do_nájmu', node, verb, *adp)
+                    self.advance_application_id()
+
+            # prostřednictvím kterého
+            case 'prostřednictví':
+                if node.upos == 'ADP' and (det := node.parent).upos == 'DET':
+                    self.annotate_node('prostřednictvím_kterého', node, det)
+                    self.advance_application_id()
+
+            # jsou uvedeny v příloze
+            case 'uvedený':
+                if (aux := [c for c in node.children if c.upos == 'AUX']) and (
+                    nouns := [
+                        c for c in node.children if c.upos == 'NOUN' and c.feats['Case'] == 'Loc' and c.deprel == 'obl'
+                    ]
+                ):
+                    for noun in nouns:
+                        if adp := [c for c in noun.children if c.lemma == 'v']:
+                            self.annotate_node('jsou_uvedeny_v_příloze', node, *aux, noun, *adp)
+                            self.advance_application_id()
+
+            # za podmínek uvedených ve smlouvě
+            case 'podmínka':
+                if (
+                    node.feats['Case'] == 'Gen'
+                    and (adp_za := [c for c in node.children if c.lemma == 'za'])
+                    and (amods := [c for c in node.children if c.lemma == 'uvedený'])
+                ):
+                    for amod in amods:
+                        if nouns := [
+                            c
+                            for c in amod.children
+                            if c.upos == 'NOUN' and c.feats['Case'] == 'Loc' and c.deprel == 'obl'
+                        ]:
+                            for noun in nouns:
+                                if adp_v := [c for c in noun.children if c.lemma == 'v']:
+                                    self.annotate_node(
+                                        'za_podmínek_uvedených_ve_smlouvě', node, *adp_za, amod, noun, *adp_v
+                                    )
+                                    self.advance_application_id()
+
+            # v rámci
+            case 'rámec':
+                if node.deprel == 'fixed' and (adp := node.parent).lemma == 'v':
+                    self.annotate_node('v_rámci', node, adp)
+                    self.advance_application_id()
+
+            # mluvený projev
+            case 'mluvený':
+                if (noun := node.parent).lemma == 'projev':
+                    self.annotate_node('mluvený_projev', node, noun)
+                    self.advance_application_id()
+
+            # ze strany banky
+            case 'strana':
+                if node.deprel == 'fixed' and (adp := node.parent).lemma == 'z' and (head := adp.parent):
+                    self.annotate_node('ze_strany_banky', node, adp, head)
+                    self.advance_application_id()
+
+            # předmětný závazek
+            case 'předmětný':
+                if node.deprel == 'amod' and (noun := node.parent).upos == 'NOUN':
+                    self.annotate_node('předmětný_závazek', node, noun)
                     self.advance_application_id()
 
 
