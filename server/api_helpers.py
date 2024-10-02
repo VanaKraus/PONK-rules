@@ -12,38 +12,42 @@ from io import TextIOBase, TextIOWrapper
 
 import re
 
+from supplemental.stat_runner import metrics
 
-def select_profile(profile_str: str) -> (list[Metric] | None, list[Rule] | None):
+
+def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
     # return appropriate set of rules and metrics based on the profiles selected
     # for now, just return the defaults
     print(f'Profile {profile_str} has been selected.')
-    return profiles.get(profile_str) or (None, None)
+    metrics, rules = profiles.get(profile_str) or (None, None)
+    if metrics is None:
+        # return all available metrics
+        metrics = [metric() for metric in Metric.get_final_children()]
+    if rules is None:
+        rules = [rule() for rule in Rule.get_final_children()]
+    return metrics, rules
 
 
-def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None):
+
+def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None) -> list[Metric]:
     if metric_wrapper_list is None:
-        return metric_wrapper_list
+        return [metric() for metric in Metric.get_final_children()]
     return [item.metric for item in metric_wrapper_list]
 
 
-def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None):
+def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None) -> list[Rule]:
     if rule_wrapper_list is None:
-        return rule_wrapper_list
+        return [rule() for rule in Rule.get_final_children()]
     return [item.rule for item in rule_wrapper_list]
 
 
-def compute_metrics(metric_list: list[Metric] | None, doc: Document) -> list[dict[str, float]]:
-    if metric_list is None:
-        # return all available metrics
-        metric_list = [subclass() for subclass in Metric.get_final_children()]
+def compute_metrics(metric_list: list[Metric], doc: Document) -> list[dict[str, float]]:
     return [{re.sub(r'([a-z])([A-Z])', r'\1 \2',
                     metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
             for metric in metric_list]
 
 
-def apply_rules(rule_list: list[Rule] | None, doc: Document) -> str:
-    if rule_list is None:
-        rule_list = [rule() for rule in Rule.get_final_children()]
+def apply_rules(rule_list: list[Rule], doc: Document) -> str:
     for rule in rule_list:
         RuleBlockWrapper(rule).run(doc)
     return doc.to_conllu_string()

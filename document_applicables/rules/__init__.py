@@ -19,6 +19,7 @@ RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 class Rule(Documentable):
     detect_only: bool = True
+    style_css: str = "display:block"
     process_id: str = Field(default_factory=lambda: os.urandom(4).hex(), hidden=True)
     modified_roots: set[Any] = Field(default=set(), hidden=True)  # FIXME: This should not be Any, but rather Root
     application_count: int = Field(default=0, hidden=True)

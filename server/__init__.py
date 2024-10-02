@@ -35,14 +35,22 @@ class MainRequest(BaseModel):
 class MainReply(BaseModel):
     modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
     metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
+    rule_styles: dict[str, str] = Field(examples=[{'RuleDoubleAdpos': 'background:red; color:white;'}])
 
 
 @app.post('/main', tags=['ponk_rules'])
 def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     doc = try_build_conllu_from_string(main_request.conllu_string)
-    metrics = compute_metrics(unwrap_metric_list(main_request.metric_list), doc)
-    modified_doc = apply_rules(unwrap_rule_list(main_request.rule_list), doc)
-    return MainReply(modified_conllu=modified_doc, metrics=metrics)
+    metric_list = unwrap_metric_list(main_request.metric_list)
+    rule_list = unwrap_rule_list(main_request.rule_list)
+    metrics = compute_metrics(metric_list, doc)
+    modified_doc = apply_rules(rule_list, doc)
+    return MainReply(modified_conllu=modified_doc,
+                     metrics=metrics,
+                     rule_styles={rule.id(): rule.style_css
+                                  for rule in rule_list
+                                  if rule.application_count != 0}
+                     )
 
 
 @app.post('/raw', tags=['ponk_rules'])
@@ -51,7 +59,13 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
     metric_list, rule_list = select_profile(profile)
     metrics = compute_metrics(metric_list, doc)
     modified_doc = apply_rules(rule_list, doc)
-    return MainReply(modified_conllu=modified_doc, metrics=metrics)
+    return MainReply(
+        modified_conllu=modified_doc,
+        metrics=metrics,
+        rule_styles={rule.id(): rule.style_css
+                     for rule in rule_list
+                     if rule.application_count != 0}
+    )
 
 
 @app.post('/mattr-vis', response_class=HTMLResponse, tags=['ponk_rules', 'visual'])
