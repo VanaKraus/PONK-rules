@@ -12,8 +12,6 @@ from io import TextIOBase, TextIOWrapper
 
 import re
 
-from supplemental.stat_runner import metrics
-
 
 def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
     # return appropriate set of rules and metrics based on the profiles selected

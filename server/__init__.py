@@ -35,7 +35,7 @@ class MainRequest(BaseModel):
 class MainReply(BaseModel):
     modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
     metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
-    rule_styles: dict[str, str] = Field(examples=[{'RuleDoubleAdpos': 'background:red; color:white;'}])
+    rule_info: dict[str, str] = Field()
 
 
 @app.post('/main', tags=['ponk_rules'])
@@ -47,7 +47,7 @@ def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     modified_doc = apply_rules(rule_list, doc)
     return MainReply(modified_conllu=modified_doc,
                      metrics=metrics,
-                     rule_styles={rule.id(): rule.style_css
+                     rule_info={rule.id(): rule.model_dump_json()
                                   for rule in rule_list
                                   if rule.application_count != 0}
                      )
@@ -62,9 +62,9 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
     return MainReply(
         modified_conllu=modified_doc,
         metrics=metrics,
-        rule_styles={rule.id(): rule.style_css
-                     for rule in rule_list
-                     if rule.application_count != 0}
+        rule_info={rule.id(): rule.model_dump_json()
+                   for rule in rule_list
+                   if rule.application_count != 0}
     )
 
 

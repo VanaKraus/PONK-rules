@@ -14,12 +14,21 @@ from document_applicables.rules import util
 
 from math import sqrt
 
+from document_applicables.rules.util import Color
+
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 
 class Rule(Documentable):
     detect_only: bool = True
-    style_css: str = "display:block"
+    background_color: Color = Color(255, 255, 255)
+    foreground_color: Color = Color(0, 0, 0)
+    cz_doc: str = "Popis pravidla"
+    en_doc: str = __doc__  # this uses developer documentation for now
+    cz_paricipants: dict[str, str] = Field(default_factory=dict)
+    en_paricipants: dict[str, str] = Field(default_factory=dict)
+    cz_human_readable_name: str = "Pravidlo"
+    en_human_readable_name: str = "Rule"  # uses the internal name
     process_id: str = Field(default_factory=lambda: os.urandom(4).hex(), hidden=True)
     modified_roots: set[Any] = Field(default=set(), hidden=True)  # FIXME: This should not be Any, but rather Root
     application_count: int = Field(default=0, hidden=True)
