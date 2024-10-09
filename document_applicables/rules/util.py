@@ -1,7 +1,12 @@
+from dataclasses import dataclass
+import re
+from dataclasses import dataclass
+
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
 
-import re
+# FIXME: cyclic import
+from document_applicables import rules
 
 
 def clone_node(
@@ -37,8 +42,8 @@ def clone_node(
 def is_aux(node: Node, grammatical_only: bool = False) -> bool:
     if grammatical_only:
         return node.udeprel in ('aux', 'cop') or node.deprel == 'expl:pass'
-    else:
-        return node.udeprel in ('aux', 'expl', 'cop')
+
+    return node.udeprel in ('aux', 'expl', 'cop')
 
 
 def is_finite_verb(node: Node) -> bool:
@@ -80,3 +85,72 @@ def get_clause(
         clause = [nd for nd in clause if nd.upos != 'PUNCT']
 
     return clause
+
+@dataclass(frozen=True, slots=True)
+class Color:
+   red: int
+   green: int
+   blue: int
+
+   def __post_init__(self):
+       for color in self.red, self.green, self.blue:
+           if color > 255 or color < 0:
+               raise ValueError("Color must be between 0 and 255")
+
+class NEregister:
+    '''Keeps track of named entities visited.'''
+
+    _reg: set[str] = {}
+
+    def __init__(self, *node):
+        for nd in node:
+            self.is_registered_ne(nd)
+
+    def is_registered_ne(self, node) -> bool:
+        """Checks if the node is a named entity and if it has already been visited. If the node is \
+            a not-yet-visited NE, the NE code gets registered.
+
+        Args:
+            node
+
+        Returns:
+            bool: returns True if the node is an already-visited NE. Returns False if the node isn't a NE, \
+                or if the NE hasn't been visited yet.
+        """
+
+        if not is_named_entity(node):
+            return False
+
+        result = False
+
+        for code in node.misc['NE'].split('-'):
+            if code in self._reg:
+                result |= True
+            else:
+                if len(self._reg) == 0:
+                    self._reg = {code}
+                else:
+                    self._reg |= {code}
+
+        return result
+
+
+def is_named_entity(node: Node) -> bool:
+    return 'NE' in node.misc
+
+
+def rules_applied(node: Node) -> set[str]:
+    rule_annotations = [m.split(':') for m in node.misc if m.startswith(f'{rules.RULE_ANNOTATION_PREFIX}:')]
+    return {annotation[1] for annotation in rule_annotations}
+
+
+@dataclass(frozen=True, slots=True)
+class Color:
+   red: int
+   green: int
+   blue: int
+
+   def __post_init__(self):
+       for color in self.red, self.green, self.blue:
+           if color > 255 or color < 0:
+               raise ValueError("Color must be between 0 and 255")
