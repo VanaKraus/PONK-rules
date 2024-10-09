@@ -4,7 +4,9 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util, derinet_lexicon
+from document_applicables.rules import (Rule, util,
+                                        #derinet_lexicon
+     )
 
 
 class RuleDoubleComparison(Rule):
@@ -173,7 +175,8 @@ class RulePossessiveGenitive(Rule):
             and node.feats['Case'] == 'Gen'
             and len(node.children) == 0
         ):
-            dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
+            ###et_lexemes = derinet_lexicon.get_lexemes(node.lemma)
+            dnet_lexemes = []
             if len(dnet_lexemes) > 0:
                 dnet_lexeme = dnet_lexemes[0]
                 possesives = [c for c in dnet_lexeme.children if 'Poss' in c.feats and c.feats['Poss'] == 'Yes']

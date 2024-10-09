@@ -6,7 +6,7 @@ import os
 
 import sys
 
-from derinet.lexicon import Lexicon
+#from derinet.lexicon import Lexicon
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
@@ -22,9 +22,9 @@ RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 print('rules: loading DeriNet', file=sys.stderr)
 
-derinet_lexicon = Lexicon()
+#derinet_lexicon = Lexicon()
 # FIXME: choose a better path
-derinet_lexicon.load('_local/derinet-2-3.tsv')
+#derinet_lexicon.load('_local/derinet-2-3.tsv')
 
 print('rules: DeriNet loaded', file=sys.stderr)
 
