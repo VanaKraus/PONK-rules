@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from numbers import Number
-from typing import Any, Union
+
+from typing import Literal, Any, Union
 import os
 
 import sys
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from document_applicables import Documentable
 from document_applicables.rules import util
+
 
 from document_applicables.rules.util import Color
 
