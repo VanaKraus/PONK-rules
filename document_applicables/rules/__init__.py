@@ -16,6 +16,8 @@ from document_applicables import Documentable
 from document_applicables.rules import util
 
 
+from math import sqrt
+
 from document_applicables.rules.util import Color
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
