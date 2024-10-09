@@ -4,6 +4,9 @@ from numbers import Number
 from typing import Literal, Any, Union
 import os
 
+import sys
+
+from derinet.lexicon import Lexicon
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
@@ -16,8 +19,19 @@ from document_applicables.rules import util
 from math import sqrt
 
 from document_applicables.rules.util import Color
+# FIXME: POS label of proper nouns is PROPN. check that this is accounted for!
+
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
+
+
+print('rules: loading DeriNet', file=sys.stderr)
+
+derinet_lexicon = Lexicon()
+# FIXME: choose a better path
+derinet_lexicon.load('_local/derinet-2-3.tsv')
+
+print('rules: DeriNet loaded', file=sys.stderr)
 
 
 class Rule(Documentable):
@@ -1086,6 +1100,29 @@ class RuleFunctionWordRepetition(Rule):
             following_node := [n for n in node.root.descendants() if n.ord == node.ord + 1 and n.lemma == node.lemma]
         ):
             self.annotate_node('repetition', node, following_node[0])
+
+
+class RulePossessiveGenitive(Rule):
+    # FIXME: docstring
+
+    rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
+
+    def process_node(self, node: Node):
+        if (
+            util.is_proper_noun(node)
+            and node.feats['Case'] == 'Gen'
+            and node.udeprel == 'nmod'
+            and len(node.children) == 0
+        ):
+            dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
+            if len(dnet_lexemes) > 0:
+                dnet_lexeme = dnet_lexemes[0]
+                possesives = [c for c in dnet_lexeme.children if 'Poss' in c.feats and c.feats['Poss'] == 'Yes']
+
+                if possesives:
+                    self.annotate_node('possesive_adj_exists', node)
+                elif node.parent.ord < node.ord and node.feats['Gender'] != 'Fem':
+                    self.annotate_node('right_of_parent', node)
 
 
 class RuleBlockWrapper(Block):
