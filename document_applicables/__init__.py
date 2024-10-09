@@ -20,7 +20,6 @@ class Documentable(BaseModel):
         final_children = []
         for child in children:
             if child.__subclasses__():
-                print(f"removing {child}")
                 children += child.__subclasses__()
             else:
                 final_children.append(child)
