@@ -4,10 +4,14 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule
+from document_applicables.rules import Rule, Color
 
 
-class RuleWeakMeaningWords(Rule):
+class PhrasesRule(Rule):
+    foreground_color: Color = Color(40, 200, 200)
+    rule_id: Literal['phrases'] = 'phrases'
+
+class RuleWeakMeaningWords(PhrasesRule):
     """Capture semantically weak words.
 
     Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86), Šváb (2023, p. 32).
@@ -36,7 +40,7 @@ class RuleWeakMeaningWords(Rule):
             self.advance_application_id()
 
 
-class RuleAbstractNouns(Rule):
+class RuleAbstractNouns(PhrasesRule):
     """Capture semantically weak abstract nouns.
 
     Inspiration: Šamánková & Kubíková (2022, p. 41).
@@ -63,7 +67,7 @@ class RuleAbstractNouns(Rule):
             self.advance_application_id()
 
 
-class RuleRelativisticExpressions(Rule):
+class RuleRelativisticExpressions(PhrasesRule):
     """Capture relativistic expressions.
 
     Inspiration: Šamánková & Kubíková (2022, p. 42).
@@ -95,7 +99,7 @@ class RuleRelativisticExpressions(Rule):
                         self.advance_application_id()
 
 
-class RuleConfirmationExpressions(Rule):
+class RuleConfirmationExpressions(PhrasesRule):
     """Capture confirmation expressions. They often violate the maxim of quantity \
         in needlesly confirming what the author is already expected to be 100% sure about.
 
@@ -110,7 +114,7 @@ class RuleConfirmationExpressions(Rule):
             self.annotate_node('confirmation_expression', node)
 
 
-class RuleRedundantExpressions(Rule):
+class RuleRedundantExpressions(PhrasesRule):
     """Capture expressions that aren't needed to convey the message.
 
     Inspiration: Šamánková & Kubíková (2022, pp. 42-43).
@@ -185,7 +189,7 @@ class RuleRedundantExpressions(Rule):
                     self.advance_application_id()
 
 
-class RuleTooLongExpressions(Rule):
+class RuleTooLongExpressions(PhrasesRule):
     """Capture expressions that could be shortened.
 
     Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118)
@@ -307,7 +311,7 @@ class RuleTooLongExpressions(Rule):
                     self.advance_application_id()
 
 
-class RuleAnaphoricReferences(Rule):
+class RuleAnaphoricReferences(PhrasesRule):
     """Capture vague anaphoric references.
 
     Inspiration: Šamánková & Kubíková (2022, p. 42).
@@ -346,7 +350,7 @@ class RuleAnaphoricReferences(Rule):
                     self.advance_application_id()
 
 
-class RuleLiteraryStyle(Rule):
+class RuleLiteraryStyle(PhrasesRule):
     """Capture expressions associated with literary style.
 
     Inspiration: Sgall & Panevová (2014, pp. 42, 66–69, 79–82).

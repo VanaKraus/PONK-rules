@@ -17,11 +17,15 @@ class Documentable(BaseModel):
     @classmethod
     def get_final_children(cls) -> list[Type['Documentable']]:
         children = cls.__subclasses__()
+        final_children = []
         for child in children:
             if child.__subclasses__():
-                children.remove(child)
+                print(f"removing {child}")
                 children += child.__subclasses__()
-        return children
+            else:
+                final_children.append(child)
+        print([child.__name__ for child in final_children])
+        return final_children
 
     def annotate_node(self, key: str, annotation, *node: Node):
         for nd in node:

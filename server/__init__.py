@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated
 
 from document_applicables import MINIMAL_CONLLU
+from document_applicables.rules import Color
 
 from server.api_helpers import *
 
@@ -35,7 +36,7 @@ class MainRequest(BaseModel):
 class MainReply(BaseModel):
     modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
     metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
-    rule_info: dict[str, str] = Field()
+    rule_info: dict[str, dict[str, str | Color | dict | None]] = Field()
 
 
 @app.post('/main', tags=['ponk_rules'])
@@ -47,10 +48,19 @@ def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     modified_doc = apply_rules(rule_list, doc)
     return MainReply(modified_conllu=modified_doc,
                      metrics=metrics,
-                     rule_info={rule.id(): rule.model_dump_json()
-                                  for rule in rule_list
-                                  if rule.application_count != 0}
-                     )
+                     rule_info = {rule.id(): {
+                         "foreground_color": rule.foreground_color,
+                         "background_color": rule.background_color,
+                         "cz_name": rule.cz_human_readable_name,
+                         "en_name": rule.en_human_readable_name,
+                         "cz_doc": rule.cz_doc,
+                         "en_doc": rule.en_doc,
+                         "cz_participants": rule.cz_paricipants,
+                         "en_participants": rule.cz_paricipants,
+                     }
+                         for rule in rule_list
+                         if rule.application_count != 0}
+    )
 
 
 @app.post('/raw', tags=['ponk_rules'])
@@ -62,7 +72,16 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
     return MainReply(
         modified_conllu=modified_doc,
         metrics=metrics,
-        rule_info={rule.id(): rule.model_dump_json()
+        rule_info={rule.id(): {
+            "foreground_color": rule.foreground_color,
+            "background_color": rule.background_color,
+            "cz_name": rule.cz_human_readable_name,
+            "en_name": rule.en_human_readable_name,
+            "cz_doc": rule.cz_doc,
+            "en_doc": rule.en_doc,
+            "cz_participants": rule.cz_paricipants,
+            "en_participants": rule.en_paricipants,
+        }
                    for rule in rule_list
                    if rule.application_count != 0}
     )

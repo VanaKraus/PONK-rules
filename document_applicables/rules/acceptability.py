@@ -4,12 +4,15 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import (Rule, util,
-                                        #derinet_lexicon
-     )
+from document_applicables.rules import (Rule, util, Color,
+    # derinet_lexicon
+                                        )
 
+class AcceptabilityRule(Rule):
+    foreground_color: Color = Color(255, 15, 50)
+    rule_id: Literal['acceptability'] = 'acceptability'
 
-class RuleDoubleComparison(Rule):
+class RuleDoubleComparison(AcceptabilityRule):
     """Capture constructions with a comparison auxiliary modifying a head with a non-positive degree of comparison.
 
     Inspiration: Sgall & Panevová (2014, p. 67).
@@ -32,7 +35,7 @@ class RuleDoubleComparison(Rule):
             self.advance_application_id()
 
 
-class RuleWrongValencyCase(Rule):
+class RuleWrongValencyCase(AcceptabilityRule):
     """Capture wrong case usage with certain valency dependencies.
 
     Inspiration: Sgall & Panevová (2014, p. 85).
@@ -124,7 +127,7 @@ class RuleWrongValencyCase(Rule):
             self.advance_application_id()
 
 
-class RuleWrongVerbonominalCase(Rule):
+class RuleWrongVerbonominalCase(AcceptabilityRule):
     """Capture wrong case usage in verbonominal predicates.
 
     Inspiration: Sgall & Panevová (2014, p. 42).
@@ -143,7 +146,7 @@ class RuleWrongVerbonominalCase(Rule):
             self.advance_application_id()
 
 
-class RuleIncompleteConjunction(Rule):
+class RuleIncompleteConjunction(AcceptabilityRule):
     """Capture incomplete multi-token conjunctions.
 
     Inspiration: Sgall & Panevová (2014, p. 85).
@@ -160,7 +163,7 @@ class RuleIncompleteConjunction(Rule):
                 self.advance_application_id()
 
 
-class RulePossessiveGenitive(Rule):
+class RulePossessiveGenitive(AcceptabilityRule):
     """Capture unnecessary or badly placed possessive genitives.
 
     Inspiration: Sgall & Panevová (2014, p. 91).

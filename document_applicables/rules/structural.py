@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from typing import Literal
 
-from document_applicables.rules import Rule, util
+from document_applicables.rules import Rule, util, Color
 
 
-class RulePassive(Rule):
+class StructuralRule(Rule):
+    foreground_color: Color = Color(40, 50, 150)
+    rule_id: Literal['structural'] = 'structural'
+
+
+class RulePassive(StructuralRule):
     """Capture be-passives.
 
     Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2023, p. 27).
@@ -23,7 +28,7 @@ class RulePassive(Rule):
             self.advance_application_id()
 
 
-class RulePredSubjDistance(Rule):
+class RulePredSubjDistance(StructuralRule):
     """Capture subjects that are too distant from their predicates \
         (or their auxiliaries/copulas when present).
 
@@ -72,7 +77,7 @@ class RulePredSubjDistance(Rule):
                 self.advance_application_id()
 
 
-class RulePredObjDistance(Rule):
+class RulePredObjDistance(StructuralRule):
     """Capture objects (both direct and indirect) that are too distant \
         from their parents.
 
@@ -101,7 +106,7 @@ class RulePredObjDistance(Rule):
                 self.advance_application_id()
 
 
-class RuleInfVerbDistance(Rule):
+class RuleInfVerbDistance(StructuralRule):
     """Capture infinitives that are too far from a verbal word they complement.
 
     Attributes:
@@ -130,7 +135,7 @@ class RuleInfVerbDistance(Rule):
                 self.advance_application_id()
 
 
-class RuleMultiPartVerbs(Rule):
+class RuleMultiPartVerbs(StructuralRule):
     """Capture multi-word verbal forms the parts of which (auxiliaries and clitics) \
         are too far apart from the root (content) token.
 
@@ -176,7 +181,7 @@ class RuleMultiPartVerbs(Rule):
                 self.advance_application_id()
 
 
-class RuleLongSentences(Rule):
+class RuleLongSentences(StructuralRule):
     """Capture sentences that are too long.
 
     Inspiration: Šamánková & Kubíková (2022, p. 51), Šváb (2023, pp. 17–18).
@@ -210,7 +215,7 @@ class RuleLongSentences(Rule):
                 self.advance_application_id()
 
 
-class RulePredAtClauseBeginning(Rule):
+class RulePredAtClauseBeginning(StructuralRule):
     """Capture predicates (their finite tokens for multi-token predicates) \
         that are too far from the beginning of their clause.
 
@@ -250,7 +255,7 @@ class RulePredAtClauseBeginning(Rule):
                 self.advance_application_id()
 
 
-class RuleVerbalNouns(Rule):
+class RuleVerbalNouns(StructuralRule):
     """Capture verbal nouns.
 
     Inspiration: Šamánková & Kubíková (2022, pp. 38-39), Šváb (2023, p. 30).

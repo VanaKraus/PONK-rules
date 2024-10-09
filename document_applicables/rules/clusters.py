@@ -4,10 +4,14 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util
+from document_applicables.rules import Rule, util, Color
 
 
-class RuleTooFewVerbs(Rule):
+class ClusterRule(Rule):
+    foreground_color: Color = Color(255, 255, 40)
+    rule_id: Literal['cluster'] = 'cluster'
+
+class RuleTooFewVerbs(ClusterRule):
     """Capture sentences containing too few verbs.
 
     Inspiration: Šamánková & Kubíková (2022, p. 37).
@@ -60,7 +64,7 @@ class RuleTooFewVerbs(Rule):
                 self.advance_application_id()
 
 
-class RuleTooManyNegations(Rule):
+class RuleTooManyNegations(ClusterRule):
     """Capture sentences with too many negations.
 
     Inspiration: Šamánková & Kubíková (2022, pp. 40-41), Šváb (2023, p. 33).
@@ -112,7 +116,7 @@ class RuleTooManyNegations(Rule):
         )
 
 
-class RuleTooManyNominalConstructions(Rule):
+class RuleTooManyNominalConstructions(ClusterRule):
     """Capture clauses with too many nominal constructions.
 
     Inspiration: Sgall & Panevová (2014, p. 41).
@@ -141,7 +145,7 @@ class RuleTooManyNominalConstructions(Rule):
                 self.advance_application_id()
 
 
-class RuleFunctionWordRepetition(Rule):
+class RuleFunctionWordRepetition(ClusterRule):
     """Capture repeating function words.
 
     Inspiration: Sgall & Panevová (2014, p. 88).
@@ -157,7 +161,7 @@ class RuleFunctionWordRepetition(Rule):
             self.advance_application_id()
 
 
-class RuleCaseRepetition(Rule):
+class RuleCaseRepetition(ClusterRule):
     """Capture spans of texts with high density of nouns (and adjectives) in the same case. Punctuation, \
     adpositions, and conjunctions are excluded from the count.
 

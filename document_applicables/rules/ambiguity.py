@@ -4,10 +4,14 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util
+from document_applicables.rules import Rule, util, Color
 
 
-class RuleDoubleAdpos(Rule):
+class AmbiguityRule(Rule):
+    foreground_color: Color = Color(125, 25, 200)
+    rule_id: Literal['ambiguity'] = 'ambiguity'
+
+class RuleDoubleAdpos(AmbiguityRule):
     """Capture coordinations where both elements could be headed by a preposition \
     but only the first is.
 
@@ -82,7 +86,7 @@ class RuleDoubleAdpos(Rule):
                     self.modified_roots.add(cconj.root)
 
 
-class RuleAmbiguousRegards(Rule):
+class RuleAmbiguousRegards(AmbiguityRule):
     """Capture regard constructions (e.g. [trajector] is greater than [landmark]) \
         that are ambiguous as to which word fills the [trajector] slot.
 
@@ -119,7 +123,7 @@ class RuleAmbiguousRegards(Rule):
                 self.advance_application_id()
 
 
-class RuleReflexivePassWithAnimSubj(Rule):
+class RuleReflexivePassWithAnimSubj(AmbiguityRule):
     """Capture reflexive passives used with animate subjects.
 
     Inspiration: Sgall & Panevová (2014, pp. 71-72).
