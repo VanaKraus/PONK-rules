@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from numbers import Number
 from typing import Literal, Any, Union
 import os
 
@@ -54,16 +55,16 @@ class Rule(Documentable):
 
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (
-                ((self.average_measured_values.get(m_name) or 0) * self.application_count + m_value)
-                / (self.application_count + 1))
+            (self.average_measured_values.get(m_name) or 0) * self.application_count + m_value
+        ) / (self.application_count + 1)
         self.measured_values[m_name] = (self.measured_values.get(m_name) or []) + [m_value]
         # FIXME: this is slow, but probably not relevant
 
-    def annotate_measurement(self, m_name: str, m_value: float, *node):
+    def annotate_measurement(self, m_name: str, m_value: Number, *node):
         self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
         self.do_measurement_calculations(m_name=m_name, m_value=m_value)
 
-    def annotate_parameter(self, p_name: str, p_value, *node):
+    def annotate_parameter(self, p_name: str, p_value: Number, *node):
         self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
 
     def after_process_document(self, document):
@@ -151,7 +152,6 @@ class RuleDoubleAdpos(Rule):
                 self.annotate_node('orig_adpos', parent_adpos)
                 self.annotate_node('coord_el1', coord_el1)
                 self.annotate_node('coord_el2', coord_el2)
-
 
                 self.advance_application_id()
 
