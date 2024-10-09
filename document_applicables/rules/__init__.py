@@ -843,6 +843,7 @@ class RuleLiteraryStyle(Rule):
             and (auxiliaries := [c for c in node.children if c.upos == 'AUX'])
         ):
             self.annotate_node('být_vinnen', node, *auxiliaries)
+            self.advance_application_id()
 
         # na vině jsou
         elif (
@@ -852,6 +853,7 @@ class RuleLiteraryStyle(Rule):
             and parent.lemma == 'být'
         ):
             self.annotate_node('být_na_vině', node, *adps, parent)
+            self.advance_application_id()
 
         # genetive objects
         elif (
@@ -876,12 +878,13 @@ class RuleLiteraryStyle(Rule):
             )
             # filter out prepositional genitives
             # and genitives depending on a two-form-declination word
-            and not (dpndnts := [c for c in node.children if c.deprel == 'case' or 'NumType' in c.feats])
+            and not [c for c in node.children if c.deprel == 'case' or 'NumType' in c.feats]
             # deverbative parents only
             and 'VerbForm' in parent.feats
         ):
             self.annotate_node('genitive_object', node)
             self.annotate_node('gen_obj_head', parent)
+            self.advance_application_id()
 
         # short adjective forms
         elif (
@@ -892,6 +895,7 @@ class RuleLiteraryStyle(Rule):
             and node.lemma not in ('rád', 'bosý')
         ):
             self.annotate_node('short_adjective_variant', node)
+            self.advance_application_id()
 
         # pronoun "jej"
         elif (
@@ -900,13 +904,16 @@ class RuleLiteraryStyle(Rule):
             and (node.feats['Case'] == 'Gen' or 'Neut' in node.feats['Gender'].split(','))
         ):
             self.annotate_node('jej_pronoun_form', node)
+            self.advance_application_id()
 
         elif node.lemma in ('jenž', 'jehož'):
             self.annotate_node('jenž', node)
+            self.advance_application_id()
 
         # some subordinate conjunctions
         elif node.lemma in ('jestliže', 'pakliže', 'li', 'poněvadž', 'jelikož') and node.upos == 'SCONJ':
             self.annotate_node('subordinate_conjunction', node)
+            self.advance_application_id()
 
 
 class RuleDoubleComparison(Rule):
@@ -929,6 +936,7 @@ class RuleDoubleComparison(Rule):
         ):
             self.annotate_node('head', parent)
             self.annotate_node('modifier', node)
+            self.advance_application_id()
 
 
 class RuleTooManyNominalConstructions(Rule):
@@ -959,6 +967,7 @@ class RuleTooManyNominalConstructions(Rule):
 
             if (l := len(nouns)) > self.max_allowable_nouns and float(l) / len(clause) > self.max_noun_frac:
                 self.annotate_node('noun', *nouns)
+                self.advance_application_id()
 
 
 class RuleReflexivePassWithAnimSubj(Rule):
@@ -979,15 +988,16 @@ class RuleReflexivePassWithAnimSubj(Rule):
         ):
             self.annotate_node('refl_pass', node, verb)
             self.annotate_node('subj', subj[0])
+            self.advance_application_id()
 
 
-class RuleWrongCase(Rule):
+class RuleWrongValencyCase(Rule):
     """Capture wrong case usage with certain valency dependencies.
 
     Inspiration: Sgall & Panevová (2014, p. 85).
     """
 
-    rule_id: Literal['RuleWrongCase'] = 'RuleWrongCase'
+    rule_id: Literal['RuleWrongValencyCase'] = 'RuleWrongValencyCase'
 
     def process_node(self, node: Node):
         # pokoušeli se zabránit takové důsledky
@@ -998,6 +1008,7 @@ class RuleWrongCase(Rule):
                 if not bool([c for c in acc.children if c.udeprel == 'case']):
                     self.annotate_node('verb', node)
                     self.annotate_node('accusative', acc)
+                    self.advance_application_id()
 
         # pokoušeli se zamezit takovým důsledkům
         elif node.lemma in ('zamezit', 'zamezovat') and (
@@ -1007,6 +1018,7 @@ class RuleWrongCase(Rule):
                 if not bool([c for c in dat.children if c.udeprel == 'case']):
                     self.annotate_node('verb', node)
                     self.annotate_node('dative', dat)
+                    self.advance_application_id()
 
         # nemusíte zodpovědět na tyto otázky
         elif node.lemma in ('zodpovědět', 'zodpovídat') and (
@@ -1017,6 +1029,7 @@ class RuleWrongCase(Rule):
                     self.annotate_node('verb', node)
                     self.annotate_node('accusative', acc)
                     self.annotate_node('preposition', cases[0])
+                    self.advance_application_id()
 
         # nemusíte odpovědět tyto otázky
         elif node.lemma in ('odpovědět', 'odpovídat') and (
@@ -1028,11 +1041,13 @@ class RuleWrongCase(Rule):
                 if not bool(cases):
                     self.annotate_node('verb', node)
                     self.annotate_node('accusative', acc)
+                    self.advance_application_id()
 
                 elif cases[0].lemma != 'na':
                     self.annotate_node('verb', node)
                     self.annotate_node('accusative', acc)
                     self.annotate_node('preposition', cases[0])
+                    self.advance_application_id()
 
         # hovořit/mluvit něco
         elif node.lemma in ('hovořit', 'mluvit') and (
@@ -1042,6 +1057,7 @@ class RuleWrongCase(Rule):
                 if not bool([c for c in acc.children if c.udeprel == 'case']):
                     self.annotate_node('verb', node)
                     self.annotate_node('accusative', acc)
+                    self.advance_application_id()
 
         # mimo + !ACC
         elif (
@@ -1052,6 +1068,7 @@ class RuleWrongCase(Rule):
         ):
             self.annotate_node('preposition', node)
             self.annotate_node('not_accusative', noun)
+            self.advance_application_id()
 
         # kromě + !GEN
         # not sure if UDPipe is able to parse kromě with any other case than GEN
@@ -1063,6 +1080,26 @@ class RuleWrongCase(Rule):
         ):
             self.annotate_node('preposition', node)
             self.annotate_node('not_genitive', noun)
+            self.advance_application_id()
+
+
+class RuleWrongVerbonominalCase(Rule):
+    """Capture wrong case usage in verbonominal predicates.
+
+    Inspiration: Sgall & Panevová (2014, p. 42).
+    """
+
+    rule_id: Literal['RuleWrongVerbonominalCase'] = 'RuleWrongVerbonominalCase'
+
+    def process_node(self, node: Node):
+        if (
+            node.lemma in ('pravda', 'škoda')
+            and (cop := [c for c in node.children if c.deprel == 'cop'])
+            and node.feats['Case'] == 'Ins'
+        ):
+            self.annotate_node('copula', *cop)
+            self.annotate_node('instrumental', node)
+            self.advance_application_id()
 
 
 class RuleIncompleteConjunction(Rule):
@@ -1079,6 +1116,7 @@ class RuleIncompleteConjunction(Rule):
 
             if len(conjunctions) == 0:
                 self.annotate_node('conj_part', node)
+                self.advance_application_id()
 
 
 class RuleFunctionWordRepetition(Rule):
@@ -1093,7 +1131,64 @@ class RuleFunctionWordRepetition(Rule):
         if node.upos in ('ADP', 'SCONJ', 'CCONJ') and (
             following_node := [n for n in node.root.descendants() if n.ord == node.ord + 1 and n.lemma == node.lemma]
         ):
-            self.annotate_node('repetition', node, following_node[0])
+            self.annotate_node('repetition', node, *following_node)
+            self.advance_application_id()
+
+
+class RuleCaseRepetition(Rule):
+    """Capture spans of texts with high density of nouns (and adjectives) in the same case. Punctuation, \
+    adpositions, and conjunctions are excluded from the count.
+
+    Inspiration: Sgall & Panevová (2014, pp. 88-90).
+
+    Attributes:
+        include_adjetives (bool): include adjectives to the count.
+        max_repetition_count (int): max number of one case occurences to not be considered an issue.
+        max_repetition_frac (int): max (# of one case occurences / length of the span) to not be considered an issue.
+    """
+
+    rule_id: Literal['RuleCaseRepetition'] = 'RuleCaseRepetition'
+    include_adjectives: bool = True
+    max_repetition_count: int = 4
+    max_repetition_frac: float = 0.7
+
+    _tracked_pos: list[str] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+        self._tracked_pos = ('NOUN', 'ADJ') if self.include_adjectives else ('NOUN')
+
+    def process_node(self, node: Node):
+        if (
+            node.upos in self._tracked_pos
+            and 'Case' in node.feats
+            and not util.is_named_entity(node, look_at_parents=True)
+        ):
+            descendants = node.root.descendants()
+            following_nodes = [node] + [
+                d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
+            ]
+
+            while len(following_nodes) >= self.max_repetition_count:
+                same_case_nodes = [
+                    n for n in following_nodes if n.upos in self._tracked_pos and n.feats['Case'] == node.feats['Case']
+                ]
+
+                if len(same_case_nodes) <= self.max_repetition_count:
+                    break
+
+                # if the rule has already been applied to all nodes in same_case_nodes, there's no point in continuing
+                notes_already_visited = [n for n in same_case_nodes if self.__class__.id() in util.rules_applied(n)]
+                if len(notes_already_visited) == len(same_case_nodes):
+                    break
+
+                if len(same_case_nodes) / len(following_nodes) > self.max_repetition_frac:
+                    self.annotate_node('case_repetition', *same_case_nodes)
+                    self.advance_application_id()
+                    break
+
+                following_nodes.pop()
 
 
 class RulePossessiveGenitive(Rule):
@@ -1118,8 +1213,11 @@ class RulePossessiveGenitive(Rule):
 
                 if possesives:
                     self.annotate_node('possesive_adj_exists', node)
+                    self.advance_application_id()
+                # TODO: what about gender ambiguity?
                 elif node.parent.ord < node.ord and node.feats['Gender'] != 'Fem':
                     self.annotate_node('right_of_parent', node)
+                    self.advance_application_id()
 
 
 class RuleBlockWrapper(Block):
