@@ -50,6 +50,20 @@ class MainReply(BaseModel):
     ])
     conflict_background_color: Color = Color(255,0,255)
 
+def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | dict | None]]:
+    return {rule.id(): {
+        "foreground_color": rule.foreground_color,
+        "background_color": rule.background_color,
+        "cz_name": rule.cz_human_readable_name,
+        "en_name": rule.en_human_readable_name,
+        "cz_doc": rule.cz_doc,
+        "en_doc": rule.en_doc,
+        "cz_participants": rule.cz_paricipants,
+        "en_participants": rule.cz_paricipants,
+    }
+        for rule in rule_list
+        if rule.application_count != 0}
+
 @app.post('/main', tags=['ponk_rules'])
 def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     doc = try_build_conllu_from_string(main_request.conllu_string)
@@ -57,20 +71,10 @@ def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     rule_list = unwrap_rule_list(main_request.rule_list)
     metrics = compute_metrics(metric_list, doc)
     modified_doc = apply_rules(rule_list, doc)
-    return MainReply(modified_conllu=modified_doc,
-                     metrics=metrics,
-                     rule_info = {rule.id(): {
-                         "foreground_color": rule.foreground_color,
-                         "background_color": rule.background_color,
-                         "cz_name": rule.cz_human_readable_name,
-                         "en_name": rule.en_human_readable_name,
-                         "cz_doc": rule.cz_doc,
-                         "en_doc": rule.en_doc,
-                         "cz_participants": rule.cz_paricipants,
-                         "en_participants": rule.cz_paricipants,
-                     }
-                         for rule in rule_list
-                         if rule.application_count != 0}
+    return MainReply(
+        modified_conllu=modified_doc,
+        metrics=metrics,
+        rule_info = make_rule_info(rule_list),
     )
 
 
@@ -83,19 +87,7 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
     return MainReply(
         modified_conllu=modified_doc,
         metrics=metrics,
-
-    rule_info={rule.id(): {
-            "foreground_color": rule.foreground_color,
-            "background_color": rule.background_color,
-            "cz_name": rule.cz_human_readable_name,
-            "en_name": rule.en_human_readable_name,
-            "cz_doc": rule.cz_doc,
-            "en_doc": rule.en_doc,
-            "cz_participants": rule.cz_paricipants,
-            "en_participants": rule.en_paricipants,
-        }
-                   for rule in rule_list
-                   if rule.application_count != 0}
+        rule_info=make_rule_info(rule_list),
     )
 
 
