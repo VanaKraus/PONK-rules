@@ -36,7 +36,18 @@ class MainRequest(BaseModel):
 class MainReply(BaseModel):
     modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
     metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
-    rule_info: dict[str, dict[str, str | Color | dict | None]] = Field()
+    rule_info: dict[str, dict[str, str | Color | dict | None]] = Field(examples=[
+        {"RuleDoubleAdpos": {
+            "foreground_color": None,
+            "background_color": Color(123,45,67),
+            "cz_name": "Pravidlo dvojité obměny",
+            "en_name": "Double adposition rule",
+            "cz_doc": "Dokumentace pravidla",
+            "en_doc": "Rule documentation",
+            "cz_participants": {"adpos": "Adpozice s nejasnou valencí"},
+            "en_participants": {"adpos": "Adposition with an unclear valence"}
+        }}
+    ])
 
 
 @app.post('/main', tags=['ponk_rules'])
@@ -72,7 +83,8 @@ def perform_defaults_on_conllu(file: UploadFile, profile: str = 'default') -> Ma
     return MainReply(
         modified_conllu=modified_doc,
         metrics=metrics,
-        rule_info={rule.id(): {
+
+    rule_info={rule.id(): {
             "foreground_color": rule.foreground_color,
             "background_color": rule.background_color,
             "cz_name": rule.cz_human_readable_name,
