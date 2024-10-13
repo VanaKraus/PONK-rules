@@ -48,7 +48,7 @@ class MainReply(BaseModel):
             "en_participants": {"adpos": "Adposition with an unclear valence"}
         }}
     ])
-
+    conflict_background_color: Color = Color(255,0,255)
 
 @app.post('/main', tags=['ponk_rules'])
 def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
