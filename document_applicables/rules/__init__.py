@@ -33,10 +33,10 @@ print('rules: DeriNet loaded', file=sys.stderr)
 
 class Rule(Documentable):
     detect_only: bool = True
-    background_color: Color = Color(255, 255, 255)
-    foreground_color: Color = Color(0, 0, 0)
+    background_color: Color | None = None
+    foreground_color: Color | None = None
     cz_doc: str = "Popis pravidla"
-    en_doc: str = __doc__  # this uses developer documentation for now
+    en_doc: str = "Rule description"
     cz_paricipants: dict[str, str] = Field(default_factory=dict)
     en_paricipants: dict[str, str] = Field(default_factory=dict)
     cz_human_readable_name: str = "Pravidlo"
