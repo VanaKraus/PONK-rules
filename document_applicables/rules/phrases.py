@@ -8,8 +8,9 @@ from document_applicables.rules import Rule, Color
 
 
 class PhrasesRule(Rule):
-    foreground_color: Color = Color(40, 200, 200)
+    foreground_color: Color = Color(5, 199, 147)
     rule_id: Literal['phrases'] = 'phrases'
+
 
 class RuleWeakMeaningWords(PhrasesRule):
     """Capture semantically weak words.

@@ -11,9 +11,7 @@ from document_applicables.rules import Color
 from server.api_helpers import *
 
 app = FastAPI(
-    title='PONK Rules',
-    swagger_ui_parameters={"defaultModelsExpandDepth": 0},
-    openapi_url='/docs/openapi.json'
+    title='PONK Rules', swagger_ui_parameters={"defaultModelsExpandDepth": 0}, openapi_url='/docs/openapi.json'
 )
 
 
@@ -36,33 +34,41 @@ class MainRequest(BaseModel):
 class MainReply(BaseModel):
     modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
     metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
-    rule_info: dict[str, dict[str, str | Color | dict | None]] = Field(examples=[
-        {"RuleDoubleAdpos": {
-            "foreground_color": None,
-            "background_color": Color(123,45,67),
-            "cz_name": "Pravidlo dvojité obměny",
-            "en_name": "Double adposition rule",
-            "cz_doc": "Dokumentace pravidla",
-            "en_doc": "Rule documentation",
-            "cz_participants": {"adpos": "Adpozice s nejasnou valencí"},
-            "en_participants": {"adpos": "Adposition with an unclear valence"}
-        }}
-    ])
-    conflict_background_color: Color = Color(255,0,255)
+    rule_info: dict[str, dict[str, str | Color | dict | None]] = Field(
+        examples=[
+            {
+                "RuleDoubleAdpos": {
+                    "foreground_color": None,
+                    "background_color": Color(123, 45, 67),
+                    "cz_name": "Pravidlo dvojité obměny",
+                    "en_name": "Double adposition rule",
+                    "cz_doc": "Dokumentace pravidla",
+                    "en_doc": "Rule documentation",
+                    "cz_participants": {"adpos": "Adpozice s nejasnou valencí"},
+                    "en_participants": {"adpos": "Adposition with an unclear valence"},
+                }
+            }
+        ]
+    )
+    conflict_background_color: Color = Color(114, 114, 114)
+
 
 def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | dict | None]]:
-    return {rule.id(): {
-        "foreground_color": rule.foreground_color,
-        "background_color": rule.background_color,
-        "cz_name": rule.cz_human_readable_name,
-        "en_name": rule.en_human_readable_name,
-        "cz_doc": rule.cz_doc,
-        "en_doc": rule.en_doc,
-        "cz_participants": rule.cz_paricipants,
-        "en_participants": rule.cz_paricipants,
-    }
+    return {
+        rule.id(): {
+            "foreground_color": rule.foreground_color,
+            "background_color": rule.background_color,
+            "cz_name": rule.cz_human_readable_name,
+            "en_name": rule.en_human_readable_name,
+            "cz_doc": rule.cz_doc,
+            "en_doc": rule.en_doc,
+            "cz_participants": rule.cz_paricipants,
+            "en_participants": rule.cz_paricipants,
+        }
         for rule in rule_list
-        if rule.application_count != 0}
+        if rule.application_count != 0
+    }
+
 
 @app.post('/main', tags=['ponk_rules'])
 def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
@@ -74,7 +80,7 @@ def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     return MainReply(
         modified_conllu=modified_doc,
         metrics=metrics,
-        rule_info = make_rule_info(rule_list),
+        rule_info=make_rule_info(rule_list),
     )
 
 

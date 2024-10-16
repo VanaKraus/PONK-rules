@@ -6,7 +6,7 @@ from document_applicables.rules import Rule, util, Color
 
 
 class StructuralRule(Rule):
-    foreground_color: Color = Color(40, 50, 150)
+    foreground_color: Color = Color(70, 12, 21)
     rule_id: Literal['structural'] = 'structural'
 
 
@@ -267,5 +267,3 @@ class RuleVerbalNouns(StructuralRule):
         if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
             self.annotate_node('verbal_noun', node)
             self.advance_application_id()
-
-

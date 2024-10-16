@@ -8,8 +8,9 @@ from document_applicables.rules import Rule, util, Color
 
 
 class ClusterRule(Rule):
-    foreground_color: Color = Color(255, 255, 40)
+    foreground_color: Color = Color(245, 171, 0)
     rule_id: Literal['cluster'] = 'cluster'
+
 
 class RuleTooFewVerbs(ClusterRule):
     """Capture sentences containing too few verbs.
