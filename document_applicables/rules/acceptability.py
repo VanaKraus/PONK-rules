@@ -4,13 +4,18 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import (Rule, util, Color,
+from document_applicables.rules import (
+    Rule,
+    util,
+    Color,
     # derinet_lexicon
-                                        )
+)
+
 
 class AcceptabilityRule(Rule):
     foreground_color: Color = Color(255, 15, 50)
     rule_id: Literal['acceptability'] = 'acceptability'
+
 
 class RuleDoubleComparison(AcceptabilityRule):
     """Capture constructions with a comparison auxiliary modifying a head with a non-positive degree of comparison.
@@ -19,6 +24,18 @@ class RuleDoubleComparison(AcceptabilityRule):
     """
 
     rule_id: Literal['RuleDoubleComparison'] = 'RuleDoubleComparison'
+    cz_human_readable_name: str = 'Dvojí stupňování'
+    en_human_readable_name: str = 'Double comparison'
+    cz_doc: str = (
+        'Konstrukce typu „víc pečlivější“ jsou odchylka od normy. Vhodná alternativa je „víc pečlivý“. '
+        + 'Srov. Sgall & Panevová (2014, s. 67).'
+    )
+    en_doc: str = (
+        'Constructions such as „víc pečlivější“ deviate from the norm. A good alternative would be „víc pečlivý“. '
+        + 'Cf. Sgall & Panevová (2014, p. 67).'
+    )
+    cz_paricipants = {'head': 'Základ', 'modifier': 'Pomocný výraz'}
+    en_paricipants = {'head': 'Base meaning', 'modifier': 'Auxiliary'}
 
     def process_node(self, node: Node):
         if (
