@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
@@ -85,6 +87,18 @@ def get_clause(
     return clause
 
 
+@dataclass(frozen=True, slots=True)
+class Color:
+    red: int
+    green: int
+    blue: int
+
+    def __post_init__(self):
+        for color in self.red, self.green, self.blue:
+            if color > 255 or color < 0:
+                raise ValueError("Color must be between 0 and 255")
+
+
 class NEregister:
     '''Keeps track of named entities visited.'''
 
@@ -130,3 +144,15 @@ def is_named_entity(node: Node) -> bool:
 def rules_applied(node: Node) -> set[str]:
     rule_annotations = [m.split(':') for m in node.misc if m.startswith(f'{rules.RULE_ANNOTATION_PREFIX}:')]
     return {annotation[1] for annotation in rule_annotations}
+
+
+@dataclass(frozen=True, slots=True)
+class Color:
+    red: int
+    green: int
+    blue: int
+
+    def __post_init__(self):
+        for color in self.red, self.green, self.blue:
+            if color > 255 or color < 0:
+                raise ValueError("Color must be between 0 and 255")

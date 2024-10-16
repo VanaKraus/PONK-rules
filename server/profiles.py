@@ -1,4 +1,10 @@
-from document_applicables.rules import *
+from document_applicables.rules.ambiguity import RuleDoubleAdpos, RuleAmbiguousRegards
+from document_applicables.rules.clusters import RuleTooFewVerbs, RuleTooManyNegations
+from document_applicables.rules.phrases import RuleWeakMeaningWords, RuleAbstractNouns, RuleRelativisticExpressions, \
+    RuleConfirmationExpressions, RuleRedundantExpressions, RuleTooLongExpressions, RuleAnaphoricReferences
+from document_applicables.rules.structural import RulePassive, RulePredSubjDistance, RulePredObjDistance, \
+    RuleInfVerbDistance, RuleMultiPartVerbs, RuleLongSentences, RulePredAtClauseBeginning, RuleVerbalNouns
+
 profiles = {
     'default': (None, None),
     'minimal': (None,  # default metrics
