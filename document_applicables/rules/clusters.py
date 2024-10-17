@@ -27,6 +27,13 @@ class RuleTooFewVerbs(ClusterRule):
     min_verb_frac: float = 0.06
     finite_only: bool = False
 
+    cz_human_readable_name: str = 'Nedostatek sloves'
+    en_human_readable_name: str = 'Too few verbs'
+    cz_doc: str = 'Rozdělte větu/souvětí do více vět. Srov. Šamánková & Kubíková (2022, s. 37).'
+    en_doc: str = 'Add more clauses to the sentence. Cf. Šamánková & Kubíková (2022, p. 37).'
+    cz_paricipants: dict[str, str] = {'verb': 'Sloveso'}
+    en_paricipants: dict[str, str] = {'verb': 'Verb'}
+
     def is_verb(self, node):
         return util.is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
 
@@ -81,6 +88,19 @@ class RuleTooManyNegations(ClusterRule):
     max_negation_frac: float = 0.1
     max_allowable_negations: int = 3
 
+    cz_human_readable_name: str = 'Přemíra negací'
+    en_human_readable_name: str = 'Too many negations'
+    cz_doc: str = (
+        'Negativní formulace zamlžují sdělení a natahují text. '
+        + 'Srov. Šamánková & Kubíková (2022, s. 40–41), Šváb (2023, s. 33).'
+    )
+    en_doc: str = (
+        'Negative formulations blur the message and prolong the text. '
+        + 'Šamánková & Kubíková (2022, pp. 40–41), Šváb (2023, p. 33).'
+    )
+    cz_paricipants: dict[str, str] = {'negative': 'Negativní výraz'}
+    en_paricipants: dict[str, str] = {'negative': 'Negative expression'}
+
     def process_node(self, node):
         if node.udeprel == 'root':
             clause = util.get_clause(node, without_punctuation=True, node_is_root=True)
@@ -129,6 +149,15 @@ class RuleTooManyNominalConstructions(ClusterRule):
             to remain inhibited.
     """
 
+    cz_human_readable_name: str = 'Přemíra nominálních konstrukcí'
+    en_human_readable_name: str = 'Too many nominal constructions'
+    cz_doc: str = (
+        'Přemíra nominálních konstrukcí snižuje přirozenost a čtivost textu. Srov. Sgall & Panevová (2014, s. 41).'
+    )
+    en_doc: str = 'Nominal constructions make the text less natural and readable. Cf. Sgall & Panevová (2014, p. 41).'
+    cz_paricipants: dict[str, str] = {'noun': 'Podstatné jméno'}
+    en_paricipants: dict[str, str] = {'noun': 'Noun'}
+
     # TODO: consider reworking the rule similarly to RuleCaseRepetition. It would help with aligning more with Šváb.
 
     rule_id: Literal['RuleTooManyNominalConstructions'] = 'RuleTooManyNominalConstructions'
@@ -153,6 +182,13 @@ class RuleFunctionWordRepetition(ClusterRule):
     """
 
     rule_id: Literal['RuleFunctionWordRepetition'] = 'RuleFunctionWordRepetition'
+
+    cz_human_readable_name: str = 'Opakování gramatických slov'
+    en_human_readable_name: str = 'Function word repetition'
+    cz_doc: str = 'Srov. Sgall & Panevová (2014, s. 88).'
+    en_doc: str = 'Cf. Sgall & Panevová (2014, p. 88).'
+    cz_paricipants: dict[str, str] = {'repetition': 'Opakování'}
+    en_paricipants: dict[str, str] = {'repetition': 'Repetition'}
 
     def process_node(self, node: Node):
         if node.upos in ('ADP', 'SCONJ', 'CCONJ') and (
@@ -179,6 +215,12 @@ class RuleCaseRepetition(ClusterRule):
     max_repetition_count: int = 4
     max_repetition_frac: float = 0.7
 
+    cz_human_readable_name: str = 'Opakování pádů'
+    en_human_readable_name: str = 'Case repetition'
+    cz_doc: str = 'Srov. Sgall & Panevová (2014, s. 88–90).'
+    en_doc: str = 'Cf. Sgall & Panevová (2014, pp. 88–90).'
+    cz_paricipants: dict[str, str] = {'case_repetition': 'Opakování pádů'}
+    en_paricipants: dict[str, str] = {'case_repetition': 'Case repetition'}
     _tracked_pos: list[str] = None
 
     def __init__(self, **data):
