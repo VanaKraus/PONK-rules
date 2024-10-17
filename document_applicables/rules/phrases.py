@@ -19,6 +19,20 @@ class RuleWeakMeaningWords(PhrasesRule):
     """
 
     rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
+
+    cz_human_readable_name: str = 'Vyprázdněná slova'
+    en_human_readable_name: str = 'Weak-meaning words'
+    cz_doc: str = (
+        'Vyvarujte se vyprázdněných slov. Srov. Sgall & Panevová (2014, s. 86), '
+        + 'Šamánková & Kubíková (2022, s. 37–38 a s. 39), Šváb (2023, s. 32).'
+    )
+    en_doc: str = (
+        'Avoid weak-meaning words. Cf. Sgall & Panevová (2014, p. 86), '
+        + 'Šamánková & Kubíková (2022, pp. 37–38 and p. 39), Šváb (2023, p. 32).'
+    )
+    cz_paricipants: dict[str, str] = {'weak_meaning_word': 'Vyprázdněné slovo'}
+    en_paricipants: dict[str, str] = {'weak_meaning_word': 'Weak-meaning word'}
+
     _weak_meaning_words: list[str] = [
         'dopadat',
         'zaměřit',
@@ -48,6 +62,14 @@ class RuleAbstractNouns(PhrasesRule):
     """
 
     rule_id: Literal['RuleAbstractNouns'] = 'RuleAbstractNouns'
+
+    cz_human_readable_name: str = 'Vyprázdněná abstraktní substantiva'
+    en_human_readable_name: str = 'Weak-meaning abstract nouns'
+    cz_doc: str = 'Vyvarujte se vyprázdněných podstatných jmen. Srov. Šamánková & Kubíková (2022, s. 41).'
+    en_doc: str = 'Avoid weak-meaning abstract nouns. Cf. Šamánková & Kubíková (2022, p. 41).'
+    cz_paricipants: dict[str, str] = {'abstract_noun': 'Vyprázdněné abstraktní substantivum'}
+    en_paricipants: dict[str, str] = {'abstract_noun': 'Weak-meaning abstract noun'}
+
     _abstract_nouns: list[str] = [
         'základ',
         'situace',
@@ -75,6 +97,13 @@ class RuleRelativisticExpressions(PhrasesRule):
     """
 
     rule_id: Literal['RuleRelativisticExpressions'] = 'RuleRelativisticExpressions'
+
+    cz_human_readable_name: str = 'Relativistické výrazy'
+    en_human_readable_name: str = 'Relativistic expressions'
+    cz_doc: str = 'Vyvarujte se relativizujících výrazů. Srov. Šamánková & Kubíková (2022, s. 42).'
+    en_doc: str = 'Avoid relativistic expressions. Cf. Šamánková & Kubíková (2022, p. 42).'
+    cz_paricipants: dict[str, str] = {'relativistic_expression': 'Relativizující výraz'}
+    en_paricipants: dict[str, str] = {'relativistic_expression': 'Relativistic expression'}
 
     # lemmas; when space-separated, nodes next-to-each-other with corresponding lemmas are looked for
     _expressions: list[list[str]] = [
@@ -104,10 +133,18 @@ class RuleConfirmationExpressions(PhrasesRule):
     """Capture confirmation expressions. They often violate the maxim of quantity \
         in needlesly confirming what the author is already expected to be 100% sure about.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 42-43).
+    Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
 
     rule_id: Literal['RuleConfirmationExpressions'] = 'RuleConfirmationExpressions'
+
+    cz_human_readable_name: str = 'Utvrzující výrazy'
+    en_human_readable_name: str = 'Confirmation expressions'
+    cz_doc: str = 'Vyvarujte se zbytečných utvrzujících výrazů. Srov. Šamánková & Kubíková (2022, s. 42).'
+    en_doc: str = 'Avoid redundant confirmation expressions. Cf. Šamánková & Kubíková (2022, p. 42).'
+    cz_paricipants: dict[str, str] = {'confirmation_expression': 'Utvrzující výraz'}
+    en_paricipants: dict[str, str] = {'confirmation_expression': 'Confirmation expression'}
+
     _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
@@ -122,6 +159,13 @@ class RuleRedundantExpressions(PhrasesRule):
     """
 
     rule_id: Literal['RuleRedundantExpressions'] = 'RuleRedundantExpressions'
+
+    cz_human_readable_name: str = 'Slovní vata'
+    en_human_readable_name: str = 'Redundant expressions'
+    cz_doc: str = 'Srov. Šamánková & Kubíková (2022, s. 42–43).'
+    en_doc: str = 'Cf. Šamánková & Kubíková (2022, pp. 42–43).'
+    cz_paricipants: dict[str, str] = {'redundant_expression': 'Zbytečný výraz'}
+    en_paricipants: dict[str, str] = {'redundant_expression': 'Redundant expression'}
 
     def process_node(self, node):
         match node.lemma:
@@ -193,10 +237,37 @@ class RuleRedundantExpressions(PhrasesRule):
 class RuleTooLongExpressions(PhrasesRule):
     """Capture expressions that could be shortened.
 
-    Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118)
+    Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118).
     """
 
     rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
+
+    cz_human_readable_name: str = 'Dlouhé výrazy'
+    en_human_readable_name: str = 'Long expressions'
+    cz_doc: str = 'Srov. Šamánková & Kubíková (2022, s. 44), Šváb (2023, s. 118).'
+    en_doc: str = 'Cf. Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118).'
+    cz_paricipants: dict[str, str] = {
+        'v_důsledku_toho': 'Lépe „proto“',
+        'v_případě_že': 'Lépe „pokud“',
+        'týkající_se': 'Lépe „o“',
+        'za_účelem': 'Lépe „kvůli“',
+        'jste_oprávněn': 'Lépe „můžete / máte právo“',
+        'dát_do_nájmu': 'Lépe „pronajmout“',
+        'prostřednictvím_kterého': 'Lépe „který umožňuje“',
+        'jsou_uvedeny_v_příloze': 'Lépe „naleznete (v příloze)“',
+        'za_podmínek_uvedených_ve_smlouvě': 'Lépe „podle (smlouvy)“',
+    }
+    en_paricipants: dict[str, str] = {
+        'v_důsledku_toho': 'Better as “proto”',
+        'v_případě_že': 'Better as “pokud”',
+        'týkající_se': 'Better as “o”',
+        'za_účelem': 'Better as “kvůli”',
+        'jste_oprávněn': 'Better as “můžete / máte právo”',
+        'dát_do_nájmu': 'Better as “pronajmout”',
+        'prostřednictvím_kterého': 'Better as “který umožňuje”',
+        'jsou_uvedeny_v_příloze': 'Better as “naleznete (v příloze)”',
+        'za_podmínek_uvedených_ve_smlouvě': 'Better as “podle (smlouvy)”',
+    }
 
     def process_node(self, node):
         match node.lemma:
@@ -320,6 +391,19 @@ class RuleAnaphoricReferences(PhrasesRule):
 
     rule_id: Literal['RuleAnaphoricReferences'] = 'RuleAnaphoricReferences'
 
+    cz_human_readable_name: str = 'Odkazovací výrazy'
+    en_human_readable_name: str = 'Anaphoric references'
+    cz_doc: str = (
+        'Čtenář si musí domyslet, na kterou informaci pisatel odkazuje, a hrozí tak, že sdělení pochopí špatně. '
+        + 'Místo odkazování shrnujte. Srov. Šamánková & Kubíková (2022, s. 42).'
+    )
+    en_doc: str = (
+        'The reader has to guess which information the author is referring to and might misunderstand the message. '
+        + 'Summarise instead of referring. Cf. Šamánková & Kubíková (2022, p. 42).'
+    )
+    cz_paricipants: dict[str, str] = {'anaphoric_reference': 'Odkazovací výraz'}
+    en_paricipants: dict[str, str] = {'anaphoric_reference': 'Anaphoric reference'}
+
     def process_node(self, node):
         match node.lemma:
             # co se týče výše uvedeného
@@ -359,6 +443,33 @@ class RuleLiteraryStyle(PhrasesRule):
 
     rule_id: Literal['RuleLiteraryStyle'] = 'RuleLiteraryStyle'
 
+    cz_human_readable_name: str = 'Knižní styl'
+    en_human_readable_name: str = 'Literary style'
+    cz_doc: str = 'Srov. Sgall & Panevová (2014, s. 42, s. 66–69, s. 79–82).'
+    en_doc: str = 'Cf. Sgall & Panevová (2014, p. 42, pp. 66–69, pp. 79–82).'
+    cz_paricipants: dict[str, str] = {
+        'být_vinnen_na_vině': 'Lépe „vinu má/mají“',
+        'genitive_object': 'Zvažte 3. nebo 4. pád',
+        'gen_obj_head': 'Řídící člen',
+        'short_adjective_variant': 'Lépe složený tvar (např. „šťastný“ namísto „šťasten“)',
+        'jej_je_pronoun_form': 'Lépe „ho/jeho”',
+        'jej_je_pronoun_form': 'Lépe „něj“',
+        'jenž': 'Lépe „který“',
+        'conditional_conjunction': 'Lépe „když/pokud“',
+        'causal_conjunction': 'Lépe „protože“',
+    }
+    en_paricipants: dict[str, str] = {
+        'být_vinnen_na_vině': 'Better as „vinu má/mají“',
+        'genitive_object': 'Consider using accusative or dative',
+        'gen_obj_head': 'Governing word',
+        'short_adjective_variant': 'Better use the long form (e.g. “šťastný” instead of “šťasten”)',
+        'jej_pronoun_form': 'Better use “ho/jeho”',
+        'ne_pronoun_form': 'Better use “něj”',
+        'jenž': 'Better use “který”',
+        'conditional_conjunction': 'Better use “když/pokud”',
+        'causal_conjunction': 'Better use “protože”',
+    }
+
     def process_node(self, node: Node):
         # vinni jsou
         if (
@@ -367,7 +478,7 @@ class RuleLiteraryStyle(PhrasesRule):
             and node.feats['Variant'] == 'Short'
             and (auxiliaries := [c for c in node.children if c.upos == 'AUX'])
         ):
-            self.annotate_node('být_vinnen', node, *auxiliaries)
+            self.annotate_node('být_vinnen_na_vině', node, *auxiliaries)
             self.advance_application_id()
 
         # na vině jsou
@@ -377,7 +488,7 @@ class RuleLiteraryStyle(PhrasesRule):
             and (parent := node.parent)
             and parent.lemma == 'být'
         ):
-            self.annotate_node('být_na_vině', node, *adps, parent)
+            self.annotate_node('být_vinnen_na_vině', node, *adps, parent)
             self.advance_application_id()
 
         # genetive objects
@@ -424,18 +535,32 @@ class RuleLiteraryStyle(PhrasesRule):
 
         # pronoun "jej"
         elif (
-            node.form.lower() == 'jej'
+            node.form.lower() in ('jej', 'je')
             and node.upos == 'PRON'
             and (node.feats['Case'] == 'Gen' or 'Neut' in node.feats['Gender'].split(','))
         ):
             self.annotate_node('jej_pronoun_form', node)
             self.advance_application_id()
 
-        elif node.lemma in ('jenž', 'jehož'):
+        # pronoun "ně"
+        elif (
+            node.form.lower() == 'ně'
+            and node.upos == 'PRON'
+            and node.feats['Number'] == 'Sing'
+            and 'Neut' in node.feats['Gender'].split(',')
+        ):
+            self.annotate_node('ne_pronoun_form', node)
+            self.advance_application_id()
+
+        elif node.lemma == 'jenž':
             self.annotate_node('jenž', node)
             self.advance_application_id()
 
         # some subordinate conjunctions
-        elif node.lemma in ('jestliže', 'pakliže', 'li', 'poněvadž', 'jelikož') and node.upos == 'SCONJ':
-            self.annotate_node('subordinate_conjunction', node)
+        elif node.lemma in ('jestliže', 'pakliže', 'li') and node.upos == 'SCONJ':
+            self.annotate_node('conditional_conjunction', node)
+            self.advance_application_id()
+
+        elif node.lemma in ('poněvadž', 'jelikož') and node.upos == 'SCONJ':
+            self.annotate_node('causal_conjunction', node)
             self.advance_application_id()
