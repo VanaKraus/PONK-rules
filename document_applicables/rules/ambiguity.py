@@ -11,6 +11,7 @@ class AmbiguityRule(Rule):
     foreground_color: Color = Color(125, 25, 200)
     rule_id: Literal['ambiguity'] = 'ambiguity'
 
+
 class RuleDoubleAdpos(AmbiguityRule):
     """Capture coordinations where both elements could be headed by a preposition \
     but only the first is.
@@ -27,6 +28,33 @@ class RuleDoubleAdpos(AmbiguityRule):
 
     rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
     max_allowable_distance: int = 4
+
+    cz_human_readable_name: str = 'Předložky v souřadných spojeních'
+    en_human_readable_name: str = 'Prepositions in coordinations'
+    cz_doc: str = (
+        'Souřadné spojení může být nejednoznačné, pokud se předložka u druhého členu neopakuje. '
+        + 'Např. „boj proti Izraeli a (proti) rozšíření amerického vlivu“. '
+        + 'Srov. Sgall & Panevová (2014, s. 77).'
+    )
+    en_doc: str = (
+        'A coordination can be ambiguous when the preposition isn\'t repeated. '
+        + 'E.g. “boj proti Izraeli a (proti) rozšíření amerického vlivu”. '
+        + 'Cf. Sgall & Panevová (2014, p. 77).'
+    )
+    cz_paricipants: dict[str, str] = {
+        'orig_adpos': 'Předložka u prvního členu',
+        'add': 'Předložka u druhého členu',
+        'cconj': 'Spojka souřadicí',
+        'coord_el1': 'První člen spojení',
+        'coord_el2': 'Druhý člen spojení',
+    }
+    en_paricipants: dict[str, str] = {
+        'orig_adpos': 'Preposition on the 1st element',
+        'add': 'Preposition on the 2nd element',
+        'cconj': 'Coordinate conjunction',
+        'coord_el1': '1st element of the coordination',
+        'coord_el2': '2nd element of the coordination',
+    }
 
     def process_node(self, node: Node):
         if node.deprel != 'conj' or node.parent.parent is None:  # in case parent_adpos doesn't have a parent
@@ -95,6 +123,32 @@ class RuleAmbiguousRegards(AmbiguityRule):
 
     rule_id: Literal['RuleAmbiguousRegards'] = 'RuleAmbiguousRegards'
 
+    cz_human_readable_name: str = 'Nejednoznačný zřetel'
+    en_human_readable_name: str = 'Ambiguous regard'
+    cz_doc: str = (
+        'Srovnávací zřetel může být nejednoznačný. Např. „Znám lepšího právníka než dr. Novák“ '
+        + 'může znamenat „než je/zná dr. Novák“. '
+        + 'Srov. Sgall & Panevová (2014, s. 77–78), Šamánková & Kubíková (2022, s. 41).'
+    )
+    en_doc: str = (
+        'A comparative regard can be ambiguous. E.g. “Znám lepšího právníka než dr. Novák” '
+        + 'can mean both “než je/zná dr. Novák”. '
+        + 'Cf. Sgall & Panevová (2014, pp. 77–78), Šamánková & Kubíková (2022, p. 41).'
+    )
+    # TODO: terminology
+    cz_paricipants: dict[str, str] = {
+        'comparative': 'Vlastnost',
+        'landmark': 'Reference',
+        'sconj': 'Podřadicí spojka',
+        'trajector': 'Srovnávané',
+    }
+    en_paricipants: dict[str, str] = {
+        'comparative': 'Property',
+        'landmark': 'Reference',
+        'sconj': 'Subordinate conjunction',
+        'trajector': 'What is compared',
+    }
+
     def process_node(self, node):
         if (
             (sconj := node).lemma == 'než'
@@ -130,6 +184,23 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
     """
 
     rule_id: Literal['RuleReflexivePassWithAnimSubj'] = 'RuleReflexivePassWithAnimSubj'
+
+    cz_human_readable_name: str = 'Zvratné pasivum s životným podmětem'
+    en_human_readable_name: str = 'Reflexive passive with an animate subject'
+    cz_doc: str = (
+        'Zvratné pasivum s životným podmětem může naznačovat, že je reflexivní samo sloveso. '
+        + 'Např. věta „August Comte se označuje za jednoho ze zakladatelů“ naznačuje interpretaci '
+        + '„August Comte sám sebe označuje za…“. Zde je lepší použít opisné pasivum („August Comte je označován…“). '
+        + 'Srov. Sgall & Panevová (2014, s. 71–72).'
+    )
+    en_doc: str = (
+        'Reflexive passive used with an animate subject suggests that the verb itself is reflexive. '
+        + 'E.g. the sentence „August Comte se označuje za jednoho ze zakladatelů“ suggests that '
+        + 'August Comte is also the object („August Comte sám sebe označuje za…“). Here it\'s better to use '
+        + 'the participial passive („August Comte je označován…“). Cf. Sgall & Panevová (2014, pp. 71–72).'
+    )
+    cz_paricipants: dict[str, str] = {'refl_pass': 'Zvratné pasivum', 'subj': 'Podmět'}
+    en_paricipants: dict[str, str] = {'refl_pass': 'Reflexive passive', 'subj': 'Subject'}
 
     def process_node(self, node: Node):
         if (
