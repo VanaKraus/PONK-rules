@@ -18,6 +18,19 @@ class RulePassive(StructuralRule):
 
     rule_id: Literal['RulePassive'] = 'RulePassive'
 
+    cz_human_readable_name: str = 'Opisné pasivum'
+    en_human_readable_name: str = 'Participial passive'
+    cz_doc: str = (
+        'Použijte činný rod („nařídíme další opatření“), případně zvratné pasivum („nařídí se další opatření“). '
+        + 'Srov. Šamánková & Kubíková (2022, s. 39–40), Šváb (2023, s. 27).'
+    )
+    en_doc: str = (
+        'Use the active voice (“nařídíme další opatření”) or the reflexive passive (“nařídí se další opatření”). '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 39–40), Šváb (2023, p. 27).'
+    )
+    cz_paricipants: dict[str, str] = {'aux': 'Pomocné sloveso', 'participle': 'Příčestí trpné'}
+    en_paricipants: dict[str, str] = {'aux': 'Auxiliary verb', 'participle': 'Passive participle'}
+
     def process_node(self, node):
         if node.deprel == 'aux:pass':
             parent = node.parent
@@ -32,7 +45,7 @@ class RulePredSubjDistance(StructuralRule):
     """Capture subjects that are too distant from their predicates \
         (or their auxiliaries/copulas when present).
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 53-54), Šváb (2023, pp. 21–22).
+    Inspiration: Šamánková & Kubíková (2022, pp. 53–54), Šváb (2023, pp. 21–22).
 
     Attributes:
         max_distance (int): how far apart the subject and the predicate can be \
@@ -45,6 +58,18 @@ class RulePredSubjDistance(StructuralRule):
     rule_id: Literal['RulePredSubjDistance'] = 'RulePredSubjDistance'
     max_distance: int = 6
     include_clausal_subjects: bool = False
+
+    cz_human_readable_name: str = 'Vzdálenost mezi přísudkem a podmětem'
+    en_human_readable_name: str = 'Distance between subject and object'
+    cz_doc: str = (
+        'Umístěte přísudek a podmět blíž k sobě. Srov. Šamánková & Kubíková (2022, s. 53–54), Šváb (2023, s. 21–22).'
+    )
+    en_doc: str = (
+        'Put the predicate and the subject closer together. '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 53–54), Šváb (2023, pp. 21–22).'
+    )
+    cz_paricipants: dict[str, str] = {'predicate_grammar': 'Přísudek (funkční část)', 'subject': 'Podmět'}
+    en_paricipants: dict[str, str] = {'predicate_grammar': 'Predicate (grammatical component)', 'subject': 'Subject'}
 
     def process_node(self, node):
         if node.udeprel == 'nsubj' or (self.include_clausal_subjects and node.udeprel == 'csubj'):
@@ -92,6 +117,13 @@ class RulePredObjDistance(StructuralRule):
     rule_id: Literal['RulePredObjDistance'] = 'RulePredObjDistance'
     max_distance: int = 6
 
+    cz_human_readable_name: str = 'Vzdálenost předmětu od řídícího členu'
+    en_human_readable_name: str = 'Distance between an object and its governing word'
+    cz_doc: str = 'Umístěte předmět blíž k řídícímu členu. Srov. Šamánková & Kubíková (2022, s. 53–54).'
+    en_doc: str = 'Put the object closer to its governing word. Cf. Šamánková & Kubíková (2022, pp. 53–54).'
+    cz_paricipants: dict[str, str] = {'object': 'Předmět', 'parent': 'Řídící člen'}
+    en_paricipants: dict[str, str] = {'object': 'Object', 'parent': 'Governing word'}
+
     def process_node(self, node):
         if node.deprel in ('obj', 'iobj'):
             parent = node.parent
@@ -118,7 +150,17 @@ class RuleInfVerbDistance(StructuralRule):
     rule_id: Literal['RuleInfVerbDistance'] = 'RuleInfVerbDistance'
     max_distance: int = 5
 
+    # TODO: terminology
+    cz_human_readable_name: str = 'Vzdálenost infinitivu od řídícího členu'
+    en_human_readable_name: str = 'Distance between an infinitive and its governing word'
+    cz_doc: str = 'Umístěte infinitive blíž k řídícímu členu.'
+    en_doc: str = 'Put the infinitive closer to its governing word.'
+    cz_paricipants: dict[str, str] = {'infinitive': 'Infinitiv', 'verb': 'Řídící člen'}
+    en_paricipants: dict[str, str] = {'infinitive': 'Infinitive', 'verb': 'Governing word'}
+
     def process_node(self, node):
+        # FIXME: infinitival coordinations ("považuje za nadbytečné poučovat (...) a rekapitulovat")
+        # FIXME: infinitive auxiliaries
         if (
             'VerbForm' in node.feats
             and (infinitive := node).feats['VerbForm'] == 'Inf'
@@ -139,7 +181,7 @@ class RuleMultiPartVerbs(StructuralRule):
     """Capture multi-word verbal forms the parts of which (auxiliaries and clitics) \
         are too far apart from the root (content) token.
 
-    Inspired by: Šamánková & Kubíková (2022, pp. 53-54).
+    Inspired by: Šamánková & Kubíková (2022, pp. 53–54).
 
     Attributes:
         max_distance (int): how far apart the auxiliary/clitic can be from the root \
@@ -149,6 +191,14 @@ class RuleMultiPartVerbs(StructuralRule):
 
     rule_id: Literal['RuleMultiPartVerbs'] = 'RuleMultiPartVerbs'
     max_distance: int = 5
+
+    # TODO: terminology
+    cz_human_readable_name: str = 'Roztroušené složené slovesné tvary'
+    en_human_readable_name: str = 'Scattered compound verb forms'
+    cz_doc: str = 'Umístěte části slovesného tvaru blíž k sobě. Srov. Šamánková & Kubíková (2022, s. 53–54).'
+    en_doc: str = 'Put the parts of the verb form closer together. Cf. Šamánková & Kubíková (2022, pp. 53–54).'
+    cz_paricipants: dict[str, str] = {'head': 'Hlavní část', 'aux': 'Pomocné slovo'}
+    en_paricipants: dict[str, str] = {'head': 'Main part', 'aux': 'Auxiliary word'}
 
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
@@ -195,6 +245,17 @@ class RuleLongSentences(StructuralRule):
     max_length: int = 50
     without_punctuation: bool = False
 
+    cz_human_readable_name: str = 'Příliš dlouhé věty'
+    en_human_readable_name: str = 'Too long sentences'
+    cz_doc: str = (
+        'Rozdělte větu/souvětí do více vět/souvětí. Srov. Šamánková & Kubíková (2022, s. 51), Šváb (2023, s. 17–18).'
+    )
+    en_doc: str = (
+        'Split the sentence into multiple sentences. Cf. Šamánková & Kubíková (2022, pp. 51), Šváb (2023, pp. 17–18).'
+    )
+    cz_paricipants: dict[str, str] = {'long_sentence': 'Dlouhá věta / dlouhé souvětí'}
+    en_paricipants: dict[str, str] = {'long_sentence': 'Long sentence'}
+
     def process_node(self, node):
         if node.udeprel == 'root':
             descendants = util.get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
@@ -219,12 +280,25 @@ class RulePredAtClauseBeginning(StructuralRule):
     """Capture predicates (their finite tokens for multi-token predicates) \
         that are too far from the beginning of their clause.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 53-54).
+    Inspiration: Šamánková & Kubíková (2022, pp. 53–54).
 
     Attributes:
         max_order (int): how far the predicate can be to not be considered an issue \
             (predicate right at the beginning of the clause would have order of 1).
     """
+
+    cz_human_readable_name: str = 'Přísudek daleko ve větě'
+    en_human_readable_name: str = 'Predicate far in the sentence'
+    cz_doc: str = (
+        'Pokud tím neporušíte plynulost textu, umistěte přísudek blíž k začátku věty. '
+        + 'Srov. Šamánková & Kubíková (2022, s. 53–54).'
+    )
+    en_doc: str = (
+        'If it does not break the flow of the text, place the predicate closer to the beginning of the sentence. '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 53–54).'
+    )
+    cz_paricipants: dict[str, str] = {'predicate': 'Přísudek'}
+    en_paricipants: dict[str, str] = {'predicate': 'Predicate'}
 
     rule_id: Literal['RulePredAtClauseBeginning'] = 'RulePredAtClauseBeginning'
     max_order: int = 5
@@ -246,11 +320,10 @@ class RulePredAtClauseBeginning(StructuralRule):
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
             if (max_ord := first_predicate_token.ord - clause_beginning.ord + 1) > self.max_order:
-                self.annotate_node('clause_beginning', clause_beginning)
-                self.annotate_node('predicate_beginning', first_predicate_token)
+                self.annotate_node('predicate', *predicate_tokens)
 
-                self.annotate_measurement('max_order', max_ord, clause_beginning, first_predicate_token)
-                self.annotate_parameter('max_order', self.max_order, clause_beginning, first_predicate_token)
+                self.annotate_measurement('max_order', max_ord, *predicate_tokens)
+                self.annotate_parameter('max_order', self.max_order, *predicate_tokens)
 
                 self.advance_application_id()
 
@@ -258,10 +331,23 @@ class RulePredAtClauseBeginning(StructuralRule):
 class RuleVerbalNouns(StructuralRule):
     """Capture verbal nouns.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 38-39), Šváb (2023, p. 30).
+    Inspiration: Šamánková & Kubíková (2022, pp. 38–39), Šváb (2023, p. 30).
     """
 
     rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
+
+    cz_human_readable_name: str = 'Podstatná jména slovesná'
+    en_human_readable_name: str = 'Verbal nouns'
+    cz_doc: str = (
+        'Zvažte nahrazení podstatného jména slovesného větou. '
+        + 'Srov. Šamánková & Kubíková (2022, s. 38–39), Šváb (2023, s. 30).'
+    )
+    en_doc: str = (
+        'Consider replacing the verbal noun with a clause. '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 38–39), Šváb (2023, p. 30).'
+    )
+    cz_paricipants: dict[str, str] = {'verbal_noun': 'Podstatné jméno slovesné'}
+    en_paricipants: dict[str, str] = {'verbal_noun': 'Verbal noun'}
 
     def process_node(self, node):
         if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
