@@ -33,6 +33,7 @@ print('rules: DeriNet loaded', file=sys.stderr)
 
 class Rule(Documentable):
     detect_only: bool = True
+    verbose_annotation: bool = False
     background_color: Color | None = None
     foreground_color: Color | None = None
     cz_doc: str = "Popis pravidla"
@@ -72,11 +73,13 @@ class Rule(Documentable):
         # FIXME: this is slow, but probably not relevant
 
     def annotate_measurement(self, m_name: str, m_value: Number, *node):
-        self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
-        self.do_measurement_calculations(m_name=m_name, m_value=m_value)
+        if self.verbose_annotation:
+            self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
+            self.do_measurement_calculations(m_name=m_name, m_value=m_value)
 
     def annotate_parameter(self, p_name: str, p_value: Number, *node):
-        self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
+        if self.verbose_annotation:
+            self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
 
     def after_process_document(self, document):
         for root in self.modified_roots:
