@@ -256,6 +256,10 @@ class RuleTooLongExpressions(PhrasesRule):
         'prostřednictvím_kterého': 'Lépe „který umožňuje“',
         'jsou_uvedeny_v_příloze': 'Lépe „naleznete (v příloze)“',
         'za_podmínek_uvedených_ve_smlouvě': 'Lépe „podle (smlouvy)“',
+        'v_rámci': 'Lépe „při (poskytování)“',
+        'uděluje_vyjadřuje_souhlas': 'Lépe „souhlasí“',
+        'ze_strany_banky': 'Lépe 7. pád („bankou“)',
+        'předmětný_závazek': 'Lépe „tento (závazek)“',
     }
     en_paricipants: dict[str, str] = {
         'v_důsledku_toho': 'Better as “proto”',
@@ -267,6 +271,10 @@ class RuleTooLongExpressions(PhrasesRule):
         'prostřednictvím_kterého': 'Better as “který umožňuje”',
         'jsou_uvedeny_v_příloze': 'Better as “naleznete (v příloze)”',
         'za_podmínek_uvedených_ve_smlouvě': 'Better as “podle (smlouvy)”',
+        'v_rámci': 'Better as “při (poskytování)”',
+        'uděluje_vyjadřuje_souhlas': 'Better as “souhlasí”',
+        'ze_strany_banky': 'Better as instrumental (“bankou”)',
+        'předmětný_závazek': 'Better as “tento (závazek)”',
     }
 
     def process_node(self, node):
@@ -452,8 +460,8 @@ class RuleLiteraryStyle(PhrasesRule):
         'genitive_object': 'Zvažte 3. nebo 4. pád',
         'gen_obj_head': 'Řídící člen',
         'short_adjective_variant': 'Lépe složený tvar (např. „šťastný“ namísto „šťasten“)',
-        'jej_je_pronoun_form': 'Lépe „ho/jeho”',
-        'jej_je_pronoun_form': 'Lépe „něj“',
+        'jej_pronoun_form': 'Lépe „ho/jeho”',
+        'ne_pronoun_form': 'Lépe „něj“',
         'jenž': 'Lépe „který“',
         'conditional_conjunction': 'Lépe „když/pokud“',
         'causal_conjunction': 'Lépe „protože“',
