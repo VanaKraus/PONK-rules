@@ -159,12 +159,12 @@ class RuleInfVerbDistance(StructuralRule):
     en_paricipants: dict[str, str] = {'infinitive': 'Infinitive', 'verb': 'Governing word'}
 
     def process_node(self, node):
-        # FIXME: infinitival coordinations ("považuje za nadbytečné poučovat (...) a rekapitulovat")
-        # FIXME: infinitive auxiliaries
         if (
             'VerbForm' in node.feats
             and (infinitive := node).feats['VerbForm'] == 'Inf'
             and 'VerbForm' in (verb := infinitive.parent).feats
+            and node.deprel != 'conj'
+            and node.upos != 'AUX'
         ):
 
             if (max_dst := abs(verb.ord - infinitive.ord)) > self.max_distance:
