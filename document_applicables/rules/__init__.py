@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from numbers import Number
 
-from typing import Literal, Any, Union
+from typing import Any
 import os
 
 import sys
 
-# from derinet.lexicon import Lexicon
+from derinet.lexicon import Lexicon
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from document_applicables import Documentable
 from document_applicables.rules import util
@@ -24,9 +24,9 @@ RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 print('rules: loading DeriNet', file=sys.stderr)
 
-# derinet_lexicon = Lexicon()
-# # FIXME: choose a better path
-# derinet_lexicon.load('_local/derinet-2-3.tsv')
+derinet_lexicon = Lexicon()
+# FIXME: choose a better path
+derinet_lexicon.load('_local/derinet-2-3.tsv')
 
 print('rules: DeriNet loaded', file=sys.stderr)
 
@@ -110,43 +110,3 @@ class RuleBlockWrapper(Block):
         return self.rule.after_process_document(document)
 
 
-# tmp reimport of everythin
-from .acceptability import (
-    RuleDoubleComparison,
-    RulePossessiveGenitive,
-    RuleIncompleteConjunction,
-    RuleWrongValencyCase,
-    RuleWrongVerbonominalCase,
-)
-from .ambiguity import RuleAmbiguousRegards, RuleDoubleAdpos, RuleReflexivePassWithAnimSubj
-from .clusters import (
-    RuleTooManyNegations,
-    RuleTooFewVerbs,
-    RuleTooManyNominalConstructions,
-    RuleCaseRepetition,
-    RuleFunctionWordRepetition,
-)
-from .phrases import (
-    RuleLiteraryStyle,
-    RuleAbstractNouns,
-    RuleAnaphoricReferences,
-    RuleRedundantExpressions,
-    RuleConfirmationExpressions,
-    RuleRelativisticExpressions,
-    RuleTooLongExpressions,
-    RuleWeakMeaningWords,
-)
-from .structural import (
-    RulePassive,
-    RuleLongSentences,
-    RuleVerbalNouns,
-    RuleMultiPartVerbs,
-    RuleInfVerbDistance,
-    RulePredObjDistance,
-    RulePredSubjDistance,
-    RulePredAtClauseBeginning,
-)
-
-
-class RuleAPIWrapper(BaseModel):
-    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')  # type: ignore
