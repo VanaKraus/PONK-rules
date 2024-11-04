@@ -1,8 +1,6 @@
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
-from io import TextIOWrapper
 
-from pydantic import BaseModel, Field
 from typing import Annotated
 
 from document_applicables import MINIMAL_CONLLU
