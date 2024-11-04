@@ -21,7 +21,7 @@ import re
 # tmp reimport of everythin
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
-    RulePossessiveGenitive,
+    #RulePossessiveGenitive,
     RuleIncompleteConjunction,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
