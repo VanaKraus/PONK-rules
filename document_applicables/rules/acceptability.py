@@ -4,7 +4,7 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util, Color, derinet_lexicon
+from document_applicables.rules import Rule, util, Color #derinet_lexicon
 
 
 class AcceptabilityRule(Rule):
@@ -217,46 +217,46 @@ class RuleIncompleteConjunction(AcceptabilityRule):
                 self.advance_application_id()
 
 
-class RulePossessiveGenitive(AcceptabilityRule):
-    """Capture unnecessary or badly placed possessive genitives.
-
-    Inspiration: Sgall & Panevová (2014, p. 91).
-    """
-
-    rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
-    cz_human_readable_name: str = 'Nevhodný genitiv přivlastňovací'
-    en_human_readable_name: str = 'Inappropriate possessive genitive'
-    cz_doc: str = (
-        'Genitiv přivlastňovací se vyskytuje na nevhodné pozici nebo by šel nahradit. Srov. Sgall & Panevová (2014, s. 91).'
-    )
-    en_doc: str = (
-        'The possessive genitive is positioned inappropriately or could be replaced. Cf. Sgall & Panevová (2014, p. 91).'
-    )
-    cz_paricipants: dict[str, str] = {
-        'possesive_adj_exists': 'Tento genitiv je možné nahradit přídavným jménem přivlastňovacím',
-        'req_left_of_parent': 'Lépe nalevo od řídícího členu',
-    }
-    en_paricipants: dict[str, str] = {
-        'possesive_adj_exists': 'You can use a possessive adjective instead',
-        'req_left_of_parent': 'Better left of the parent',
-    }
-
-    def process_node(self, node: Node):
-        if (
-            util.is_named_entity(node)
-            and node.udeprel == 'nmod'
-            and node.feats['Case'] == 'Gen'
-            and len(node.children) == 0
-        ):
-            dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
-            if len(dnet_lexemes) > 0:
-                dnet_lexeme = dnet_lexemes[0]
-                possesives = [c for c in dnet_lexeme.children if 'Poss' in c.feats and c.feats['Poss'] == 'Yes']
-
-                if possesives:
-                    self.annotate_node('possesive_adj_exists', node)
-                    self.advance_application_id()
-                # TODO: what about gender ambiguity?
-                elif node.parent.ord < node.ord and node.feats['Gender'] != 'Fem':
-                    self.annotate_node('req_left_of_parent', node)
-                    self.advance_application_id()
+# class RulePossessiveGenitive(AcceptabilityRule):
+#     """Capture unnecessary or badly placed possessive genitives.
+#
+#     Inspiration: Sgall & Panevová (2014, p. 91).
+#     """
+#
+#     rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
+#     cz_human_readable_name: str = 'Nevhodný genitiv přivlastňovací'
+#     en_human_readable_name: str = 'Inappropriate possessive genitive'
+#     cz_doc: str = (
+#         'Genitiv přivlastňovací se vyskytuje na nevhodné pozici nebo by šel nahradit. Srov. Sgall & Panevová (2014, s. 91).'
+#     )
+#     en_doc: str = (
+#         'The possessive genitive is positioned inappropriately or could be replaced. Cf. Sgall & Panevová (2014, p. 91).'
+#     )
+#     cz_paricipants: dict[str, str] = {
+#         'possesive_adj_exists': 'Tento genitiv je možné nahradit přídavným jménem přivlastňovacím',
+#         'req_left_of_parent': 'Lépe nalevo od řídícího členu',
+#     }
+#     en_paricipants: dict[str, str] = {
+#         'possesive_adj_exists': 'You can use a possessive adjective instead',
+#         'req_left_of_parent': 'Better left of the parent',
+#     }
+#
+#     def process_node(self, node: Node):
+#         if (
+#             util.is_named_entity(node)
+#             and node.udeprel == 'nmod'
+#             and node.feats['Case'] == 'Gen'
+#             and len(node.children) == 0
+#         ):
+#             dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
+#             if len(dnet_lexemes) > 0:
+#                 dnet_lexeme = dnet_lexemes[0]
+#                 possesives = [c for c in dnet_lexeme.children if 'Poss' in c.feats and c.feats['Poss'] == 'Yes']
+#
+#                 if possesives:
+#                     self.annotate_node('possesive_adj_exists', node)
+#                     self.advance_application_id()
+#                 # TODO: what about gender ambiguity?
+#                 elif node.parent.ord < node.ord and node.feats['Gender'] != 'Fem':
+#                     self.annotate_node('req_left_of_parent', node)
+#                     self.advance_application_id()
