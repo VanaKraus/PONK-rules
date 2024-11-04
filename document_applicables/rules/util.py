@@ -47,7 +47,7 @@ def is_aux(node: Node, grammatical_only: bool = False) -> bool:
 
 
 def is_finite_verb(node: Node) -> bool:
-    return ('VerbForm' in node.feats and node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
+    return (node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
 
 
 def is_clause_root(node: Node) -> bool:

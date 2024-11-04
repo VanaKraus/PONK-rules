@@ -7,7 +7,7 @@ import os
 
 import sys
 
-from derinet.lexicon import Lexicon
+# from derinet.lexicon import Lexicon
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
@@ -22,13 +22,13 @@ from document_applicables.rules.util import Color
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 
-print('rules: loading DeriNet', file=sys.stderr)
+# print('rules: loading DeriNet', file=sys.stderr)
 
-derinet_lexicon = Lexicon()
-# FIXME: choose a better path
-derinet_lexicon.load('_local/derinet-2-3.tsv')
+# derinet_lexicon = Lexicon()
+# # FIXME: choose a better path
+# derinet_lexicon.load('_local/derinet-2-3.tsv')
 
-print('rules: DeriNet loaded', file=sys.stderr)
+# print('rules: DeriNet loaded', file=sys.stderr)
 
 
 class Rule(Documentable):
@@ -110,7 +110,7 @@ class RuleBlockWrapper(Block):
 # tmp reimport of everythin
 from .acceptability import (
     RuleDoubleComparison,
-    RulePossessiveGenitive,
+    # RulePossessiveGenitive,
     RuleIncompleteConjunction,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,

@@ -160,8 +160,7 @@ class RuleInfVerbDistance(StructuralRule):
 
     def process_node(self, node):
         if (
-            'VerbForm' in node.feats
-            and (infinitive := node).feats['VerbForm'] == 'Inf'
+            (infinitive := node).feats['VerbForm'] == 'Inf'
             and 'VerbForm' in (verb := infinitive.parent).feats
             and node.deprel != 'conj'
             and node.upos != 'AUX'
@@ -350,6 +349,6 @@ class RuleVerbalNouns(StructuralRule):
     en_paricipants: dict[str, str] = {'verbal_noun': 'Verbal noun'}
 
     def process_node(self, node):
-        if 'VerbForm' in node.feats and node.feats['VerbForm'] == 'Vnoun':
+        if node.feats['VerbForm'] == 'Vnoun':
             self.annotate_node('verbal_noun', node)
             self.advance_application_id()

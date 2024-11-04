@@ -482,7 +482,6 @@ class RuleLiteraryStyle(PhrasesRule):
         # vinni jsou
         if (
             node.lemma == 'vinný'
-            and 'Variant' in node.feats
             and node.feats['Variant'] == 'Short'
             and (auxiliaries := [c for c in node.children if c.upos == 'AUX'])
         ):
@@ -502,7 +501,6 @@ class RuleLiteraryStyle(PhrasesRule):
         # genetive objects
         elif (
             node.deprel in ('obj', 'iobj', 'obl:arg')
-            and 'Case' in node.feats
             and node.feats['Case'] == 'Gen'
             and (parent := node.parent)
             and parent.lemma
@@ -533,7 +531,6 @@ class RuleLiteraryStyle(PhrasesRule):
         # short adjective forms
         elif (
             node.upos == 'ADJ'
-            and 'Variant' in node.feats
             and node.feats['Variant'] == 'Short'
             and 'VerbForm' not in node.feats  # rule out passive participles
             and node.lemma not in ('rád', 'bosý')

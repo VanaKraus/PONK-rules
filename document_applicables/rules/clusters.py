@@ -126,15 +126,11 @@ class RuleTooManyNegations(ClusterRule):
     @staticmethod
     def _is_positive(node) -> bool:
         # the aim is to capture (positives and) pronouns denoting an entity (not asking for it or relating it)
-        return ('Polarity' in node.feats and node.feats['Polarity'] == 'Pos') or (
-            'PronType' in node.feats and node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind')
-        )
+        return (node.feats['Polarity'] == 'Pos') or (node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind'))
 
     @staticmethod
     def _is_negative(node) -> bool:
-        return ('Polarity' in node.feats and node.feats['Polarity'] == 'Neg') or (
-            'PronType' in node.feats and node.feats['PronType'] == 'Neg'
-        )
+        return (node.feats['Polarity'] == 'Neg') or (node.feats['PronType'] == 'Neg')
 
 
 class RuleTooManyNominalConstructions(ClusterRule):

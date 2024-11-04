@@ -4,7 +4,7 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util, Color, derinet_lexicon
+from document_applicables.rules import Rule, util, Color  # , derinet_lexicon
 
 
 class AcceptabilityRule(Rule):
@@ -36,7 +36,6 @@ class RuleDoubleComparison(AcceptabilityRule):
     def process_node(self, node: Node):
         if (
             node.lemma in ('více', 'méně', 'míň')
-            and 'Degree' in node.feats
             and node.feats['Degree'] != 'Pos'
             and (parent := node.parent)
             and node.udeprel == 'advmod'
@@ -85,7 +84,7 @@ class RuleWrongValencyCase(AcceptabilityRule):
     def process_node(self, node: Node):
         # pokoušeli se zabránit takové důsledky
         if node.lemma in ('zabránit', 'zabraňovat') and (
-            accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+            accs := [a for a in node.children if a.udeprel == 'obj' and a.feats['Case'] == 'Acc']
         ):
             for acc in accs:
                 if not bool([c for c in acc.children if c.udeprel == 'case']):
@@ -95,7 +94,7 @@ class RuleWrongValencyCase(AcceptabilityRule):
 
         # pokoušeli se zamezit takovým důsledkům
         elif node.lemma in ('zamezit', 'zamezovat') and (
-            dats := [d for d in node.children if d.udeprel == 'obl' and 'Case' in d.feats and d.feats['Case'] == 'Dat']
+            dats := [d for d in node.children if d.udeprel == 'obl' and d.feats['Case'] == 'Dat']
         ):
             for dat in dats:
                 if not bool([c for c in dat.children if c.udeprel == 'case']):
@@ -105,7 +104,7 @@ class RuleWrongValencyCase(AcceptabilityRule):
 
         # nemusíte zodpovědět na tyto otázky
         elif node.lemma in ('zodpovědět', 'zodpovídat') and (
-            accs := [a for a in node.children if a.udeprel == 'obl' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+            accs := [a for a in node.children if a.udeprel == 'obl' and a.feats['Case'] == 'Acc']
         ):
             for acc in accs:
                 if (cases := [c for c in acc.children if c.udeprel == 'case']) and cases[0].lemma == 'na':
@@ -116,7 +115,7 @@ class RuleWrongValencyCase(AcceptabilityRule):
 
         # nemusíte odpovědět tyto otázky
         elif node.lemma in ('odpovědět', 'odpovídat') and (
-            accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+            accs := [a for a in node.children if a.udeprel == 'obj' and a.feats['Case'] == 'Acc']
         ):
             for acc in accs:
                 cases = [c for c in acc.children if c.udeprel == 'case']
@@ -134,7 +133,7 @@ class RuleWrongValencyCase(AcceptabilityRule):
 
         # hovořit/mluvit něco
         elif node.lemma in ('hovořit', 'mluvit') and (
-            accs := [a for a in node.children if a.udeprel == 'obj' and 'Case' in a.feats and a.feats['Case'] == 'Acc']
+            accs := [a for a in node.children if a.udeprel == 'obj' and a.feats['Case'] == 'Acc']
         ):
             for acc in accs:
                 if not bool([c for c in acc.children if c.udeprel == 'case']):
@@ -217,46 +216,46 @@ class RuleIncompleteConjunction(AcceptabilityRule):
                 self.advance_application_id()
 
 
-class RulePossessiveGenitive(AcceptabilityRule):
-    """Capture unnecessary or badly placed possessive genitives.
+# class RulePossessiveGenitive(AcceptabilityRule):
+#     """Capture unnecessary or badly placed possessive genitives.
 
-    Inspiration: Sgall & Panevová (2014, p. 91).
-    """
+#     Inspiration: Sgall & Panevová (2014, p. 91).
+#     """
 
-    rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
-    cz_human_readable_name: str = 'Nevhodný genitiv přivlastňovací'
-    en_human_readable_name: str = 'Inappropriate possessive genitive'
-    cz_doc: str = (
-        'Genitiv přivlastňovací se vyskytuje na nevhodné pozici nebo by šel nahradit. Srov. Sgall & Panevová (2014, s. 91).'
-    )
-    en_doc: str = (
-        'The possessive genitive is positioned inappropriately or could be replaced. Cf. Sgall & Panevová (2014, p. 91).'
-    )
-    cz_paricipants: dict[str, str] = {
-        'possesive_adj_exists': 'Tento genitiv je možné nahradit přídavným jménem přivlastňovacím',
-        'req_left_of_parent': 'Lépe nalevo od řídícího členu',
-    }
-    en_paricipants: dict[str, str] = {
-        'possesive_adj_exists': 'You can use a possessive adjective instead',
-        'req_left_of_parent': 'Better left of the parent',
-    }
+#     rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
+#     cz_human_readable_name: str = 'Nevhodný genitiv přivlastňovací'
+#     en_human_readable_name: str = 'Inappropriate possessive genitive'
+#     cz_doc: str = (
+#         'Genitiv přivlastňovací se vyskytuje na nevhodné pozici nebo by šel nahradit. Srov. Sgall & Panevová (2014, s. 91).'
+#     )
+#     en_doc: str = (
+#         'The possessive genitive is positioned inappropriately or could be replaced. Cf. Sgall & Panevová (2014, p. 91).'
+#     )
+#     cz_paricipants: dict[str, str] = {
+#         'possesive_adj_exists': 'Tento genitiv je možné nahradit přídavným jménem přivlastňovacím',
+#         'req_left_of_parent': 'Lépe nalevo od řídícího členu',
+#     }
+#     en_paricipants: dict[str, str] = {
+#         'possesive_adj_exists': 'You can use a possessive adjective instead',
+#         'req_left_of_parent': 'Better left of the parent',
+#     }
 
-    def process_node(self, node: Node):
-        if (
-            util.is_named_entity(node)
-            and node.udeprel == 'nmod'
-            and node.feats['Case'] == 'Gen'
-            and len(node.children) == 0
-        ):
-            dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
-            if len(dnet_lexemes) > 0:
-                dnet_lexeme = dnet_lexemes[0]
-                possesives = [c for c in dnet_lexeme.children if 'Poss' in c.feats and c.feats['Poss'] == 'Yes']
+#     def process_node(self, node: Node):
+#         if (
+#             util.is_named_entity(node)
+#             and node.udeprel == 'nmod'
+#             and node.feats['Case'] == 'Gen'
+#             and len(node.children) == 0
+#         ):
+#             dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
+#             if len(dnet_lexemes) > 0:
+#                 dnet_lexeme = dnet_lexemes[0]
+#                 possesives = [c for c in dnet_lexeme.children if c.feats['Poss'] == 'Yes']
 
-                if possesives:
-                    self.annotate_node('possesive_adj_exists', node)
-                    self.advance_application_id()
-                # TODO: what about gender ambiguity?
-                elif node.parent.ord < node.ord and node.feats['Gender'] != 'Fem':
-                    self.annotate_node('req_left_of_parent', node)
-                    self.advance_application_id()
+#                 if possesives:
+#                     self.annotate_node('possesive_adj_exists', node)
+#                     self.advance_application_id()
+#                 # TODO: what about gender ambiguity?
+#                 elif node.parent.ord < node.ord and node.feats['Gender'] != 'Fem':
+#                     self.annotate_node('req_left_of_parent', node)
+#                     self.advance_application_id()

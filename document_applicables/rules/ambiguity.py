@@ -158,7 +158,6 @@ class RuleAmbiguousRegards(AmbiguityRule):
             and not util.is_clause_root(landmark := node.parent)
             and not [c for c in landmark.children if c.udeprel == 'case']
             and (comparative := landmark.parent)
-            and 'Degree' in comparative.feats
             and comparative.feats['Degree'] == 'Cmp'
             and comparative.parent
         ):
