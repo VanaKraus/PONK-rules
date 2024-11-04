@@ -61,7 +61,7 @@ def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | d
             "cz_doc": rule.cz_doc,
             "en_doc": rule.en_doc,
             "cz_participants": rule.cz_paricipants,
-            "en_participants": rule.cz_paricipants,
+            "en_participants": rule.en_paricipants,
         }
         for rule in rule_list
         if rule.application_count != 0
