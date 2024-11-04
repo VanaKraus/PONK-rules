@@ -7,6 +7,9 @@ from udapi.core.node import Node
 from document_applicables.rules import Rule, util, Color
 
 
+# TODO: you don't need to ask if 'xxx' in feats when needing to access node.feats['xxx']
+
+
 class AmbiguityRule(Rule):
     foreground_color: Color = Color(125, 25, 200)
     rule_id: Literal['ambiguity'] = 'ambiguity'
@@ -207,9 +210,52 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
             node.deprel == 'expl:pass'
             and (verb := node.parent)
             and (subj := [s for s in verb.children if s.udeprel == 'nsubj'])
-            and 'Animacy' in subj[0].feats
+            # and 'Animacy' in subj[0].feats
             and subj[0].feats['Animacy'] == 'Anim'
         ):
             self.annotate_node('refl_pass', node, verb)
             self.annotate_node('subj', subj[0])
             self.advance_application_id()
+
+
+class RuleGPcoordovs(Rule):
+    """Capture garden-path sentences where clause-coordinations appear as NP coordinations.
+
+    Inspiration: Ceháková & Chromý (2024).
+    """
+
+    # Milada ztratila šálu a čepici ochotně věnovala vnučce.
+
+    rule_id: Literal['RuleGPcoordovs'] = 'RuleGPcoordovs'
+
+    cz_human_readable_name: str = 'Zavádějící spojení vět'
+    en_human_readable_name: str = 'Misleading clause coordination'
+    cz_doc: str = 'Souřadné spojení dvou vět vypadá jako spojení dvou jmenných frází. Srov. Ceháková & Chromý (2024).'
+    en_doc: str = (
+        'Coordination of two clauses looks as if it was connecting two nominal phrases. Cf. Ceháková & Chromý (2024).'
+    )
+    cz_paricipants: dict[str, str] = {'same_case': ''}
+    en_paricipants: dict[str, str] = {'same_case': ''}
+
+    def process_node(self, node: Node):
+        if (node.deprel in ('punct', 'cc')) and node.parent.deprel == 'conj' and util.is_clause_root(node.parent):
+            sentence = node.root.descendants()
+
+            if (
+                node.ord > 1
+                and node.ord < sentence[-1].ord
+                and [n for n in sentence if n.ord == node.ord - 1][0].upos != 'PUNCT'
+            ):
+                previous = [n for n in sentence if n.ord < node.ord][-1]
+                next = [n for n in sentence if n.ord > node.ord][0]
+
+                if (
+                    'Case' in previous.feats
+                    and 'Case' in next.feats
+                    and 'case' not in (previous.deprel, next.deprel)
+                    and previous.feats['Case'] == next.feats['Case']
+                    and not util.is_clause_root(previous)
+                    and not util.is_clause_root(next)
+                    and 'Rel' not in next.feats['PronType'].split(',')
+                ):
+                    self.annotate_node('same_case', previous, next)
