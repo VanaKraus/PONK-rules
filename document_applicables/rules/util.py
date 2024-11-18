@@ -143,13 +143,13 @@ def _get_morphodita() -> Morpho:
     return _morphodita
 
 
-def morphodita_generate(lemma: str, tag_wildcard: str = '???????????????') -> dict[str, str]:
+def morphodita_generate(lemma: str, tag_wildcard: str = '???????????????') -> list[dict[str, str]]:
     morphodita = _get_morphodita()
 
     lemmas_forms = TaggedLemmasForms()
     morphodita.generate(lemma, tag_wildcard, Morpho.GUESSER, lemmas_forms)
 
-    return {f.tag: f.form for lf in lemmas_forms for f in lf.forms}
+    return [{f.tag: f.form for f in lf.forms} for lf in lemmas_forms]
 
 
 def rules_applied(node: Node) -> set[str]:
