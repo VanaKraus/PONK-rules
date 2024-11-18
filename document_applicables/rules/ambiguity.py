@@ -233,8 +233,8 @@ class RuleGPcoordovs(Rule):
     en_doc: str = (
         'Coordination of two clauses looks as if it was connecting two nominal phrases. Cf. Ceháková & Chromý (2024).'
     )
-    cz_paricipants: dict[str, str] = {'same_case': ''}
-    en_paricipants: dict[str, str] = {'same_case': ''}
+    cz_paricipants: dict[str, str] = {'same_case': 'Stejný pád'}
+    en_paricipants: dict[str, str] = {'same_case': 'Same case'}
 
     def process_node(self, node: Node):
         if (node.deprel in ('punct', 'cc')) and node.parent.deprel == 'conj' and util.is_clause_root(node.parent):
@@ -261,6 +261,26 @@ class RuleGPcoordovs(Rule):
 
 
 class RuleGPdeverbaddr(Rule):
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–INS syncretism.
+
+    Inspiration: Ceháková & Chromý (2024).
+    '''
+
+    # Michal ochotně podal správci podepsané formuláře organizátorovi zájezdu.
+
+    cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
+    en_human_readable_name: str = 'Ambiguous syntactic relation'
+    cz_doc: str = (
+        'Slovo lze interpretovat jako 3. i jako 7. pád a podle toho může záviset na různých větných členech. '
+        + 'Srov. Ceháková & Chromý (2024).'
+    )
+    en_doc: str = (
+        'A noun could be interpreted both as dative or as instrumental and can thus depend on different words. '
+        + 'Cf. Ceháková & Chromý (2024).'
+    )
+    cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
+    en_paricipants: dict[str, str] = {'sync': 'Same case', 'possible_bind': 'Potential governing word'}
+
     rule_id: Literal['RuleGPdeverbaddr'] = 'RuleGPdeverbaddr'
 
     def process_node(self, node: Node):
