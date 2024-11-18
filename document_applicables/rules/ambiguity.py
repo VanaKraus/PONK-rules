@@ -307,9 +307,7 @@ class RuleGPdeverbaddr(Rule):
                 paradigms = util.morphodita_generate(node.lemma, tag_wildcard)
 
                 for p in paradigms:
-                    # print(p)
                     for tag, form in p.items():
-                        # print(f'{tag}, {form}')
                         if (
                             (node.feats['Case'] == 'Dat' and tag[4] == '7')
                             or (node.feats['Case'] == 'Ins' and tag[4] == '3')
