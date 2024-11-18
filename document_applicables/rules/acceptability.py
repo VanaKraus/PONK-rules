@@ -218,10 +218,10 @@ class RuleIncompleteConjunction(AcceptabilityRule):
 
 # class RulePossessiveGenitive(AcceptabilityRule):
 #     """Capture unnecessary or badly placed possessive genitives.
-
+#
 #     Inspiration: Sgall & Panevová (2014, p. 91).
 #     """
-
+#
 #     rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
 #     cz_human_readable_name: str = 'Nevhodný genitiv přivlastňovací'
 #     en_human_readable_name: str = 'Inappropriate possessive genitive'
@@ -239,7 +239,7 @@ class RuleIncompleteConjunction(AcceptabilityRule):
 #         'possesive_adj_exists': 'You can use a possessive adjective instead',
 #         'req_left_of_parent': 'Better left of the parent',
 #     }
-
+#
 #     def process_node(self, node: Node):
 #         if (
 #             util.is_named_entity(node)
@@ -250,8 +250,8 @@ class RuleIncompleteConjunction(AcceptabilityRule):
 #             dnet_lexemes = derinet_lexicon.get_lexemes(node.lemma)
 #             if len(dnet_lexemes) > 0:
 #                 dnet_lexeme = dnet_lexemes[0]
-#                 possesives = [c for c in dnet_lexeme.children if c.feats['Poss'] == 'Yes']
-
+#                 possesives = [c for c in dnet_lexeme.children if 'Poss' in c.feats and c.feats['Poss'] == 'Yes']
+#
 #                 if possesives:
 #                     self.annotate_node('possesive_adj_exists', node)
 #                     self.advance_application_id()

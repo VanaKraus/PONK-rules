@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from numbers import Number
 
-from typing import Literal, Any, Union
+from typing import Any
 import os
 
 import sys
@@ -11,7 +11,7 @@ import sys
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from document_applicables import Documentable
 from document_applicables.rules import util
@@ -33,6 +33,7 @@ RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
 class Rule(Documentable):
     detect_only: bool = True
+    verbose_annotation: bool = False
     background_color: Color | None = None
     foreground_color: Color | None = None
     cz_doc: str = "Popis pravidla"
@@ -72,11 +73,13 @@ class Rule(Documentable):
         # FIXME: this is slow, but probably not relevant
 
     def annotate_measurement(self, m_name: str, m_value: Number, *node):
-        self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
-        self.do_measurement_calculations(m_name=m_name, m_value=m_value)
+        if self.verbose_annotation:
+            self.annotate_node(str(m_value), *node, flag=f"measur:{m_name}")
+            self.do_measurement_calculations(m_name=m_name, m_value=m_value)
 
     def annotate_parameter(self, p_name: str, p_value: Number, *node):
-        self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
+        if self.verbose_annotation:
+            self.annotate_node(str(p_value), *node, flag=f"param:{p_name}")
 
     def after_process_document(self, document):
         for root in self.modified_roots:
@@ -105,45 +108,3 @@ class RuleBlockWrapper(Block):
 
     def after_process_document(self, document: Document):
         return self.rule.after_process_document(document)
-
-
-# tmp reimport of everythin
-from .acceptability import (
-    RuleDoubleComparison,
-    # RulePossessiveGenitive,
-    RuleIncompleteConjunction,
-    RuleWrongValencyCase,
-    RuleWrongVerbonominalCase,
-)
-from .ambiguity import RuleAmbiguousRegards, RuleDoubleAdpos, RuleReflexivePassWithAnimSubj
-from .clusters import (
-    RuleTooManyNegations,
-    RuleTooFewVerbs,
-    RuleTooManyNominalConstructions,
-    RuleCaseRepetition,
-    RuleFunctionWordRepetition,
-)
-from .phrases import (
-    RuleLiteraryStyle,
-    RuleAbstractNouns,
-    RuleAnaphoricReferences,
-    RuleRedundantExpressions,
-    RuleConfirmationExpressions,
-    RuleRelativisticExpressions,
-    RuleTooLongExpressions,
-    RuleWeakMeaningWords,
-)
-from .structural import (
-    RulePassive,
-    RuleLongSentences,
-    RuleVerbalNouns,
-    RuleMultiPartVerbs,
-    RuleInfVerbDistance,
-    RulePredObjDistance,
-    RulePredSubjDistance,
-    RulePredAtClauseBeginning,
-)
-
-
-class RuleAPIWrapper(BaseModel):
-    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')  # type: ignore

@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+from typing import Union
+
+from pydantic import BaseModel, Field
+
 from document_applicables.metrics import Metric, MetricsWrapper
-from document_applicables.rules import Rule, RuleAPIWrapper, RuleBlockWrapper
+from document_applicables.rules import Rule, RuleBlockWrapper
 
 from udapi.core.document import Document
 from udapi.core.node import Node
@@ -12,6 +18,42 @@ from io import TextIOBase, TextIOWrapper
 
 import re
 
+# tmp reimport of everythin
+from document_applicables.rules.acceptability import (
+    RuleDoubleComparison,
+    #RulePossessiveGenitive,
+    RuleIncompleteConjunction,
+    RuleWrongValencyCase,
+    RuleWrongVerbonominalCase,
+)
+from document_applicables.rules.ambiguity import RuleAmbiguousRegards, RuleDoubleAdpos, RuleReflexivePassWithAnimSubj
+from document_applicables.rules.clusters import (
+    RuleTooManyNegations,
+    RuleTooFewVerbs,
+    RuleTooManyNominalConstructions,
+    RuleCaseRepetition,
+    RuleFunctionWordRepetition,
+)
+from document_applicables.rules.phrases import (
+    RuleLiteraryStyle,
+    RuleAbstractNouns,
+    RuleAnaphoricReferences,
+    RuleRedundantExpressions,
+    RuleConfirmationExpressions,
+    RuleRelativisticExpressions,
+    RuleTooLongExpressions,
+    RuleWeakMeaningWords,
+)
+from document_applicables.rules.structural import (
+    RulePassive,
+    RuleLongSentences,
+    RuleVerbalNouns,
+    RuleMultiPartVerbs,
+    RuleInfVerbDistance,
+    RulePredObjDistance,
+    RulePredSubjDistance,
+    RulePredAtClauseBeginning,
+)
 
 def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
     # return appropriate set of rules and metrics based on the profiles selected
@@ -31,6 +73,10 @@ def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None) -> list
     if metric_wrapper_list is None:
         return [metric() for metric in Metric.get_final_children()]
     return [item.metric for item in metric_wrapper_list]
+
+
+class RuleAPIWrapper(BaseModel):
+    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')  # type: ignore
 
 
 def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None) -> list[Rule]:
