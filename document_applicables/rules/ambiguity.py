@@ -258,3 +258,42 @@ class RuleGPcoordovs(Rule):
                     and 'Rel' not in next.feats['PronType'].split(',')
                 ):
                     self.annotate_node('same_case', previous, next)
+
+
+class RuleGPdeverbaddr(Rule):
+    rule_id: Literal['RuleGPdeverbaddr'] = 'RuleGPdeverbaddr'
+
+    def process_node(self, node: Node):
+        if (
+            node.upos in ('NOUN', 'PROPN')
+            and node.feats['Case'] in ('Dat', 'Ins')
+            and node.udeprel not in ('fixed', 'case')
+            and node.feats['VerbForm'] != 'Vnoun'  # ADDR should be animate
+            and not [c for c in node.children if c.udeprel == 'case' or c.feats['Case'] == node.feats['Case']]
+        ):
+            clause_root = util.get_clause_root(node)
+            clause = util.get_clause(
+                clause_root, without_subordinates=True, without_punctuation=True, node_is_root=True
+            )
+
+            if node.ord > clause_root.ord and (  # node after the predicate
+                pbind := [  # nodes the node could possibly bind onto
+                    t
+                    for t in clause
+                    if node.ord < t.ord and t.upos in ('NOUN', 'ADJ', 'VERB', 'ADV') and ('VerbForm' in t.feats)
+                ]
+            ):
+                tag_wildcard = node.xpos[:3] + '?[37]' + node.xpos[5:]  # generate DAT and INS only
+                paradigms = util.morphodita_generate(node.lemma, tag_wildcard)
+
+                for p in paradigms:
+                    # print(p)
+                    for tag, form in p.items():
+                        # print(f'{tag}, {form}')
+                        if (
+                            (node.feats['Case'] == 'Dat' and tag[4] == '7')
+                            or (node.feats['Case'] == 'Ins' and tag[4] == '3')
+                        ) and node.form.lower() == form:
+                            self.annotate_node('sync', node)
+                            self.annotate_node('possible_bind', clause_root, *pbind)
+                            self.advance_application_id()

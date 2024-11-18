@@ -58,6 +58,10 @@ def is_clause_root(node: Node) -> bool:
 def get_clause_root(node: Node) -> Node:
     clause_root = node
     while not is_clause_root(clause_root):
+        if clause_root.parent is None:
+            # print('Warning: failed to identify clause root')
+            return clause_root
+
         clause_root = clause_root.parent
     return clause_root
 
@@ -138,6 +142,7 @@ def _get_morphodita() -> Morpho:
     global _morphodita
 
     if _morphodita is None:
+        print('Load MorphoDiTa dictionary')
         _morphodita = Morpho.load('_local/czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict')
 
     return _morphodita
