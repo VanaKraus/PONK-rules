@@ -279,7 +279,7 @@ class RuleGPdeverbaddr(Rule):
         + 'Cf. Ceháková & Chromý (2024).'
     )
     cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
-    en_paricipants: dict[str, str] = {'sync': 'Same case', 'possible_bind': 'Potential governing word'}
+    en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
 
     rule_id: Literal['RuleGPdeverbaddr'] = 'RuleGPdeverbaddr'
 
@@ -315,3 +315,113 @@ class RuleGPdeverbaddr(Rule):
                             self.annotate_node('sync', node)
                             self.annotate_node('possible_bind', clause_root, *pbind)
                             self.advance_application_id()
+
+
+class RuleGPadjective(Rule):
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–LOC syncretism.
+
+    Inspiration: Ceháková & Chromý (2024).
+    '''
+
+    # Michal ochotně podal správci podepsané formuláře organizátorovi zájezdu.
+
+    cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
+    en_human_readable_name: str = 'Ambiguous syntactic relation'
+    cz_doc: str = (
+        'Slovo lze interpretovat jako 3. i jako 6. pád a podle toho může záviset na různých větných členech. '
+        + 'Srov. Ceháková & Chromý (2024).'
+    )
+    en_doc: str = (
+        'A noun could be interpreted both as dative or as locative and can thus depend on different words. '
+        + 'Cf. Ceháková & Chromý (2024).'
+    )
+    cz_paricipants: dict[str, str] = {
+        'prep': 'Pádová předložka',
+        'sync': 'Nejednoznačně navázané slovo',
+        'possible_bind': 'Možný řídící člen',
+    }
+    en_paricipants: dict[str, str] = {
+        'prep': 'Case preposition',
+        'sync': 'Ambiguously connected word',
+        'possible_bind': 'Potential governing word',
+    }
+
+    rule_id: Literal['RuleGPadjective'] = 'RuleGPadjective'
+
+    @staticmethod
+    def _scope_beginning(node: Node) -> bool:
+        return node.deprel == 'case' and node.feats['Case'] == 'Loc'
+
+    @staticmethod
+    def _syncretic_DAT_LOC(node: Node) -> bool:
+        tag_wildcard = node.xpos[:4] + '[36]' + node.xpos[5:]
+        paradigms = util.morphodita_generate(node.lemma, tag_wildcard)
+
+        for p in paradigms:
+            # if the paradigm is actually syncretic; sometimes UDPipe assigns a wrong case based on context
+            if len(p) == len(set(p.values())):
+                continue
+
+            for tag, form in p.items():
+                if (
+                    (node.xpos[4] == '3' and tag[4] == '6') or (node.xpos[4] == '6' and tag[4] == '3')
+                ) and node.form.lower() == form:
+                    return True
+
+        return False
+
+    @staticmethod
+    def _build_parent_list(node: Node, add_self: bool = False) -> list[Node]:
+        res = [node] if add_self else []
+
+        while node.parent:
+            node = node.parent
+            res += [node]
+
+        return res
+
+    @classmethod
+    def _coordination_within_scope(cls, n1: Node, n2: Node, scope: list[Node]) -> bool:
+        if n1.ord >= n2.ord:
+            raise ValueError(f'n1 must preceed n2')
+
+        scopeset = set(scope)
+        n1_parents = set(cls._build_parent_list(n1, add_self=True)).intersection(scopeset)
+        n2_parents = set(cls._build_parent_list(n2)).intersection(scopeset)
+
+        return bool(n1_parents.intersection(n2_parents)) and bool(
+            [c for c in n2_parents.union(n1_parents) if c.udeprel == 'conj']
+        )
+
+    def process_node(self, node: Node):
+        if self._scope_beginning(node):
+            clause = util.get_clause(node, without_subordinates=True)
+
+            if sync := [n for n in clause if n.ord == node.ord + 1 and self._syncretic_DAT_LOC(n)]:
+                scope = sync[0].parent.descendants(add_self=True)
+
+                for i, s in enumerate(scope):
+                    if s == node:
+                        scope = scope[i:]
+                        break
+
+                for i, s in enumerate(scope):
+                    if s.ord > node.ord and self._scope_beginning(s):
+                        scope = scope[:i]
+                        break
+
+                if bind := [
+                    n
+                    for n in clause
+                    if n.ord > node.ord + 1
+                    and n in scope
+                    and n.upos == 'ADJ'
+                    and n.xpos[4] == '6'
+                    and n.parent not in sync + [s.parent for s in sync]
+                    and not self._coordination_within_scope(sync[0], n, scope)
+                ]:
+                    self.annotate_node('prep', node)
+                    self.annotate_node('sync', *sync)
+                    self.annotate_node('possible_bind', *bind)
+
+                    self.advance_application_id()
