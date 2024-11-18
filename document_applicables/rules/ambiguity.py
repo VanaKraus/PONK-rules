@@ -343,7 +343,12 @@ class RuleGPdeverbpat(Rule):
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Acc', 'Ins')
             and node.udeprel not in ('fixed', 'case')
-            and not [c for c in node.children if c.udeprel == 'case' or c.feats['Case'] == node.feats['Case']]
+            and not [
+                c
+                for c in node.children
+                if c.udeprel in ('case', 'conj')
+                or (c.feats['Case'] == node.feats['Case'] and not util.n_syncretic(c, '4', '7'))
+            ]
         ):
             clause_root = util.get_clause_root(node)
             clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
@@ -377,26 +382,79 @@ class RuleGPdeverbpat(Rule):
                     ):
                         continue
 
-                    tag_wildcard_potential_obj = potential_obj.xpos[:3] + '?4' + potential_obj.xpos[5:]
-                    paradigms_potential_obj = util.morphodita_generate(potential_obj.lemma, tag_wildcard_potential_obj)
-
-                    if potential_obj.form.lower() in (v for p in paradigms_potential_obj for v in p.values()):
+                    if util.n_syncretic_with(potential_obj, '4', disregard_number=True):
                         potential_obj_present = True
                         break
 
-                if potential_obj_present:
-                    tag_wildcard_node = node.xpos[:3] + '?[47]' + node.xpos[5:]  # generate ACC and INS only
-                    paradigms_node = util.morphodita_generate(node.lemma, tag_wildcard_node)
+                if potential_obj_present and util.n_syncretic(node, '4', '7'):
+                    self.annotate_node('sync', node)
+                    self.annotate_node('possible_bind', root_bind, *pbind)
+                    self.advance_application_id()
 
-                    for p in paradigms_node:
-                        for tag, form in p.items():
-                            if (
-                                (node.feats['Case'] == 'Acc' and tag[4] == '7')
-                                or (node.feats['Case'] == 'Ins' and tag[4] == '4')
-                            ) and node.form.lower() == form:
-                                self.annotate_node('sync', node)
-                                self.annotate_node('possible_bind', root_bind, *pbind)
-                                self.advance_application_id()
+
+class RuleGPdeverbsubj(Rule):
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to NOM–INS syncretism.
+
+    Inspiration: Ceháková & Chromý (2024).
+    '''
+
+    # Na středisku pracovali lékaři vyškolení maséři s akreditací.
+
+    cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
+    en_human_readable_name: str = 'Ambiguous syntactic relation'
+    cz_doc: str = (
+        'Slovo lze interpretovat jako 1. i jako 7. pád a podle toho může záviset na různých větných členech. '
+        + 'Srov. Ceháková & Chromý (2024).'
+    )
+    en_doc: str = (
+        'A noun could be interpreted both as nominative or as instrumental and can thus depend on different words. '
+        + 'Cf. Ceháková & Chromý (2024).'
+    )
+    cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
+    en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
+
+    rule_id: Literal['RuleGPdeverbsubj'] = 'RuleGPdeverbsubj'
+
+    def process_node(self, node: Node):
+        if (
+            node.upos in ('NOUN', 'PROPN')
+            and node.feats['Case'] in ('Nom', 'Ins')
+            and node.udeprel not in ('fixed', 'case', 'conj')
+            and not [c for c in node.children if c.udeprel in ('case', 'conj')]
+        ):
+            clause_root = util.get_clause_root(node)
+            clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
+
+            if node.ord > clause_root.ord and (  # node after the predicate
+                pbind := [  # nodes the node could possibly bind onto
+                    t
+                    for t in clause
+                    if node.ord < t.ord
+                    # binding to VERB tends to be obvious, and binding to NOUN should be impossible
+                    and t.upos in ('ADJ', 'ADV')
+                    and ('VerbForm' in t.feats)
+                    and not [c for c in t.children if c.deprel == 'case']
+                ]
+            ):
+                # check if there's a potential subject after the node
+                potential_subj_present = False
+
+                for potential_subj in clause:
+                    if (
+                        potential_subj.ord <= node.ord
+                        or 'Case' not in potential_subj.feats
+                        or [c for c in potential_subj.children if c.deprel == 'case']
+                    ):
+                        continue
+
+                    if util.n_syncretic_with(potential_subj, '1', disregard_number=True):
+                        potential_subj_present = True
+                        break
+
+                if potential_subj_present and util.n_syncretic(node, '1', '7'):
+                    self.annotate_node('sync', node)
+                    self.annotate_node('possible_bind', clause_root, *pbind)
+                    self.advance_application_id()
 
 
 class RuleGPadjective(Rule):
@@ -435,24 +493,6 @@ class RuleGPadjective(Rule):
         return node.deprel == 'case' and node.feats['Case'] == 'Loc'
 
     @staticmethod
-    def _syncretic_DAT_LOC(node: Node) -> bool:
-        tag_wildcard = node.xpos[:4] + '[36]' + node.xpos[5:]
-        paradigms = util.morphodita_generate(node.lemma, tag_wildcard)
-
-        for p in paradigms:
-            # if the paradigm is actually syncretic; sometimes UDPipe assigns a wrong case based on context
-            if len(p) == len(set(p.values())):
-                continue
-
-            for tag, form in p.items():
-                if (
-                    (node.xpos[4] == '3' and tag[4] == '6') or (node.xpos[4] == '6' and tag[4] == '3')
-                ) and node.form.lower() == form:
-                    return True
-
-        return False
-
-    @staticmethod
     def _build_parent_list(node: Node, add_self: bool = False) -> list[Node]:
         res = [node] if add_self else []
 
@@ -479,7 +519,7 @@ class RuleGPadjective(Rule):
         if self._scope_beginning(node):
             clause = util.get_clause(node, without_subordinates=True)
 
-            if sync := [n for n in clause if n.ord == node.ord + 1 and self._syncretic_DAT_LOC(n)]:
+            if sync := [n for n in clause if n.ord == node.ord + 1 and util.n_syncretic(n, '3', '6')]:
                 scope = sync[0].parent.descendants(add_self=True)
 
                 for i, s in enumerate(scope):

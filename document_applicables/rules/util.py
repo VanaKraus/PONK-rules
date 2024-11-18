@@ -157,6 +157,39 @@ def morphodita_generate(lemma: str, tag_wildcard: str = '???????????????') -> li
     return [{f.tag: f.form for f in lf.forms} for lf in lemmas_forms]
 
 
+def n_syncretic(node: Node, case1: str, case2: str, disregard_number: bool = False) -> bool:
+    rng = (f'{i}' for i in range(1, 8))
+    if case1 not in rng or case2 not in rng:
+        raise ValueError('case1 or case2 out of range')
+
+    tag_wildcard = node.xpos[:3] + ('?' if disregard_number else node.xpos[3]) + f'[{case1}{case2}]' + node.xpos[5:]
+    paradigms = morphodita_generate(node.lemma, tag_wildcard)
+
+    for p in paradigms:
+        # if the paradigm is actually syncretic; sometimes UDPipe assigns a wrong case based on context
+        if len(p) == len(set(p.values())):
+            continue
+
+        for tag, form in p.items():
+            if (
+                (node.xpos[4] == case1 and tag[4] == case2) or (node.xpos[4] == case2 and tag[4] == case1)
+            ) and node.form.lower() == form:
+                return True
+
+    return False
+
+
+def n_syncretic_with(node: Node, case: str, disregard_number: bool = False) -> bool:
+    rng = (f'{i}' for i in range(1, 8))
+    if case not in rng:
+        raise ValueError('case out of range')
+
+    tag_wildcard = node.xpos[:3] + ('?' if disregard_number else node.xpos[3]) + case + node.xpos[5:]
+    paradigms = morphodita_generate(node.lemma, tag_wildcard)
+
+    return node.form.lower() in (v for p in paradigms for v in p.values())
+
+
 def rules_applied(node: Node) -> set[str]:
     rule_annotations = [m.split(':') for m in node.misc if m.startswith(f'{rules.RULE_ANNOTATION_PREFIX}:')]
     return {annotation[1] for annotation in rule_annotations}
