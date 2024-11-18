@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
+from ufal.morphodita import Morpho, TaggedLemmasForms
 
 # FIXME: cyclic import
 from document_applicables import rules
@@ -127,6 +128,28 @@ class NEregister:
 
 def is_named_entity(node: Node) -> bool:
     return 'NE' in node.misc
+
+
+# FIXME: agree on how to deal with MorphoDiTa
+_morphodita: Morpho = None
+
+
+def _get_morphodita() -> Morpho:
+    global _morphodita
+
+    if _morphodita is None:
+        _morphodita = Morpho.load('_local/czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict')
+
+    return _morphodita
+
+
+def morphodita_generate(lemma: str, tag_wildcard: str = '???????????????') -> dict[str, str]:
+    morphodita = _get_morphodita()
+
+    lemmas_forms = TaggedLemmasForms()
+    morphodita.generate(lemma, tag_wildcard, Morpho.GUESSER, lemmas_forms)
+
+    return {f.tag: f.form for lf in lemmas_forms for f in lf.forms}
 
 
 def rules_applied(node: Node) -> set[str]:
