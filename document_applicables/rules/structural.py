@@ -6,7 +6,7 @@ from document_applicables.rules import Rule, util, Color
 
 
 class StructuralRule(Rule):
-    foreground_color: Color = Color(70, 12, 21)
+    foreground_color: Color = Color(70, 130, 33)
     rule_id: Literal['structural'] = 'structural'
 
 
