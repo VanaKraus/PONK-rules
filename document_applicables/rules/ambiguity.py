@@ -647,3 +647,63 @@ class RuleGPpatbenperson(Rule):
                     self.annotate_node('possible_bind', root_bind)
                     self.annotate_node('potential_obj', potential_obj)
                     self.advance_application_id()
+
+
+class RuleGPwordorder(Rule):
+    '''Capture garden-path sentences where an object noun could potentially be interpreted as an object due to NOM–ACC syncretism.
+
+    Inspiration: Ceháková & Chromý (2024).
+    '''
+
+    # Chalífát úspěšně dobyl až generál s armádou žoldnéřů.
+
+    cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
+    en_human_readable_name: str = 'Ambiguous syntactic relation'
+    cz_doc: str = (
+        'Slovo v předmětu lze interpretovat i jako 1. pád může proto vypadat jako podmět. '
+        + 'Srov. Ceháková & Chromý (2024).'
+    )
+    en_doc: str = (
+        'An object noun could be interpreted as nominative and thus can appear to be the subject '
+        + 'Cf. Ceháková & Chromý (2024).'
+    )
+    cz_paricipants: dict[str, str] = {'obj': 'Nejednoznačný předmět', 'nsubj': 'Podmět', 'fin_verb': 'Určité sloveso'}
+    en_paricipants: dict[str, str] = {'obj': 'Ambiguous object', 'nsubj': 'Subject', 'fin_verb': 'Finite verb'}
+
+    rule_id: Literal['RuleGPwordorder'] = 'RuleGPwordorder'
+
+    def process_node(self, node: Node):
+        if (
+            node.upos in ('NOUN', 'PROPN')
+            and node.udeprel == 'obj'
+            and (util.is_clause_root(node.parent) or node.parent.udeprel == 'xcomp')
+            and not [
+                c
+                for c in node.children
+                if c.udeprel in ('case', 'conj')
+                or (
+                    c.feats['Case'] == node.feats['Case']
+                    and not [cc for cc in c.children if util.is_adposition(cc)]
+                    and not util.n_syncretic_with(c, '1')
+                )
+            ]
+        ):
+            clause = util.get_clause(node, without_subordinates=True)
+            finite = [t for t in clause if util.is_finite_verb(t)]
+
+            # node before the subject
+            if (
+                finite
+                and (util.feat_overlap(node, finite[0], 'Gender') or 'Gender' not in finite[0].feats)
+                and util.feat_overlap(node, finite[0], 'Number')
+                and (nsubj := [c for c in clause if c.udeprel == 'nsubj'])
+            ):
+                if (
+                    node.ord < nsubj[0].ord
+                    and util.n_syncretic_with(nsubj[0], '1', disregard_number=True)
+                    and util.n_syncretic(node, '1', '4', disregard_number=True)
+                ):
+                    self.annotate_node('obj', node)
+                    self.annotate_node('nsubj', *nsubj)
+                    self.annotate_node('fin_verb', *finite)
+                    self.advance_application_id()

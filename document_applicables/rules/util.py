@@ -96,6 +96,13 @@ def get_clause(
     return clause
 
 
+def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
+    n1_values = set(n1.feats[feat_id].split(','))
+    n2_values = set(n2.feats[feat_id].split(','))
+
+    return bool(n1_values.intersection(n2_values))
+
+
 class NEregister:
     '''Keeps track of named entities visited.'''
 
