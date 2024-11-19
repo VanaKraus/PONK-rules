@@ -156,7 +156,7 @@ class RuleAmbiguousRegards(AmbiguityRule):
         if (
             (sconj := node).lemma == 'než'
             and not util.is_clause_root(landmark := node.parent)
-            and not [c for c in landmark.children if c.udeprel == 'case']
+            and not [c for c in landmark.children if util.is_adposition(c)]
             and (comparative := landmark.parent)
             and comparative.feats['Degree'] == 'Cmp'
             and comparative.parent
@@ -288,9 +288,9 @@ class RuleGPdeverbaddr(Rule):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Dat', 'Ins')
-            and node.udeprel not in ('fixed', 'case')
+            and not util.is_adposition(node)
             and util.is_animate(node)  # ADDR should be animate
-            and not [c for c in node.children if c.udeprel == 'case' or c.feats['Case'] == node.feats['Case']]
+            and not [c for c in node.children if util.is_adposition(c) or c.feats['Case'] == node.feats['Case']]
         ):
             clause_root = util.get_clause_root(node)
             clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
@@ -316,7 +316,7 @@ class RuleGPdeverbaddr(Rule):
                             self.advance_application_id()
 
 
-class RuleGPdeverbpat(Rule):
+class RuleGPpatinstr(Rule):
     '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to ACC–INS syncretism.
 
     Inspiration: Ceháková & Chromý (2024).
@@ -327,23 +327,32 @@ class RuleGPdeverbpat(Rule):
     cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
-        'Slovo lze interpretovat jako 4. i jako 7. pád a podle toho může záviset na různých větných členech. '
+        'Slovo lze interpretovat jako 4. i jako 7. pád a podle toho může být různým větným členem. '
         + 'Srov. Ceháková & Chromý (2024).'
     )
     en_doc: str = (
-        'A noun could be interpreted both as accusative or as instrumental and can thus depend on different words. '
+        'A noun could be interpreted both as accusative or as instrumental and can thus serve different function. '
         + 'Cf. Ceháková & Chromý (2024).'
     )
-    cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
-    en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
+    cz_paricipants: dict[str, str] = {
+        'sync': 'Nejednoznačně navázané slovo',
+        'possible_bind': 'Možný řídící člen',
+        'potential_obj': 'Možný předmět ve 4. pádě',
+    }
+    en_paricipants: dict[str, str] = {
+        'sync': 'Ambiguously connected word',
+        'possible_bind': 'Potential governing word',
+        'potential_obj': 'Potential accusative object',
+    }
 
-    rule_id: Literal['RuleGPdeverbpat'] = 'RuleGPdeverbpat'
+    rule_id: Literal['RuleGPpatinstr'] = 'RuleGPpatinstr'
 
     def process_node(self, node: Node):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Acc', 'Ins')
-            and node.udeprel not in ('fixed', 'case')
+            and not util.is_adposition(node)
+            and not node.deprel == 'conj'
             and not [
                 c
                 for c in node.children
@@ -358,38 +367,32 @@ class RuleGPdeverbpat(Rule):
             if xcomp := [c for c in root_bind.children if c.deprel == 'xcomp']:
                 root_bind = xcomp[0]
 
-            if (
-                node.ord > root_bind.ord  # node after the predicate
-                and [o for o in root_bind.children if o.udeprel == 'obj']  # has an object
-                and (
-                    pbind := [  # nodes the node could possibly bind onto
-                        t
-                        for t in clause
-                        if node.ord < t.ord
-                        and t.upos in ('NOUN', 'ADJ', 'ADV')
-                        and ('VerbForm' in t.feats)
-                        and not [c for c in t.children if c.deprel == 'case']
-                    ]
-                )
-            ):
+            if node.ord > root_bind.ord and [  # node after the predicate
+                o for o in root_bind.children if o.udeprel == 'obj'
+            ]:  # has an object
                 # check if there's a potential object after the node
-                potential_obj_present = False
+                potential_obj = None
 
-                for potential_obj in clause:
+                for po in (t for t in clause if t.ord > node.ord):
+                    if po.upos == 'VERB':
+                        break
+
                     if (
-                        potential_obj.ord <= node.ord
-                        or 'Case' not in potential_obj.feats
-                        or [c for c in potential_obj.children if c.deprel == 'case']
+                        'Case' not in po.feats
+                        or util.is_adposition(po)
+                        or po.deprel == 'conj'
+                        or [c for c in po.children if util.is_adposition(c)]
                     ):
                         continue
 
-                    if util.n_syncretic_with(potential_obj, '4', disregard_number=True):
-                        potential_obj_present = True
+                    if util.n_syncretic_with(po, '4', disregard_number=True):
+                        potential_obj = po
                         break
 
-                if potential_obj_present and util.n_syncretic(node, '4', '7'):
+                if potential_obj and util.n_syncretic(node, '4', '7'):
                     self.annotate_node('sync', node)
-                    self.annotate_node('possible_bind', root_bind, *pbind)
+                    self.annotate_node('possible_bind', root_bind)
+                    self.annotate_node('potential_obj', potential_obj)
                     self.advance_application_id()
 
 
@@ -434,7 +437,7 @@ class RuleGPdeverbsubj(Rule):
                     # binding to VERB tends to be obvious, and binding to NOUN should be impossible
                     and t.upos in ('ADJ', 'ADV')
                     and ('VerbForm' in t.feats)
-                    and not [c for c in t.children if c.deprel == 'case']
+                    and not [c for c in t.children if util.is_adposition(c)]
                 ]
             ):
                 # check if there's a potential subject after the node
@@ -444,7 +447,8 @@ class RuleGPdeverbsubj(Rule):
                     if (
                         potential_subj.ord <= node.ord
                         or 'Case' not in potential_subj.feats
-                        or [c for c in potential_subj.children if c.deprel == 'case']
+                        or util.is_adposition(potential_subj)
+                        or [c for c in potential_subj.children if util.is_adposition(c)]
                     ):
                         continue
 
@@ -566,7 +570,7 @@ class RuleGPpatbenperson(Rule):
         + 'Srov. Ceháková & Chromý (2024).'
     )
     en_doc: str = (
-        'A noun could be interpreted both as accusative or as instrumental and can thus depend on different words. '
+        'A noun could be interpreted both as dative or as accusative and can thus serve different function. '
         + 'Cf. Ceháková & Chromý (2024).'
     )
     cz_paricipants: dict[str, str] = {
@@ -586,7 +590,7 @@ class RuleGPpatbenperson(Rule):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Acc', 'Dat')
-            and node.udeprel not in ('fixed', 'case')
+            and not util.is_adposition(node)
             and util.is_animate(node)
             and not [
                 c
@@ -624,7 +628,8 @@ class RuleGPpatbenperson(Rule):
                         'Case' not in po.feats
                         or (po.upos == 'ADJ' and po.parent.upos == 'NOUN')
                         or po.deprel in ('case', 'conj')
-                        or [c for c in po.children if c.deprel == 'case']
+                        or util.is_adposition(po)
+                        or [c for c in po.children if util.is_adposition(c)]
                     ):
                         continue
 

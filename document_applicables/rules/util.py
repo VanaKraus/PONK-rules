@@ -51,6 +51,10 @@ def is_finite_verb(node: Node) -> bool:
     return (node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
 
 
+def is_adposition(node: Node) -> bool:
+    return node.deprel in ('case', 'fixed')
+
+
 def is_clause_root(node: Node) -> bool:
     return is_finite_verb(node) or bool([nd for nd in node.children if is_aux(nd, grammatical_only=True)])
 
