@@ -134,6 +134,10 @@ def is_named_entity(node: Node) -> bool:
     return 'NE' in node.misc
 
 
+def is_animate(node: Node) -> bool:
+    return node.feats['Animacy'] == 'Anim' or node.feats['Gender'] == 'Fem' or is_named_entity(node)
+
+
 # FIXME: agree on how to deal with MorphoDiTa
 _morphodita: Morpho = None
 
@@ -158,9 +162,9 @@ def morphodita_generate(lemma: str, tag_wildcard: str = '???????????????') -> li
 
 
 def n_syncretic(node: Node, case1: str, case2: str, disregard_number: bool = False) -> bool:
-    rng = (f'{i}' for i in range(1, 8))
+    rng = [str(i) for i in range(1, 8)]
     if case1 not in rng or case2 not in rng:
-        raise ValueError('case1 or case2 out of range')
+        raise ValueError(f'{case1=} or {case2=} out of range')
 
     tag_wildcard = node.xpos[:3] + ('?' if disregard_number else node.xpos[3]) + f'[{case1}{case2}]' + node.xpos[5:]
     paradigms = morphodita_generate(node.lemma, tag_wildcard)

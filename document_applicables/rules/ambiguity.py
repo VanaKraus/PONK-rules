@@ -206,11 +206,12 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
 
     def process_node(self, node: Node):
         if (
-            node.deprel == 'expl:pass'
+            node.deprel in ('expl:pass', 'obj')
+            and node.form.lower() == 'se'
             and (verb := node.parent)
+            and util.is_finite_verb(verb)
             and (subj := [s for s in verb.children if s.udeprel == 'nsubj'])
-            # and 'Animacy' in subj[0].feats
-            and subj[0].feats['Animacy'] == 'Anim'
+            and util.is_animate(subj[0])
         ):
             self.annotate_node('refl_pass', node, verb)
             self.annotate_node('subj', subj[0])
@@ -288,7 +289,7 @@ class RuleGPdeverbaddr(Rule):
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Dat', 'Ins')
             and node.udeprel not in ('fixed', 'case')
-            and node.feats['VerbForm'] != 'Vnoun'  # ADDR should be animate
+            and util.is_animate(node)  # ADDR should be animate
             and not [c for c in node.children if c.udeprel == 'case' or c.feats['Case'] == node.feats['Case']]
         ):
             clause_root = util.get_clause_root(node)
@@ -358,9 +359,9 @@ class RuleGPdeverbpat(Rule):
                 root_bind = xcomp[0]
 
             if (
-                node.ord > root_bind.ord
+                node.ord > root_bind.ord  # node after the predicate
                 and [o for o in root_bind.children if o.udeprel == 'obj']  # has an object
-                and (  # node after the predicate
+                and (
                     pbind := [  # nodes the node could possibly bind onto
                         t
                         for t in clause
@@ -546,4 +547,98 @@ class RuleGPadjective(Rule):
                     self.annotate_node('sync', *sync)
                     self.annotate_node('possible_bind', *bind)
 
+                    self.advance_application_id()
+
+
+class RuleGPpatbenperson(Rule):
+    '''Capture garden-path sentences where a noun could potentially be interpreted as a patient or a benefactor \
+        due to DAT–ACC syncretism.
+
+    Inspiration: Ceháková & Chromý (2024).
+    '''
+
+    # Bohouš nakopl zákaznici ve frontě igelitku s nákupem.
+
+    cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
+    en_human_readable_name: str = 'Ambiguous syntactic relation'
+    cz_doc: str = (
+        'Slovo lze interpretovat jako 3. i jako 4. pád a podle toho může být jiným větným členem. '
+        + 'Srov. Ceháková & Chromý (2024).'
+    )
+    en_doc: str = (
+        'A noun could be interpreted both as accusative or as instrumental and can thus depend on different words. '
+        + 'Cf. Ceháková & Chromý (2024).'
+    )
+    cz_paricipants: dict[str, str] = {
+        'sync': 'Nejednoznačné slovo',
+        'possible_bind': 'Možný řídící člen',
+        'potential_obj': 'Možný předmět ve 4. pádě',
+    }
+    en_paricipants: dict[str, str] = {
+        'sync': 'Ambiguous word',
+        'possible_bind': 'Potential governing word',
+        'potential_obj': 'Potential accusative object',
+    }
+
+    rule_id: Literal['RuleGPpatbenperson'] = 'RuleGPpatbenperson'
+
+    def process_node(self, node: Node):
+        if (
+            node.upos in ('NOUN', 'PROPN')
+            and node.feats['Case'] in ('Acc', 'Dat')
+            and node.udeprel not in ('fixed', 'case')
+            and util.is_animate(node)
+            and not [
+                c
+                for c in node.children
+                if c.udeprel in ('case', 'conj')
+                or (c.feats['Case'] == node.feats['Case'] and not util.n_syncretic(c, '3', '4'))
+            ]
+        ):
+            clause_root = util.get_clause_root(node)
+            clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
+
+            root_bind = clause_root
+            if xcomp := [c for c in root_bind.children if c.deprel == 'xcomp']:
+                root_bind = xcomp[0]
+
+            if node.ord > root_bind.ord and [  # node after the predicate
+                o
+                for o in root_bind.children
+                if o.udeprel == 'obj'
+                and not [
+                    c
+                    for c in o.children
+                    if c.feats['Case'] == o.feats['Case'] and util.n_syncretic(c, '3', '4', disregard_number=True)
+                ]  # has an object
+            ]:
+                # check if there's a potential object after the node
+                potential_obj = None
+
+                for po in (c for c in clause if c.ord > node.ord):
+                    # nodes after another verb probably won't be objects of the previous verb
+                    if po.upos == 'VERB':
+                        break
+
+                    if (
+                        'Case' not in po.feats
+                        or (po.upos == 'ADJ' and po.parent.upos == 'NOUN')
+                        or po.deprel in ('case', 'conj')
+                        or [c for c in po.children if c.deprel == 'case']
+                    ):
+                        continue
+
+                    if util.n_syncretic_with(po, '4', disregard_number=True) and not [
+                        c
+                        for c in po.children
+                        if c.feats['Case'] == po.feats['Case']
+                        and not util.n_syncretic_with(c, '4', disregard_number=True)
+                    ]:
+                        potential_obj = po
+                        break
+
+                if potential_obj and util.n_syncretic(node, '4', '3'):
+                    self.annotate_node('sync', node)
+                    self.annotate_node('possible_bind', root_bind)
+                    self.annotate_node('potential_obj', potential_obj)
                     self.advance_application_id()
