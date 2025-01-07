@@ -150,6 +150,7 @@ class RuleConfirmationExpressions(PhrasesRule):
     def process_node(self, node):
         if node.lemma in self._expressions:
             self.annotate_node('confirmation_expression', node)
+            self.advance_application_id()
 
 
 class RuleRedundantExpressions(PhrasesRule):
