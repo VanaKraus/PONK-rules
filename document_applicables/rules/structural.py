@@ -60,7 +60,7 @@ class RulePredSubjDistance(StructuralRule):
     include_clausal_subjects: bool = False
 
     cz_human_readable_name: str = 'Vzdálenost mezi přísudkem a podmětem'
-    en_human_readable_name: str = 'Distance between subject and object'
+    en_human_readable_name: str = 'Distance between predicate and subject'
     cz_doc: str = (
         'Umístěte přísudek a podmět blíž k sobě. Srov. Šamánková & Kubíková (2022, s. 53–54), Šváb (2023, s. 21–22).'
     )
