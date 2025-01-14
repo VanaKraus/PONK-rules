@@ -16,14 +16,14 @@ class Metric(Documentable):
     """
     A base class for metrics.
     """
+
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
 
     @staticmethod
-    def get_word_counts(nodes: List[Node], use_lemma=False,
-                        from_to: Tuple[int, int] | None = None) -> dict[str, int]:
+    def get_word_counts(nodes: List[Node], use_lemma=False, from_to: Tuple[int, int] | None = None) -> dict[str, int]:
         if from_to:
-            nodes = nodes[from_to[0]:from_to[1]]
+            nodes = nodes[from_to[0] : from_to[1]]
         all_words = Metric.get_node_texts(nodes, use_lemma)
         return Metric.count_occurrences_of_unique_texts(all_words)
 
@@ -36,6 +36,7 @@ class Metric(Documentable):
             else:
                 result[text] += 1
         return result
+
     @staticmethod
     def filter_nodes_on_upos(nodes: Iterator[Node], values: List[str], negative=False) -> List[Node]:
         return [node for node in nodes if ((node.upos in values) != negative)]
@@ -55,11 +56,18 @@ class Metric(Documentable):
     @staticmethod
     def get_syllables_in_word(word: str) -> int:
         # FIXME: eeeeeh
-        return sum([word.count(vocal) for vocal in ('a', 'e', 'i', 'o', 'u', 'y')])
+        return sum(
+            [
+                word.lower().count(vocal)
+                for vocal in ('a', 'e', 'i', 'o', 'u', 'y', 'á', 'é', 'ě', 'í', 'ó', 'ú', 'ů', 'ý')
+            ]
+        )
 
 
 class MetricPunctExcluding(Metric):
-    filter_punct: bool = Field(default=True, description="Boolean controlling whether to exclude punctuation from the count.")
+    filter_punct: bool = Field(
+        default=True, description="Boolean controlling whether to exclude punctuation from the count."
+    )
 
     def get_applicable_nodes(self, doc: Document) -> List[Node]:
         return self.filter_nodes_on_punct(doc.nodes) if self.filter_punct else doc.nodes
@@ -69,6 +77,7 @@ class MetricSentenceCount(Metric):
     """
     A metric for counting sentences.
     """
+
     metric_id: Literal['sent_count'] = 'sent_count'
 
     def apply(self, doc: Document) -> float:
@@ -79,6 +88,7 @@ class MetricWordCount(MetricPunctExcluding):
     """
     A metric for counting words.
     """
+
     metric_id: Literal['word_count'] = 'word_count'
 
     def apply(self, doc: Document) -> float:
@@ -89,6 +99,7 @@ class MetricSyllableCount(MetricPunctExcluding):
     """
     A metric for counting syllables.
     """
+
     metric_id: Literal['syllab_count'] = 'syllab_count'
 
     def apply(self, doc: Document) -> float:
@@ -99,13 +110,15 @@ class MetricCharacterCount(MetricPunctExcluding):
     """
     A metric for counting characters.
     """
+
     metric_id: Literal['char_count'] = 'char_count'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
 
     def apply(self, doc: Document) -> float:
         filtered_nodes = self.get_applicable_nodes(doc)
-        return sum(len(node.form) for node in filtered_nodes) + \
-            (len(filtered_nodes) if self.count_spaces else 0)  # TODO:fix this via reading mics
+        return sum(len(node.form) for node in filtered_nodes) + (
+            len(filtered_nodes) if self.count_spaces else 0
+        )  # TODO:fix this via reading mics
 
 
 class MetricCLI(MetricPunctExcluding):
@@ -119,6 +132,7 @@ class MetricCLI(MetricPunctExcluding):
     where chars is the number of characters in the text, words is the number of words and
     sents is the number of sentences.
     """
+
     metric_id: Literal['cli'] = 'cli'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
 
@@ -144,6 +158,7 @@ class MetricARI(MetricPunctExcluding):
     where chars is the number of characters in the text, words is the number of words and
     sents is the number of sentences.
     """
+
     metric_id: Literal['ari'] = 'ari'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
 
@@ -162,8 +177,12 @@ class MetricHapaxCount(MetricPunctExcluding):
     """
     The count of words that appear in the text only once.
     """
+
     metric_id: Literal['num_hapax'] = 'num_hapax'
-    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
 
     def apply(self, doc: Document) -> float:
         counts = list(self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values())
@@ -174,8 +193,12 @@ class MetricEntropy(MetricPunctExcluding):
     """
     Measures the entropy of the text, considering either lemmas or word forms.
     """
+
     metric_id: Literal['entropy'] = 'entropy'
-    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
 
     def apply(self, doc: Document) -> float:
         counts = self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values()
@@ -188,6 +211,7 @@ class MetricTTR(MetricPunctExcluding):
     """
     Type-token ratio. Measures the ratio of types (lemmas) to tokens.
     """
+
     metric_id: Literal['ttr'] = 'ttr'
 
     def apply(self, doc: Document) -> float:
@@ -199,6 +223,7 @@ class MetricVerbDistance(Metric):
     """
     Measures the average distance between verbs.
     """
+
     # MAYBE TODO: should we include punct here?
     metric_id: Literal['verb_dist'] = 'verb_dist'
     include_inf: bool = True
@@ -223,20 +248,26 @@ class MetricActivity(Metric):
     """
     Measures the activity of the text, i.e. the ratio of (#verbs)/(#verbs + #adjectives).
     """
+
     metric_id: Literal['activity'] = 'activity'
 
     def apply(self, doc: Document) -> float:
         nodes = list(doc.nodes)
-        return max(1, len(Metric.filter_nodes_on_upos(nodes, ['VERB']))) /\
-            max(1, len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ'])))
+        return max(1, len(Metric.filter_nodes_on_upos(nodes, ['VERB']))) / max(
+            1, len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ']))
+        )
 
 
 class MetricHPoint(MetricPunctExcluding):
     """
     Measures h-point, i.e. the index of the first non-function word when sorted by frequency.
     """
+
     metric_id: Literal['hpoint'] = 'hpoint'
-    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
 
     def apply(self, doc: Document) -> float:
         counts = list(self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values())
@@ -257,8 +288,8 @@ class MetricAverageTokenLength(MetricPunctExcluding):
     """
     Measures the average length of tokens.
     """
-    metric_id: Literal['atl'] = 'atl'
 
+    metric_id: Literal['atl'] = 'atl'
 
     def apply(self, doc: Document) -> float:
         total_tokens = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
@@ -270,6 +301,7 @@ class MetricMovingAverageBase(MetricPunctExcluding):
     """
     Base class for metrics working with a sliding window
     """
+
     window_size: int = 100
 
     annotate: bool = Field(default=False, hidden=True)
@@ -279,20 +311,22 @@ class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
     """
     Measures Type-token ratio over chunks of text of length window_size and averages them.
     """
+
     metric_id: Literal['mattr'] = 'mattr'
-    use_lemma: bool = Field(default=True, description="Boolean controlling whether lemma should be used instead of word form for the calculation.")
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
 
     annotation_key: str = Field(default='mattr', hidden=True)
 
     def add_to_annotation_list(self, value: float, node: Node):
-        self.annotate_node(self.annotation_key,
-                           (self.get_node_annotation(self.annotation_key, node) or []) + [value],
-                           node)
+        self.annotate_node(
+            self.annotation_key, (self.get_node_annotation(self.annotation_key, node) or []) + [value], node
+        )
 
     def calc_avg_value(self, node: Node):
-        self.annotate_node(self.annotation_key,
-                           mean(self.get_node_annotation(self.annotation_key, node)),
-                           node)
+        self.annotate_node(self.annotation_key, mean(self.get_node_annotation(self.annotation_key, node)), node)
 
     def apply(self, doc: Document) -> float:
         # FIXME: this is horribly slow
@@ -303,11 +337,11 @@ class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
         filtered_texts = self.get_node_texts(filtered_nodes, self.use_lemma)
 
         for i in range(int(total_words) - self.window_size + 1):
-            uniques = set(filtered_texts[i:i+self.window_size])
+            uniques = set(filtered_texts[i : i + self.window_size])
             count = len(uniques)
             big_sum += count
             if self.annotate:
-                for node in filtered_nodes[i:i+self.window_size]:
+                for node in filtered_nodes[i : i + self.window_size]:
                     self.add_to_annotation_list(count / self.window_size, node)
 
         if self.annotate and total_words >= self.window_size:
@@ -320,6 +354,7 @@ class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
     """
     Measures the difference between MATTR using word forms and MATTR using lemmas for the same window size.
     """
+
     metric_id: Literal['mamr'] = 'mamr'
 
     window_size: int = 100
@@ -328,16 +363,21 @@ class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
     annotation_key2: str = Field(default='mamr2', hidden=True)
 
     def apply(self, doc: Document) -> float:
-        return MetricMovingAverageTypeTokenRatio(use_lemma=False,
-                                                 filter_punct=self.filter_punct,
-                                                 window_size=self.window_size,
-                                                 annotate=self.annotate,
-                                                 annotation_key=self.annotation_key1).apply(doc) - \
-            MetricMovingAverageTypeTokenRatio(use_lemma=True,
-                                              filter_punct=self.filter_punct,
-                                              window_size=self.window_size,
-                                              annotate=self.annotate,
-                                              annotation_key=self.annotation_key2).apply(doc)
+        return MetricMovingAverageTypeTokenRatio(
+            use_lemma=False,
+            filter_punct=self.filter_punct,
+            window_size=self.window_size,
+            annotate=self.annotate,
+            annotation_key=self.annotation_key1,
+        ).apply(doc) - MetricMovingAverageTypeTokenRatio(
+            use_lemma=True,
+            filter_punct=self.filter_punct,
+            window_size=self.window_size,
+            annotate=self.annotate,
+            annotation_key=self.annotation_key2,
+        ).apply(
+            doc
+        )
 
 
 class MetricFleschReadingEase(MetricPunctExcluding):
@@ -352,6 +392,7 @@ class MetricFleschReadingEase(MetricPunctExcluding):
     where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
     syllables
     """
+
     metric_id: Literal['fre'] = 'fre'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
 
@@ -377,6 +418,7 @@ class MetricFleschKincaidGradeLevel(MetricPunctExcluding):
     where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
     syllables
     """
+
     metric_id: Literal['fkgl'] = 'fkgl'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
 
@@ -395,6 +437,7 @@ class PolysyllabicMetric(MetricPunctExcluding):
     """
     A base class for metrics utilizing a threshold of syllabic length.
     """
+
     syllab_threshold: int = 3
 
     def _is_word_complex(self, word: str):
@@ -412,6 +455,7 @@ class MetricGunningFog(PolysyllabicMetric):
     where words is the number of words in the text, sents is the number of sentences and complex_words is the number of
     words longer than the syllabic threshold.
     """
+
     metric_id: Literal['gf'] = 'gf'
 
     coef_1: float = 0.4
@@ -421,7 +465,7 @@ class MetricGunningFog(PolysyllabicMetric):
         sents = MetricSentenceCount().apply(doc)
         words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
-        return self.coef_1 * ((words/sents) + self.coef_2 * (complex_words/words))
+        return self.coef_1 * ((words / sents) + self.coef_2 * (complex_words / words))
 
 
 # Modified version of SMOG. We do not rely on sampling
@@ -438,6 +482,7 @@ class MetricSMOG(PolysyllabicMetric):
 
     The formula for this metric is modified, as the original relied on random sampling from the text.
     """
+
     metric_id: Literal['smog'] = 'smog'
     coef_1: float = 1.043
     const_1: float = 3.1291
@@ -491,6 +536,7 @@ class MetricSMOG(PolysyllabicMetric):
 #             else:
 #                 ... # really dont know what should happen if this is the case
 #         return total_dist / total_sents
+
 
 class MetricsWrapper(BaseModel):
     metric: Union[*Metric.get_final_children()] = Field(..., discriminator='metric_id')
