@@ -131,7 +131,7 @@ class RuleRelativisticExpressions(PhrasesRule):
 
 class RuleConfirmationExpressions(PhrasesRule):
     """Capture confirmation expressions. They often violate the maxim of quantity \
-        in needlesly confirming what the author is already expected to be 100% sure about.
+        in needlessly confirming what the author is already expected to be 100% sure about.
 
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
