@@ -660,7 +660,7 @@ class RuleGPwordorder(Rule):
     cz_human_readable_name: str = 'Nejednoznačný syntaktický vztah'
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
-        'Slovo v předmětu lze interpretovat i jako 1. pád může proto vypadat jako podmět. '
+        'Slovo v předmětu lze interpretovat i jako 1. pád a může proto vypadat jako podmět. '
         + 'Srov. Ceháková & Chromý (2024).'
     )
     en_doc: str = (
