@@ -21,7 +21,7 @@ import re
 # tmp reimport of everythin
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
-    #RulePossessiveGenitive,
+    # RulePossessiveGenitive,
     RuleIncompleteConjunction,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
@@ -55,6 +55,7 @@ from document_applicables.rules.structural import (
     RulePredAtClauseBeginning,
 )
 
+
 def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
     # return appropriate set of rules and metrics based on the profiles selected
     # for now, just return the defaults
@@ -65,8 +66,10 @@ def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
         metrics = [metric() for metric in Metric.get_final_children()]
     if rules is None:
         rules = [rule() for rule in Rule.get_final_children()]
-    return metrics, rules
-
+    return (
+        sorted(metrics, key=lambda x: x.metric_id),
+        sorted(rules, key=lambda x: x.rule_id),
+    )
 
 
 def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None) -> list[Metric]:
@@ -86,9 +89,10 @@ def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None) -> list[Rul
 
 
 def compute_metrics(metric_list: list[Metric], doc: Document) -> list[dict[str, float]]:
-    return [{re.sub(r'([a-z])([A-Z])', r'\1 \2',
-                    metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
-            for metric in metric_list]
+    return [
+        {re.sub(r'([a-z])([A-Z])', r'\1 \2', metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
+        for metric in metric_list
+    ]
 
 
 def apply_rules(rule_list: list[Rule], doc: Document) -> str:
@@ -109,40 +113,39 @@ def try_build_conllu_from_string(conllu_string: str) -> Document:
 def mattr_calculate(doc: Document, window_size: int) -> list[tuple[str, float]]:
     from document_applicables.metrics import MetricMovingAverageTypeTokenRatio
     from statistics import stdev
+
     metric = MetricMovingAverageTypeTokenRatio(window_size=window_size, annotate=True)
     anot_key = metric.annotation_key
     mean_mattr = metric.apply(doc)
-    mattr_per_token = [metric.get_node_annotation(anot_key, node) for node in doc.nodes
-                       if metric.get_node_annotation(anot_key, node)]
+    mattr_per_token = [
+        metric.get_node_annotation(anot_key, node) for node in doc.nodes if metric.get_node_annotation(anot_key, node)
+    ]
     mattr_sd = stdev(mattr_per_token)
     for node in doc.nodes:
         node_value = metric.get_node_annotation(anot_key, node)
-        metric.annotate_node(anot_key,
-                             (node_value - mean_mattr) / (2 * mattr_sd) if node_value else 0,
-                             node)
+        metric.annotate_node(anot_key, (node_value - mean_mattr) / (2 * mattr_sd) if node_value else 0, node)
     return [(node.form, node.misc[anot_key]) for node in doc.nodes]
 
 
 def mamr_calculate(doc: Document, window_size: int) -> list[tuple[str, float]]:
     from document_applicables.metrics import MetricMovingAverageMorphologicalRichness
     from statistics import stdev
+
     metric = MetricMovingAverageMorphologicalRichness(window_size=window_size, annotate=True)
+
     def get_node_mamr(node: Node):
         anot1 = metric.get_node_annotation(anot_key1, node)
         anot2 = metric.get_node_annotation(anot_key2, node)
         return (anot1 - anot2) if anot1 and anot2 else None
+
     anot_key1 = metric.annotation_key1
     anot_key2 = metric.annotation_key2
     mean_mamr = metric.apply(doc)
-    mamr_per_token = [get_node_mamr(node)
-                      for node in doc.nodes
-                      if get_node_mamr(node)]
+    mamr_per_token = [get_node_mamr(node) for node in doc.nodes if get_node_mamr(node)]
     mamr_sd = stdev(mamr_per_token)
     for node in doc.nodes:
         node_value = get_node_mamr(node)
-        metric.annotate_node('mamr',
-                             (node_value - mean_mamr) / (2 * mamr_sd) if node_value else 0,
-                             node)
+        metric.annotate_node('mamr', (node_value - mean_mamr) / (2 * mamr_sd) if node_value else 0, node)
     return [(node.form, node.misc['mamr']) for node in doc.nodes]
 
 

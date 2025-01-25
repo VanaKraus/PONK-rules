@@ -32,7 +32,7 @@ class MainRequest(BaseModel):
 class MainReply(BaseModel):
     modified_conllu: str = Field(examples=[MINIMAL_CONLLU])
     metrics: list[dict[str, float]] = Field(examples=[[{'sent_count': 1}, {'word_count': 3}]])
-    rule_info: dict[str, dict[str, str | Color | dict | None]] = Field(
+    rule_info: dict[str, dict[str, str | Color | dict | int | None]] = Field(
         examples=[
             {
                 "RuleDoubleAdpos": {
@@ -51,9 +51,10 @@ class MainReply(BaseModel):
     conflict_background_color: Color = Color(114, 114, 114)
 
 
-def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | dict | None]]:
+def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | dict | int | None]]:
     return {
         rule.id(): {
+            "order": ord,
             "foreground_color": rule.foreground_color,
             "background_color": rule.background_color,
             "cz_name": rule.cz_human_readable_name,
@@ -63,7 +64,7 @@ def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | d
             "cz_participants": rule.cz_paricipants,
             "en_participants": rule.en_paricipants,
         }
-        for rule in rule_list
+        for ord, rule in enumerate(rule_list)
         if rule.application_count != 0
     }
 
