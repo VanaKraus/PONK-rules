@@ -162,6 +162,7 @@ class RuleInfVerbDistance(StructuralRule):
         if (
             (infinitive := node).feats['VerbForm'] == 'Inf'
             and 'VerbForm' in (verb := infinitive.parent).feats
+            and not util.is_clause_root(infinitive)
             and node.deprel != 'conj'
             and node.upos != 'AUX'
         ):
