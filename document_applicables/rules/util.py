@@ -59,6 +59,10 @@ def is_clause_root(node: Node) -> bool:
     return is_finite_verb(node) or bool([nd for nd in node.children if is_aux(nd, grammatical_only=True)])
 
 
+def descendants_include(node: Node, lemmas: set) -> bool:
+    return len(lemmas.intersection({n.lemma for n in node.descendants()})) > 0
+
+
 def get_clause_root(node: Node) -> Node:
     clause_root = node
     while not is_clause_root(clause_root):
