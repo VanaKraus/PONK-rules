@@ -68,6 +68,7 @@ class RuleDoubleAdpos(AmbiguityRule):
         # find an adposition present in the coordination
         for parent_adpos in [nd for nd in coord_el2.siblings if nd.udeprel == "case" and nd.upos == "ADP"]:
             coord_el1 = parent_adpos.parent
+            parent_adpos_desc = parent_adpos.descendants(add_self=True)
 
             # check that the two coordination elements have the same case
             if coord_el2.feats["Case"] != coord_el1.feats["Case"]:
@@ -84,6 +85,7 @@ class RuleDoubleAdpos(AmbiguityRule):
                 cconj = ([None] + [c for c in coord_el2.children if c.deprel in ('cc', 'punct') and c.lemma != '.'])[-1]
 
                 if not self.detect_only:
+                    raise NotImplementedError('multi-word adposition handling not implemented')
                     correction = util.clone_node(
                         parent_adpos,
                         coord_el2,
@@ -101,15 +103,26 @@ class RuleDoubleAdpos(AmbiguityRule):
 
                         self.annotate_node('add', node_to_annotate)
 
+                cel1highlight = [d for d in util.get_coord_element_phrase(coord_el1) if d not in parent_adpos_desc]
+                cel2highlight = util.get_coord_element_phrase(coord_el2)
+
                 if cconj:
                     self.annotate_node('cconj', cconj)
-                    self.annotate_measurement('max_allowable_distance', dst, cconj, parent_adpos, coord_el1, coord_el2)
-                    self.annotate_parameter(
-                        'max_allowable_distance', self.max_allowable_distance, cconj, parent_adpos, coord_el1, coord_el2
-                    )
-                self.annotate_node('orig_adpos', parent_adpos)
-                self.annotate_node('coord_el1', coord_el1)
-                self.annotate_node('coord_el2', coord_el2)
+
+                self.annotate_measurement(
+                    'max_allowable_distance', dst, cconj, *parent_adpos_desc, *cel1highlight, *cel2highlight
+                )
+                self.annotate_parameter(
+                    'max_allowable_distance',
+                    self.max_allowable_distance,
+                    cconj,
+                    *parent_adpos_desc,
+                    *cel1highlight,
+                    *cel2highlight,
+                )
+                self.annotate_node('orig_adpos', *parent_adpos_desc)
+                self.annotate_node('coord_el1', *cel1highlight)
+                self.annotate_node('coord_el2', *cel2highlight)
 
                 self.advance_application_id()
 

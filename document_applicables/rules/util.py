@@ -96,6 +96,20 @@ def get_clause(
     return clause
 
 
+def get_coord_element_phrase(node: Node) -> list[Node]:
+    res = node.descendants()
+    to_remove = []
+
+    if res[0].upos == 'PUNCT':
+        res.pop(0)
+
+    for d in res:
+        if d.deprel == 'conj':
+            to_remove += d.descendants(add_self=True)
+
+    return [d for d in res if d not in to_remove] + [node]
+
+
 def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     n1_values = set(n1.feats[feat_id].split(','))
     n2_values = set(n2.feats[feat_id].split(','))
