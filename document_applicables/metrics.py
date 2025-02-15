@@ -245,19 +245,17 @@ class MetricVerbDistance(Metric):
         return node.upos == 'VERB' and (self.include_inf or rutil.is_finite_verb(node))
 
     def apply(self, doc: Document) -> float:
-        last_verb_index = 0
-        total_distance = 0
-        verbs = 0
         nodes = list(doc.nodes)
-        # FIXME: iterate over trees
-        for i in range(len(nodes)):
-            node = nodes[i]
-            if self._node_counts(node):
-                total_distance += max(0, (i - last_verb_index - 1))
-                last_verb_index = i
-                verbs += 1
-        total_distance += len(nodes) - last_verb_index
-        return total_distance / max(1, verbs)
+        verbs = [n for n in nodes if self._node_counts(n)]
+
+        if len(verbs) == 0:
+            return 0
+
+        first_verb_index = nodes.index(verbs[0])
+        last_verb_index = nodes.index(verbs[-1])
+        txtlen = last_verb_index - first_verb_index
+
+        return txtlen / max(1, len(verbs) - 1)
 
 
 class MetricActivity(Metric):
