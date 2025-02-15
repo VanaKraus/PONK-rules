@@ -267,7 +267,7 @@ class MetricActivity(Metric):
 
     def apply(self, doc: Document) -> float:
         nodes = list(doc.nodes)
-        return max(1, len(Metric.filter_nodes_on_upos(nodes, ['VERB']))) / max(
+        return len(Metric.filter_nodes_on_upos(nodes, ['VERB'])) / max(
             1, len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ']))
         )
 
@@ -290,8 +290,8 @@ class MetricHPoint(MetricPunctExcluding):
             if i + 1 == counts[i]:
                 return counts[i]
             if i + 1 > counts[i]:
-                i = i - 1
-                j = i + 1
+                j = i
+                i -= 1
                 fi = counts[i]
                 fj = counts[j]
                 return (fi * j - fj * i) / (j - i + fi - fj)
@@ -307,7 +307,7 @@ class MetricAverageTokenLength(MetricPunctExcluding):
 
     def apply(self, doc: Document) -> float:
         total_tokens = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
-        total_chars = MetricCharacterCount(filter_punct=self.filter_punct).apply(doc)
+        total_chars = MetricCharacterCount(filter_punct=self.filter_punct, count_spaces=False).apply(doc)
         return total_chars / total_tokens
 
 
