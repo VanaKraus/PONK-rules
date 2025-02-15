@@ -114,11 +114,22 @@ class MetricCharacterCount(MetricPunctExcluding):
     metric_id: Literal['char_count'] = 'char_count'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
 
+    @staticmethod
+    def _no_of_spaces(node: Node) -> int:
+        res = 0 if 'SpaceAfter' in node.misc and node.misc['SpaceAfter'] == 'No' else 1
+
+        if 'SpacesBefore' in node.misc:
+            res += len(node.misc['SpacesBefore'].replace('\\r\\n', '\\n')) // 2
+        if 'SpacesAfter' in node.misc:
+            res += len(node.misc['SpacesAfter'].replace('\\r\\n', '\\n')) // 2
+
+        return res
+
     def apply(self, doc: Document) -> float:
         filtered_nodes = self.get_applicable_nodes(doc)
         return sum(len(node.form) for node in filtered_nodes) + (
-            len(filtered_nodes) if self.count_spaces else 0
-        )  # TODO:fix this via reading mics
+            sum(self._no_of_spaces(n) for n in filtered_nodes) if self.count_spaces else 0
+        )
 
 
 class MetricCLI(MetricPunctExcluding):
