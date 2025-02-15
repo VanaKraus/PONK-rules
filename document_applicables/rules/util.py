@@ -48,6 +48,7 @@ def is_aux(node: Node, grammatical_only: bool = False) -> bool:
 
 
 def is_finite_verb(node: Node) -> bool:
+    # Is marked as finite or an l-participle (e.g. "dělal")
     return (node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
 
 

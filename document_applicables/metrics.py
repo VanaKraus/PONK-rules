@@ -8,6 +8,7 @@ from math import log2, sqrt
 from statistics import mean
 
 from document_applicables import Documentable
+import document_applicables.rules.util as rutil
 
 from pydantic import BaseModel, Field
 
@@ -160,7 +161,7 @@ class MetricCLI(MetricPunctExcluding):
 
 class MetricARI(MetricPunctExcluding):
     """
-    Automatic readability index. Measures readability in years of education necessary for successful understanding.
+    Automated readability index. Measures readability in years of education necessary for successful understanding.
 
     The index is calculated according to this formula:
 
@@ -175,12 +176,13 @@ class MetricARI(MetricPunctExcluding):
 
     coef_1: float = 3.666
     coef_2: float = 0.631
-    const_1: float = 19.49
+    const_1: float = 19.491
 
     def apply(self, doc: Document) -> float:
         sents = MetricSentenceCount().apply(doc)
         words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         chars = MetricCharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
+        # Swapped coefficients compared to Bendová & Cinková (2021)
         return self.coef_1 * (chars / words) + self.coef_2 * (words / sents) - self.const_1
 
 
@@ -239,6 +241,9 @@ class MetricVerbDistance(Metric):
     metric_id: Literal['verb_dist'] = 'verb_dist'
     include_inf: bool = True
 
+    def _node_counts(self, node: Node) -> bool:
+        return node.upos == 'VERB' and (self.include_inf or rutil.is_finite_verb(node))
+
     def apply(self, doc: Document) -> float:
         last_verb_index = 0
         total_distance = 0
@@ -247,7 +252,7 @@ class MetricVerbDistance(Metric):
         # FIXME: iterate over trees
         for i in range(len(nodes)):
             node = nodes[i]
-            if node.upos == 'VERB' and (self.include_inf or node.feats['VerbForm'] == 'Fin'):
+            if self._node_counts(node):
                 total_distance += max(0, (i - last_verb_index - 1))
                 last_verb_index = i
                 verbs += 1
