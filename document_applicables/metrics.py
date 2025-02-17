@@ -482,7 +482,7 @@ class MetricGunningFog(PolysyllabicMetric):
         return self.coef_1 * ((words / sents) + self.coef_2 * (complex_words / words))
 
 
-# Modified version of SMOG. We do not rely on sampling
+# Modified version of SMOG, correcting for the varying no. of sentences. We do not rely on sampling
 class MetricSMOG(PolysyllabicMetric):
     """
     SMOG index. Measures readability in years of education necessary for successful understanding.
@@ -504,7 +504,7 @@ class MetricSMOG(PolysyllabicMetric):
     def apply(self, doc: Document) -> float:
         sents = MetricSentenceCount().apply(doc)
         complex_words = len([node for node in self.get_applicable_nodes(doc) if self._is_word_complex(node.form)])
-        return self.coef_1 * sqrt(complex_words * 90) / sents + self.const_1
+        return self.coef_1 * sqrt(complex_words * (30 / sents)) + self.const_1
 
 
 # class MetricAvgPredSubDist(Metric):
