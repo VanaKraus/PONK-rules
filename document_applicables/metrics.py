@@ -5,7 +5,7 @@ from udapi.core.node import Node
 from typing import Iterator, Tuple, List, Literal, Union
 
 from math import log2, sqrt
-from statistics import mean
+from statistics import mean, stdev
 
 from document_applicables import Documentable
 import document_applicables.rules.util as rutil
@@ -72,6 +72,77 @@ class MetricPunctExcluding(Metric):
 
     def get_applicable_nodes(self, doc: Document) -> List[Node]:
         return self.filter_nodes_on_punct(doc.nodes) if self.filter_punct else doc.nodes
+
+
+class MetricMovingAverageBase(MetricPunctExcluding):
+    """
+    Base class for metrics working with a sliding window
+    """
+
+    window_size: int = 100
+    annotate: bool = Field(default=False, hidden=True)
+    annotation_key: str = Field(default=None, hidden=True)
+
+    last_variation_coefficient: float | None = None
+
+    def add_to_annotation_list(self, value: float, node: Node):
+        self.annotate_node(
+            self.annotation_key, (self.get_node_annotation(self.annotation_key, node) or []) + [value], node
+        )
+
+    def calc_avg_value(self, node: Node):
+        self.annotate_node(self.annotation_key, mean(self.get_node_annotation(self.annotation_key, node)), node)
+
+    def apply_engine(
+        self,
+        doc: Document,
+        engine: MetricEngine,
+    ) -> float:
+        total_words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        filtered_nodes = self.get_applicable_nodes(doc)
+
+        no_windows = int(total_words) - self.window_size + 1
+        measurements = []
+
+        for i in range(no_windows):
+            measurement = engine.compute(filtered_nodes[i : i + self.window_size])
+            measurements += [measurement]
+            if self.annotate:
+                for node in filtered_nodes[i : i + self.window_size]:
+                    self.add_to_annotation_list(measurement, node)
+
+        if self.annotate and total_words >= self.window_size:
+            for node in filtered_nodes:
+                self.calc_avg_value(node)
+
+        # FIXME: len(measurements) can become 0
+        meas_mean = mean(measurements)
+        meas_sd = stdev(measurements)
+
+        self.last_variation_coefficient = meas_sd / meas_mean
+
+        return meas_mean
+
+
+class MetricEngine(Documentable):
+    '''
+    Base class for computation definitions of various metrics
+    '''
+
+    def compute(self, nodes: List[Node]) -> float:
+        raise NotImplementedError('This is an abstract definition')
+
+
+class EngineTTR(MetricEngine):
+    """
+    Type-token ratio. Measures the ratio of types (lemmas) to tokens.
+    """
+
+    nodes_len: int | None = None
+
+    def compute(self, nodes):
+        counts = Metric.get_word_counts(nodes, use_lemma=True)
+        return len(counts) / (self.nodes_len or sum(counts.values()))
 
 
 class MetricSentenceCount(Metric):
@@ -228,8 +299,7 @@ class MetricTTR(MetricPunctExcluding):
     metric_id: Literal['ttr'] = 'ttr'
 
     def apply(self, doc: Document) -> float:
-        counts = Metric.get_word_counts(self.get_applicable_nodes(doc), use_lemma=True)
-        return len(counts) / sum(counts.values())
+        return EngineTTR().compute(self.get_applicable_nodes(doc))
 
 
 class MetricVerbDistance(Metric):
@@ -317,16 +387,6 @@ class MetricAverageTokenLength(MetricPunctExcluding):
         return total_chars / total_tokens
 
 
-class MetricMovingAverageBase(MetricPunctExcluding):
-    """
-    Base class for metrics working with a sliding window
-    """
-
-    window_size: int = 100
-
-    annotate: bool = Field(default=False, hidden=True)
-
-
 class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
     """
     Measures Type-token ratio over chunks of text of length window_size and averages them.
@@ -338,36 +398,10 @@ class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
         description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
     )
 
-    annotation_key: str = Field(default='mattr', hidden=True)
-
-    def add_to_annotation_list(self, value: float, node: Node):
-        self.annotate_node(
-            self.annotation_key, (self.get_node_annotation(self.annotation_key, node) or []) + [value], node
-        )
-
-    def calc_avg_value(self, node: Node):
-        self.annotate_node(self.annotation_key, mean(self.get_node_annotation(self.annotation_key, node)), node)
+    annotation_key: str = 'mattr'
 
     def apply(self, doc: Document) -> float:
-        # FIXME: this is horribly slow
-        # FIXEDME: this is now less slow
-        total_words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
-        big_sum = 0
-        filtered_nodes = self.get_applicable_nodes(doc)
-        filtered_texts = self.get_node_texts(filtered_nodes, self.use_lemma)
-
-        for i in range(int(total_words) - self.window_size + 1):
-            uniques = set(filtered_texts[i : i + self.window_size])
-            count = len(uniques)
-            big_sum += count
-            if self.annotate:
-                for node in filtered_nodes[i : i + self.window_size]:
-                    self.add_to_annotation_list(count / self.window_size, node)
-
-        if self.annotate and total_words >= self.window_size:
-            for node in filtered_nodes:
-                self.calc_avg_value(node)
-        return big_sum / (self.window_size * (total_words - self.window_size + 1))
+        return self.apply_engine(doc, EngineTTR(nodes_len=self.window_size))
 
 
 class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
