@@ -274,7 +274,13 @@ class MetricActivity(Metric):
 
 class MetricHPoint(MetricPunctExcluding):
     """
-    Measures h-point, i.e. the index of the first non-function word when sorted by frequency.
+    Measures h-point, i.e. the frequency of the word that is equal to its rank. If no such word exists,
+    the h-point is computed using the following formula:
+
+    (fi * j - fj * i) / (j - i + fi - fj)
+
+    where i the rank of the last word with its frequency greater than its rank,
+    j is the rank of the following word, and fi, fj are frequencies of the words i and j.
     """
 
     metric_id: Literal['hpoint'] = 'hpoint'
