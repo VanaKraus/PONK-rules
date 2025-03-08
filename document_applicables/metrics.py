@@ -118,9 +118,9 @@ class MetricMovingAverageBase(MetricPunctExcluding):
                 self.calc_avg_value(node)
 
         meas_mean = mean(measurements)
-        meas_sd = stdev(measurements)
+        meas_sd = stdev(measurements) if len(measurements) > 1 else None
 
-        self.last_variation_coefficient = meas_sd / meas_mean
+        self.last_variation_coefficient = meas_sd / meas_mean if meas_sd else -1
 
         return meas_mean
 
@@ -144,6 +144,23 @@ class EngineTTR(MetricEngine):
     def compute(self, nodes):
         counts = Metric.get_word_counts(nodes, use_lemma=self.use_lemma)
         return len(counts) / len(nodes)
+
+
+class EngineEntropy(MetricEngine):
+    """
+    Measures the entropy of the text, considering either lemmas or word forms.
+    """
+
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def compute(self, nodes):
+        counts = Metric.get_word_counts(nodes, self.use_lemma).values()
+        n_words = sum(counts)
+        probs = map(lambda x: x / n_words, counts)
+        return -sum(prob * log2(prob) for prob in probs)
 
 
 class MetricSentenceCount(Metric):
@@ -286,10 +303,39 @@ class MetricEntropy(MetricPunctExcluding):
     )
 
     def apply(self, doc: Document) -> float:
-        counts = self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values()
-        n_words = sum(counts)
-        probs = map(lambda x: x / n_words, counts)
-        return -sum(prob * log2(prob) for prob in probs)
+        return EngineEntropy(use_lemma=self.use_lemma).compute(self.get_applicable_nodes(doc))
+
+
+class MetricMovingAverageEntropy(MetricMovingAverageBase):
+    '''
+    Measures entropy over chunks of text of length window_size and averages them.
+    '''
+
+    metric_id: Literal['maentropy'] = 'maentropy'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc) -> float:
+        return self.apply_engine(doc, EngineEntropy(use_lemma=self.use_lemma))
+
+
+# FIXME: incredibly inefficient
+class MetricMovingAverageEntropyVariation(MetricMovingAverageBase):
+    '''
+    Measures entropy over chunks of text of length window_size and averages them.
+    '''
+
+    metric_id: Literal['maentropy_v'] = 'maentropy_v'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc) -> float:
+        self.apply_engine(doc, EngineEntropy(use_lemma=self.use_lemma))
+        return self.last_variation_coefficient
 
 
 class MetricTTR(MetricPunctExcluding):
@@ -305,6 +351,44 @@ class MetricTTR(MetricPunctExcluding):
 
     def apply(self, doc: Document) -> float:
         return EngineTTR(use_lemma=self.use_lemma).compute(self.get_applicable_nodes(doc))
+
+
+class MetricMovingAverageTTR(MetricMovingAverageBase):
+    """
+    Measures Type-token ratio over chunks of text of length window_size and averages them.
+    """
+
+    metric_id: Literal['mattr'] = 'mattr'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+    window_size: int = 100
+
+    annotation_key: str = 'mattr'
+
+    def apply(self, doc: Document) -> float:
+        return self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
+
+
+# FIXME: really inefficient solution
+class MetricMovingAverageTTRVariation(MetricMovingAverageBase):
+    """
+    Measures Type-token ratio over chunks of text of length window_size and returns a variation coefficient.
+    """
+
+    metric_id: Literal['mattr_v'] = 'mattr_v'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+    window_size: int = 100
+
+    annotation_key: str = 'mattr_v'
+
+    def apply(self, doc: Document) -> float:
+        self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
+        return self.last_variation_coefficient
 
 
 class MetricVerbDistance(Metric):
@@ -390,24 +474,6 @@ class MetricAverageTokenLength(MetricPunctExcluding):
         total_tokens = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         total_chars = MetricCharacterCount(filter_punct=self.filter_punct, count_spaces=False).apply(doc)
         return total_chars / total_tokens
-
-
-class MetricMovingAverageTTR(MetricMovingAverageBase):
-    """
-    Measures Type-token ratio over chunks of text of length window_size and averages them.
-    """
-
-    metric_id: Literal['mattr'] = 'mattr'
-    use_lemma: bool = Field(
-        default=True,
-        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
-    )
-    window_size: int = 100
-
-    annotation_key: str = 'mattr'
-
-    def apply(self, doc: Document) -> float:
-        return self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
 
 
 class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
