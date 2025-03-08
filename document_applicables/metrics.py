@@ -101,21 +101,22 @@ class MetricMovingAverageBase(MetricPunctExcluding):
         total_words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
         filtered_nodes = self.get_applicable_nodes(doc)
 
-        no_windows = int(total_words) - self.window_size + 1
+        wsize = min(self.window_size, len(filtered_nodes))
+
+        no_windows = int(total_words) - wsize + 1
         measurements = []
 
         for i in range(no_windows):
-            measurement = engine.compute(filtered_nodes[i : i + self.window_size])
+            measurement = engine.compute(filtered_nodes[i : i + wsize])
             measurements += [measurement]
             if self.annotate:
-                for node in filtered_nodes[i : i + self.window_size]:
+                for node in filtered_nodes[i : i + wsize]:
                     self.add_to_annotation_list(measurement, node)
 
-        if self.annotate and total_words >= self.window_size:
+        if self.annotate and total_words >= wsize:
             for node in filtered_nodes:
                 self.calc_avg_value(node)
 
-        # FIXME: len(measurements) can become 0
         meas_mean = mean(measurements)
         meas_sd = stdev(measurements)
 
@@ -138,11 +139,11 @@ class EngineTTR(MetricEngine):
     Type-token ratio. Measures the ratio of types (lemmas) to tokens.
     """
 
-    nodes_len: int | None = None
+    use_lemma: bool = True
 
     def compute(self, nodes):
-        counts = Metric.get_word_counts(nodes, use_lemma=True)
-        return len(counts) / (self.nodes_len or sum(counts.values()))
+        counts = Metric.get_word_counts(nodes, use_lemma=self.use_lemma)
+        return len(counts) / len(nodes)
 
 
 class MetricSentenceCount(Metric):
@@ -212,7 +213,7 @@ class MetricCLI(MetricPunctExcluding):
 
     (coef_1 * (chars / words) * 100) - (coef_2 * (sents / words) * 100) - const_1
 
-    where chars is the number of characters in the text, words is the number of words and
+    where chars is the number of characters in the text, wordgs is the number of words and
     sents is the number of sentences.
     """
 
@@ -297,9 +298,13 @@ class MetricTTR(MetricPunctExcluding):
     """
 
     metric_id: Literal['ttr'] = 'ttr'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
 
     def apply(self, doc: Document) -> float:
-        return EngineTTR().compute(self.get_applicable_nodes(doc))
+        return EngineTTR(use_lemma=self.use_lemma).compute(self.get_applicable_nodes(doc))
 
 
 class MetricVerbDistance(Metric):
@@ -387,7 +392,7 @@ class MetricAverageTokenLength(MetricPunctExcluding):
         return total_chars / total_tokens
 
 
-class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
+class MetricMovingAverageTTR(MetricMovingAverageBase):
     """
     Measures Type-token ratio over chunks of text of length window_size and averages them.
     """
@@ -397,11 +402,12 @@ class MetricMovingAverageTypeTokenRatio(MetricMovingAverageBase):
         default=True,
         description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
     )
+    window_size: int = 100
 
     annotation_key: str = 'mattr'
 
     def apply(self, doc: Document) -> float:
-        return self.apply_engine(doc, EngineTTR(nodes_len=self.window_size))
+        return self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
 
 
 class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
@@ -417,13 +423,13 @@ class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
     annotation_key2: str = Field(default='mamr2', hidden=True)
 
     def apply(self, doc: Document) -> float:
-        return MetricMovingAverageTypeTokenRatio(
+        return MetricMovingAverageTTR(
             use_lemma=False,
             filter_punct=self.filter_punct,
             window_size=self.window_size,
             annotate=self.annotate,
             annotation_key=self.annotation_key1,
-        ).apply(doc) - MetricMovingAverageTypeTokenRatio(
+        ).apply(doc) - MetricMovingAverageTTR(
             use_lemma=True,
             filter_punct=self.filter_punct,
             window_size=self.window_size,

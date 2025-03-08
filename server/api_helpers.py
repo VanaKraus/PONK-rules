@@ -111,10 +111,10 @@ def try_build_conllu_from_string(conllu_string: str) -> Document:
 
 
 def mattr_calculate(doc: Document, window_size: int) -> list[tuple[str, float]]:
-    from document_applicables.metrics import MetricMovingAverageTypeTokenRatio
+    from document_applicables.metrics import MetricMovingAverageTTR
     from statistics import stdev
 
-    metric = MetricMovingAverageTypeTokenRatio(window_size=window_size, annotate=True)
+    metric = MetricMovingAverageTTR(window_size=window_size, annotate=True)
     anot_key = metric.annotation_key
     mean_mattr = metric.apply(doc)
     mattr_per_token = [
