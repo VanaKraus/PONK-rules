@@ -99,10 +99,7 @@ def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None) -> list[Rul
 
 
 def compute_metrics(metric_list: list[Metric], doc: Document) -> list[dict[str, float]]:
-    return [
-        {re.sub(r'([a-z])([A-Z])', r'\1 \2', metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
-        for metric in metric_list
-    ]
+    return [{metric.metric_id: metric.apply(doc)} for metric in metric_list]
 
 
 def apply_rules(rule_list: list[Rule], doc: Document) -> str:
