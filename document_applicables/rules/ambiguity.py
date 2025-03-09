@@ -108,14 +108,15 @@ class RuleDoubleAdpos(AmbiguityRule):
 
                 if cconj:
                     self.annotate_node('cconj', cconj)
+                    self.annotate_measurement('max_allowable_distance', dst, cconj)
+                    self.annotate_parameter('max_allowable_distance', self.max_allowable_distance, cconj)
 
                 self.annotate_measurement(
-                    'max_allowable_distance', dst, cconj, *parent_adpos_desc, *cel1highlight, *cel2highlight
+                    'max_allowable_distance', dst, *parent_adpos_desc, *cel1highlight, *cel2highlight
                 )
                 self.annotate_parameter(
                     'max_allowable_distance',
                     self.max_allowable_distance,
-                    cconj,
                     *parent_adpos_desc,
                     *cel1highlight,
                     *cel2highlight,

@@ -105,7 +105,7 @@ def get_coord_element_phrase(node: Node) -> list[Node]:
     res = node.descendants()
     to_remove = []
 
-    if res[0].upos == 'PUNCT':
+    if len(res) > 0 and res[0].upos == 'PUNCT':
         res.pop(0)
 
     for d in res:
