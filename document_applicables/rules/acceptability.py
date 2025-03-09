@@ -33,6 +33,15 @@ class RuleDoubleComparison(AcceptabilityRule):
     cz_paricipants: dict[str, str] = {'head': 'Nadbytečný 2./3. stupeň', 'modifier': 'Pomocný výraz'}
     en_paricipants: dict[str, str] = {'head': 'Redundant comparative/superlative', 'modifier': 'Auxiliary'}
 
+    @staticmethod
+    def idiomatic(head: Node, modifier: Node) -> bool:
+        return (
+            modifier.form.lower() == 'více'
+            and head.form.lower() == 'méně'
+            and modifier.ord < head.ord
+            and head.ord - modifier.ord < 3
+        )
+
     def process_node(self, node: Node):
         if (
             node.lemma in ('více', 'méně', 'míň')
@@ -42,6 +51,9 @@ class RuleDoubleComparison(AcceptabilityRule):
             and 'Degree' in parent.feats
             and parent.feats['Degree'] == node.feats['Degree']
         ):
+            if self.idiomatic(parent, node):
+                return
+
             self.annotate_node('head', parent)
             self.annotate_node('modifier', node)
             self.advance_application_id()

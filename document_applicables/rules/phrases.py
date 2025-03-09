@@ -4,7 +4,7 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, Color
+from document_applicables.rules import Rule, Color, util
 
 
 class PhrasesRule(Rule):
@@ -84,8 +84,30 @@ class RuleAbstractNouns(PhrasesRule):
         'činnost',
     ]
 
+    @staticmethod
+    def _is_terminology(node: Node) -> bool:
+        match (node.lemma):
+            case 'stupeň':
+                # modifiers listed to exclude various elementary school grades.
+                # might be useful to discriminate court instances, which would however require more sophistication
+                return node.parent.lemma == 'soud' or util.descendants_include(
+                    node, {'první', 'druhý', '1', '2', 'I', 'II'}
+                )
+            case 'činnost':
+                return util.descendants_include(node, {'trestný', 'pracovní'})
+            case 'základ':
+                return util.descendants_include(node, {'mzda', 'stavba'})
+
+        return False
+
     def process_node(self, node):
-        if node.lemma in self._abstract_nouns:
+        if (
+            node.lemma in self._abstract_nouns
+            and not util.is_adposition(node)
+            and not self._is_terminology(node)
+            and node.feats['Polarity'] != 'Neg'
+            and node.feats['Abbr'] != 'Yes'
+        ):
             self.annotate_node('abstract_noun', node)
             self.advance_application_id()
 

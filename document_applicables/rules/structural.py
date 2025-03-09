@@ -4,6 +4,8 @@ from typing import Literal
 
 from document_applicables.rules import Rule, util, Color
 
+from udapi.core.node import Node
+
 
 class StructuralRule(Rule):
     foreground_color: Color = Color(70, 130, 33)
@@ -162,6 +164,7 @@ class RuleInfVerbDistance(StructuralRule):
         if (
             (infinitive := node).feats['VerbForm'] == 'Inf'
             and 'VerbForm' in (verb := infinitive.parent).feats
+            and not util.is_clause_root(infinitive)
             and node.deprel != 'conj'
             and node.upos != 'AUX'
         ):
@@ -348,7 +351,11 @@ class RuleVerbalNouns(StructuralRule):
     cz_paricipants: dict[str, str] = {'verbal_noun': 'Podstatné jméno slovesné'}
     en_paricipants: dict[str, str] = {'verbal_noun': 'Verbal noun'}
 
+    @classmethod
+    def _is_terminology(cls, node: Node) -> bool:
+        return node.lemma in ('usnesení', 'rozhodnutí', 'dovolání', 'odvolání')
+
     def process_node(self, node):
-        if node.feats['VerbForm'] == 'Vnoun':
+        if node.feats['VerbForm'] == 'Vnoun' and not self._is_terminology(node):
             self.annotate_node('verbal_noun', node)
             self.advance_application_id()

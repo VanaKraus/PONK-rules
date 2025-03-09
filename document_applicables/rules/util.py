@@ -60,6 +60,10 @@ def is_clause_root(node: Node) -> bool:
     return is_finite_verb(node) or bool([nd for nd in node.children if is_aux(nd, grammatical_only=True)])
 
 
+def descendants_include(node: Node, lemmas: set) -> bool:
+    return len(lemmas.intersection({n.lemma for n in node.descendants()})) > 0
+
+
 def get_clause_root(node: Node) -> Node:
     clause_root = node
     while not is_clause_root(clause_root):
@@ -95,6 +99,20 @@ def get_clause(
         clause = [nd for nd in clause if nd.upos != 'PUNCT']
 
     return clause
+
+
+def get_coord_element_phrase(node: Node) -> list[Node]:
+    res = node.descendants()
+    to_remove = []
+
+    if res[0].upos == 'PUNCT':
+        res.pop(0)
+
+    for d in res:
+        if d.deprel == 'conj':
+            to_remove += d.descendants(add_self=True)
+
+    return [d for d in res if d not in to_remove] + [node]
 
 
 def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
