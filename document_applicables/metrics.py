@@ -327,7 +327,7 @@ class MetricMovingAverageEntropyVariation(MetricMovingAverageBase):
     Measures entropy over chunks of text of length window_size and averages them.
     '''
 
-    metric_id: Literal['maentropy_v'] = 'maentropy_v'
+    metric_id: Literal['maentropy.v'] = 'maentropy.v'
     use_lemma: bool = Field(
         default=True,
         description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
@@ -377,14 +377,14 @@ class MetricMovingAverageTTRVariation(MetricMovingAverageBase):
     Measures Type-token ratio over chunks of text of length window_size and returns a variation coefficient.
     """
 
-    metric_id: Literal['mattr_v'] = 'mattr_v'
+    metric_id: Literal['mattr.v'] = 'mattr.v'
     use_lemma: bool = Field(
         default=True,
         description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
     )
     window_size: int = 100
 
-    annotation_key: str = 'mattr_v'
+    annotation_key: str = 'mattr.v'
 
     def apply(self, doc: Document) -> float:
         self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
