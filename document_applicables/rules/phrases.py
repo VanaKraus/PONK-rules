@@ -170,7 +170,7 @@ class RuleConfirmationExpressions(PhrasesRule):
     _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
-        if node.lemma in self._expressions:
+        if node.lemma in self._expressions and node.ord < node.parent.ord:
             self.annotate_node('confirmation_expression', node)
             self.advance_application_id()
 
