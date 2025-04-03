@@ -155,7 +155,7 @@ class RuleInfVerbDistance(StructuralRule):
     # TODO: terminology
     cz_human_readable_name: str = 'Vzdálenost infinitivu od řídícího členu'
     en_human_readable_name: str = 'Distance between an infinitive and its governing word'
-    cz_doc: str = 'Umístěte infinitive blíž k řídícímu členu.'
+    cz_doc: str = 'Umístěte infinitiv blíž k řídícímu členu.'
     en_doc: str = 'Put the infinitive closer to its governing word.'
     cz_paricipants: dict[str, str] = {'infinitive': 'Infinitiv', 'verb': 'Řídící člen'}
     en_paricipants: dict[str, str] = {'infinitive': 'Infinitive', 'verb': 'Governing word'}
