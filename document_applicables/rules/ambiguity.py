@@ -232,7 +232,7 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
             self.advance_application_id()
 
 
-class RuleGPcoordovs(Rule):
+class RuleGPcoordovs(AmbiguityRule):
     """Capture garden-path sentences where clause-coordinations appear as NP coordinations.
 
     Inspiration: Ceháková & Chromý (2024).
@@ -275,7 +275,7 @@ class RuleGPcoordovs(Rule):
                     self.annotate_node('same_case', previous, next)
 
 
-class RuleGPdeverbaddr(Rule):
+class RuleGPdeverbaddr(AmbiguityRule):
     '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–INS syncretism.
 
     Inspiration: Ceháková & Chromý (2024).
@@ -330,7 +330,7 @@ class RuleGPdeverbaddr(Rule):
                             self.advance_application_id()
 
 
-class RuleGPpatinstr(Rule):
+class RuleGPpatinstr(AmbiguityRule):
     '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to ACC–INS syncretism.
 
     Inspiration: Ceháková & Chromý (2024).
@@ -410,7 +410,7 @@ class RuleGPpatinstr(Rule):
                     self.advance_application_id()
 
 
-class RuleGPdeverbsubj(Rule):
+class RuleGPdeverbsubj(AmbiguityRule):
     '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to NOM–INS syncretism.
 
     Inspiration: Ceháková & Chromý (2024).
@@ -476,7 +476,7 @@ class RuleGPdeverbsubj(Rule):
                     self.advance_application_id()
 
 
-class RuleGPadjective(Rule):
+class RuleGPadjective(AmbiguityRule):
     '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–LOC syncretism.
 
     Inspiration: Ceháková & Chromý (2024).
@@ -568,7 +568,7 @@ class RuleGPadjective(Rule):
                     self.advance_application_id()
 
 
-class RuleGPpatbenperson(Rule):
+class RuleGPpatbenperson(AmbiguityRule):
     '''Capture garden-path sentences where a noun could potentially be interpreted as a patient or a benefactor \
         due to DAT–ACC syncretism.
 
@@ -663,7 +663,7 @@ class RuleGPpatbenperson(Rule):
                     self.advance_application_id()
 
 
-class RuleGPwordorder(Rule):
+class RuleGPwordorder(AmbiguityRule):
     '''Capture garden-path sentences where an object noun could potentially be interpreted as an object due to NOM–ACC syncretism.
 
     Inspiration: Ceháková & Chromý (2024).
