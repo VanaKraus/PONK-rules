@@ -75,7 +75,7 @@ class RuleTooFewVerbs(ClusterRule):
 class RuleTooManyNegations(ClusterRule):
     """Capture sentences with too many negations.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 40-41), Šváb (2023, p. 33).
+    Inspiration: Šamánková & Kubíková (2022, pp. 40-41), Šváb (2021, p. 33).
 
     Attributes:
         max_negation_frac (float): the highest (# of negations / # of words with polarity) \
@@ -92,11 +92,11 @@ class RuleTooManyNegations(ClusterRule):
     en_human_readable_name: str = 'Too many negations'
     cz_doc: str = (
         'Negativní formulace zamlžují sdělení a natahují text. '
-        + 'Srov. Šamánková & Kubíková (2022, s. 40–41), Šváb (2023, s. 33).'
+        + 'Srov. Šamánková & Kubíková (2022, s. 40–41), Šváb (2021, s. 33).'
     )
     en_doc: str = (
         'Negative formulations blur the message and prolong the text. '
-        + 'Šamánková & Kubíková (2022, pp. 40–41), Šváb (2023, p. 33).'
+        + 'Šamánková & Kubíková (2022, pp. 40–41), Šváb (2021, p. 33).'
     )
     cz_paricipants: dict[str, str] = {'negative': 'Negativní výraz'}
     en_paricipants: dict[str, str] = {'negative': 'Negative expression'}

@@ -15,7 +15,7 @@ class PhrasesRule(Rule):
 class RuleWeakMeaningWords(PhrasesRule):
     """Capture semantically weak words.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86), Šváb (2023, p. 32).
+    Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86), Šváb (2021, p. 32).
     """
 
     rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
@@ -24,11 +24,11 @@ class RuleWeakMeaningWords(PhrasesRule):
     en_human_readable_name: str = 'Weak-meaning words'
     cz_doc: str = (
         'Vyvarujte se vyprázdněných slov. Srov. Sgall & Panevová (2014, s. 86), '
-        + 'Šamánková & Kubíková (2022, s. 37–38 a s. 39), Šváb (2023, s. 32).'
+        + 'Šamánková & Kubíková (2022, s. 37–38 a s. 39), Šváb (2021, s. 32).'
     )
     en_doc: str = (
         'Avoid weak-meaning words. Cf. Sgall & Panevová (2014, p. 86), '
-        + 'Šamánková & Kubíková (2022, pp. 37–38 and p. 39), Šváb (2023, p. 32).'
+        + 'Šamánková & Kubíková (2022, pp. 37–38 and p. 39), Šváb (2021, p. 32).'
     )
     cz_paricipants: dict[str, str] = {'weak_meaning_word': 'Vyprázdněné slovo'}
     en_paricipants: dict[str, str] = {'weak_meaning_word': 'Weak-meaning word'}
@@ -152,7 +152,7 @@ class RuleRelativisticExpressions(PhrasesRule):
 
 
 class RuleConfirmationExpressions(PhrasesRule):
-    """Capture confirmation expressions. They often violate the maxim of quantity \
+    """Capture extreme-case expressions. They often violate the maxim of quantity \
         in needlessly confirming what the author is already expected to be 100% sure about.
 
     Inspiration: Šamánková & Kubíková (2022, p. 42).
@@ -260,15 +260,15 @@ class RuleRedundantExpressions(PhrasesRule):
 class RuleTooLongExpressions(PhrasesRule):
     """Capture expressions that could be shortened.
 
-    Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118).
+    Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2021, p. 118).
     """
 
     rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
 
     cz_human_readable_name: str = 'Dlouhé výrazy'
     en_human_readable_name: str = 'Long expressions'
-    cz_doc: str = 'Srov. Šamánková & Kubíková (2022, s. 44), Šváb (2023, s. 118).'
-    en_doc: str = 'Cf. Šamánková & Kubíková (2022, p. 44), Šváb (2023, p. 118).'
+    cz_doc: str = 'Srov. Šamánková & Kubíková (2022, s. 44), Šváb (2021, s. 118).'
+    en_doc: str = 'Cf. Šamánková & Kubíková (2022, p. 44), Šváb (2021, p. 118).'
     cz_paricipants: dict[str, str] = {
         'v_důsledku_toho': 'Lépe „proto“',
         'v_případě_že': 'Lépe „pokud“',

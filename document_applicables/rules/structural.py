@@ -15,7 +15,7 @@ class StructuralRule(Rule):
 class RulePassive(StructuralRule):
     """Capture be-passives.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2023, p. 27).
+    Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2021, p. 27).
     """
 
     rule_id: Literal['RulePassive'] = 'RulePassive'
@@ -24,11 +24,11 @@ class RulePassive(StructuralRule):
     en_human_readable_name: str = 'Participial passive'
     cz_doc: str = (
         'Použijte činný rod („nařídíme další opatření“), případně zvratné pasivum („nařídí se další opatření“). '
-        + 'Srov. Šamánková & Kubíková (2022, s. 39–40), Šváb (2023, s. 27).'
+        + 'Srov. Šamánková & Kubíková (2022, s. 39–40), Šváb (2021, s. 27).'
     )
     en_doc: str = (
         'Use the active voice (“nařídíme další opatření”) or the reflexive passive (“nařídí se další opatření”). '
-        + 'Cf. Šamánková & Kubíková (2022, pp. 39–40), Šváb (2023, p. 27).'
+        + 'Cf. Šamánková & Kubíková (2022, pp. 39–40), Šváb (2021, p. 27).'
     )
     cz_paricipants: dict[str, str] = {'aux': 'Pomocné sloveso', 'participle': 'Příčestí trpné'}
     en_paricipants: dict[str, str] = {'aux': 'Auxiliary verb', 'participle': 'Passive participle'}
@@ -47,7 +47,7 @@ class RulePredSubjDistance(StructuralRule):
     """Capture subjects that are too distant from their predicates \
         (or their auxiliaries/copulas when present).
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 53–54), Šváb (2023, pp. 21–22).
+    Inspiration: Šamánková & Kubíková (2022, pp. 53–54), Šváb (2021, pp. 21–22).
 
     Attributes:
         max_distance (int): how far apart the subject and the predicate can be \
@@ -64,11 +64,11 @@ class RulePredSubjDistance(StructuralRule):
     cz_human_readable_name: str = 'Vzdálenost mezi přísudkem a podmětem'
     en_human_readable_name: str = 'Distance between predicate and subject'
     cz_doc: str = (
-        'Umístěte přísudek a podmět blíž k sobě. Srov. Šamánková & Kubíková (2022, s. 53–54), Šváb (2023, s. 21–22).'
+        'Umístěte přísudek a podmět blíž k sobě. Srov. Šamánková & Kubíková (2022, s. 53–54), Šváb (2021, s. 21–22).'
     )
     en_doc: str = (
         'Put the predicate and the subject closer together. '
-        + 'Cf. Šamánková & Kubíková (2022, pp. 53–54), Šváb (2023, pp. 21–22).'
+        + 'Cf. Šamánková & Kubíková (2022, pp. 53–54), Šváb (2021, pp. 21–22).'
     )
     cz_paricipants: dict[str, str] = {'predicate_grammar': 'Přísudek (funkční část)', 'subject': 'Podmět'}
     en_paricipants: dict[str, str] = {'predicate_grammar': 'Predicate (grammatical component)', 'subject': 'Subject'}
@@ -236,7 +236,7 @@ class RuleMultiPartVerbs(StructuralRule):
 class RuleLongSentences(StructuralRule):
     """Capture sentences that are too long.
 
-    Inspiration: Šamánková & Kubíková (2022, p. 51), Šváb (2023, pp. 17–18).
+    Inspiration: Šamánková & Kubíková (2022, p. 51), Šváb (2021, pp. 17–18).
 
     Attributes:
         max_length (int): how long the sentence can be to not be considered an issue.
@@ -250,10 +250,10 @@ class RuleLongSentences(StructuralRule):
     cz_human_readable_name: str = 'Příliš dlouhé věty'
     en_human_readable_name: str = 'Too long sentences'
     cz_doc: str = (
-        'Rozdělte větu/souvětí do více vět/souvětí. Srov. Šamánková & Kubíková (2022, s. 51), Šváb (2023, s. 17–18).'
+        'Rozdělte větu/souvětí do více vět/souvětí. Srov. Šamánková & Kubíková (2022, s. 51), Šváb (2021, s. 17–18).'
     )
     en_doc: str = (
-        'Split the sentence into multiple sentences. Cf. Šamánková & Kubíková (2022, pp. 51), Šváb (2023, pp. 17–18).'
+        'Split the sentence into multiple sentences. Cf. Šamánková & Kubíková (2022, pp. 51), Šváb (2021, pp. 17–18).'
     )
     cz_paricipants: dict[str, str] = {'long_sentence': 'Dlouhá věta / dlouhé souvětí'}
     en_paricipants: dict[str, str] = {'long_sentence': 'Long sentence'}
@@ -333,7 +333,7 @@ class RulePredAtClauseBeginning(StructuralRule):
 class RuleVerbalNouns(StructuralRule):
     """Capture verbal nouns.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 38–39), Šváb (2023, p. 30).
+    Inspiration: Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).
     """
 
     rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
@@ -342,11 +342,11 @@ class RuleVerbalNouns(StructuralRule):
     en_human_readable_name: str = 'Verbal nouns'
     cz_doc: str = (
         'Zvažte nahrazení podstatného jména slovesného větou. '
-        + 'Srov. Šamánková & Kubíková (2022, s. 38–39), Šváb (2023, s. 30).'
+        + 'Srov. Šamánková & Kubíková (2022, s. 38–39), Šváb (2021, s. 30).'
     )
     en_doc: str = (
         'Consider replacing the verbal noun with a clause. '
-        + 'Cf. Šamánková & Kubíková (2022, pp. 38–39), Šváb (2023, p. 30).'
+        + 'Cf. Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).'
     )
     cz_paricipants: dict[str, str] = {'verbal_noun': 'Podstatné jméno slovesné'}
     en_paricipants: dict[str, str] = {'verbal_noun': 'Verbal noun'}

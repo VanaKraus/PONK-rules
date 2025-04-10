@@ -7,9 +7,6 @@ from udapi.core.node import Node
 from document_applicables.rules import Rule, util, Color
 
 
-# TODO: you don't need to ask if 'xxx' in feats when needing to access node.feats['xxx']
-
-
 class AmbiguityRule(Rule):
     foreground_color: Color = Color(125, 25, 200)
     rule_id: Literal['ambiguity'] = 'ambiguity'
@@ -132,8 +129,9 @@ class RuleDoubleAdpos(AmbiguityRule):
 
 
 class RuleAmbiguousRegards(AmbiguityRule):
-    """Capture regard constructions (e.g. [trajector] is greater than [landmark]) \
-        that are ambiguous as to which word fills the [trajector] slot.
+    """Capture comparative constructions (e.g. "znám lepšího právníka než dr. Novák" \
+        [= I know a better lawyer than dr. Novák]) that are ambiguous as to what thematic \
+        role the phrase after the comparative conjunction has.
 
     Inspiration: Sgall & Panevová (2014, pp. 77-78), Šamánková & Kubíková (2022, p. 41).
     """
@@ -235,7 +233,7 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
 class RuleGPcoordovs(AmbiguityRule):
     """Capture garden-path sentences where clause-coordinations appear as NP coordinations.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     """
 
     # Milada ztratila šálu a čepici ochotně věnovala vnučce.
@@ -244,9 +242,9 @@ class RuleGPcoordovs(AmbiguityRule):
 
     cz_human_readable_name: str = 'Zavádějící spojení vět'
     en_human_readable_name: str = 'Misleading clause coordination'
-    cz_doc: str = 'Souřadné spojení dvou vět vypadá jako spojení dvou jmenných frází. Srov. Ceháková & Chromý (2024).'
+    cz_doc: str = 'Souřadné spojení dvou vět vypadá jako spojení dvou jmenných frází. Srov. Ceháková & Chromý (2023).'
     en_doc: str = (
-        'Coordination of two clauses looks as if it was connecting two nominal phrases. Cf. Ceháková & Chromý (2024).'
+        'Coordination of two clauses looks as if it was connecting two nominal phrases. Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {'same_case': 'Stejný pád'}
     en_paricipants: dict[str, str] = {'same_case': 'Same case'}
@@ -276,9 +274,9 @@ class RuleGPcoordovs(AmbiguityRule):
 
 
 class RuleGPdeverbaddr(AmbiguityRule):
-    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–INS syncretism.
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–INS homonymy.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     '''
 
     # Michal ochotně podal správci podepsané formuláře organizátorovi zájezdu.
@@ -287,11 +285,11 @@ class RuleGPdeverbaddr(AmbiguityRule):
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
         'Slovo lze interpretovat jako 3. i jako 7. pád a podle toho může záviset na různých větných členech. '
-        + 'Srov. Ceháková & Chromý (2024).'
+        + 'Srov. Ceháková & Chromý (2023).'
     )
     en_doc: str = (
         'A noun could be interpreted both as dative or as instrumental and can thus depend on different words. '
-        + 'Cf. Ceháková & Chromý (2024).'
+        + 'Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
     en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
@@ -331,9 +329,9 @@ class RuleGPdeverbaddr(AmbiguityRule):
 
 
 class RuleGPpatinstr(AmbiguityRule):
-    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to ACC–INS syncretism.
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to ACC–INS homonymy.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     '''
 
     # Martin konečně navštívil pány vychvalované středisko v horách.
@@ -342,11 +340,11 @@ class RuleGPpatinstr(AmbiguityRule):
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
         'Slovo lze interpretovat jako 4. i jako 7. pád a podle toho může být různým větným členem. '
-        + 'Srov. Ceháková & Chromý (2024).'
+        + 'Srov. Ceháková & Chromý (2023).'
     )
     en_doc: str = (
         'A noun could be interpreted both as accusative or as instrumental and can thus serve different function. '
-        + 'Cf. Ceháková & Chromý (2024).'
+        + 'Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {
         'sync': 'Nejednoznačně navázané slovo',
@@ -411,9 +409,9 @@ class RuleGPpatinstr(AmbiguityRule):
 
 
 class RuleGPdeverbsubj(AmbiguityRule):
-    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to NOM–INS syncretism.
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to NOM–INS homonymy.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     '''
 
     # Na středisku pracovali lékaři vyškolení maséři s akreditací.
@@ -422,11 +420,11 @@ class RuleGPdeverbsubj(AmbiguityRule):
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
         'Slovo lze interpretovat jako 1. i jako 7. pád a podle toho může záviset na různých větných členech. '
-        + 'Srov. Ceháková & Chromý (2024).'
+        + 'Srov. Ceháková & Chromý (2023).'
     )
     en_doc: str = (
         'A noun could be interpreted both as nominative or as instrumental and can thus depend on different words. '
-        + 'Cf. Ceháková & Chromý (2024).'
+        + 'Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
     en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
@@ -477,9 +475,9 @@ class RuleGPdeverbsubj(AmbiguityRule):
 
 
 class RuleGPadjective(AmbiguityRule):
-    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–LOC syncretism.
+    '''Capture garden-path sentences where a noun could potentially bind to multiple different tokens due to DAT–LOC homonymy.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     '''
 
     # Michal ochotně podal správci podepsané formuláře organizátorovi zájezdu.
@@ -488,11 +486,11 @@ class RuleGPadjective(AmbiguityRule):
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
         'Slovo lze interpretovat jako 3. i jako 6. pád a podle toho může záviset na různých větných členech. '
-        + 'Srov. Ceháková & Chromý (2024).'
+        + 'Srov. Ceháková & Chromý (2023).'
     )
     en_doc: str = (
         'A noun could be interpreted both as dative or as locative and can thus depend on different words. '
-        + 'Cf. Ceháková & Chromý (2024).'
+        + 'Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {
         'prep': 'Pádová předložka',
@@ -570,9 +568,9 @@ class RuleGPadjective(AmbiguityRule):
 
 class RuleGPpatbenperson(AmbiguityRule):
     '''Capture garden-path sentences where a noun could potentially be interpreted as a patient or a benefactor \
-        due to DAT–ACC syncretism.
+        due to DAT–ACC homonymy.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     '''
 
     # Bohouš nakopl zákaznici ve frontě igelitku s nákupem.
@@ -581,11 +579,11 @@ class RuleGPpatbenperson(AmbiguityRule):
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
         'Slovo lze interpretovat jako 3. i jako 4. pád a podle toho může být jiným větným členem. '
-        + 'Srov. Ceháková & Chromý (2024).'
+        + 'Srov. Ceháková & Chromý (2023).'
     )
     en_doc: str = (
         'A noun could be interpreted both as dative or as accusative and can thus serve different function. '
-        + 'Cf. Ceháková & Chromý (2024).'
+        + 'Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {
         'sync': 'Nejednoznačné slovo',
@@ -664,9 +662,9 @@ class RuleGPpatbenperson(AmbiguityRule):
 
 
 class RuleGPwordorder(AmbiguityRule):
-    '''Capture garden-path sentences where an object noun could potentially be interpreted as an object due to NOM–ACC syncretism.
+    '''Capture garden-path sentences where an object noun could potentially be interpreted as an object due to NOM–ACC homonymy.
 
-    Inspiration: Ceháková & Chromý (2024).
+    Inspiration: Ceháková & Chromý (2023).
     '''
 
     # Chalífát úspěšně dobyl až generál s armádou žoldnéřů.
@@ -675,11 +673,11 @@ class RuleGPwordorder(AmbiguityRule):
     en_human_readable_name: str = 'Ambiguous syntactic relation'
     cz_doc: str = (
         'Slovo v předmětu lze interpretovat i jako 1. pád a může proto vypadat jako podmět. '
-        + 'Srov. Ceháková & Chromý (2024).'
+        + 'Srov. Ceháková & Chromý (2023).'
     )
     en_doc: str = (
         'An object noun could be interpreted as nominative and thus can appear to be the subject '
-        + 'Cf. Ceháková & Chromý (2024).'
+        + 'Cf. Ceháková & Chromý (2023).'
     )
     cz_paricipants: dict[str, str] = {'obj': 'Nejednoznačný předmět', 'nsubj': 'Podmět', 'fin_verb': 'Určité sloveso'}
     en_paricipants: dict[str, str] = {'obj': 'Ambiguous object', 'nsubj': 'Subject', 'fin_verb': 'Finite verb'}
