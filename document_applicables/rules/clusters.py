@@ -75,7 +75,7 @@ class RuleTooFewVerbs(ClusterRule):
 class RuleTooManyNegations(ClusterRule):
     """Capture sentences with too many negations.
 
-    Inspiration: Šamánková & Kubíková (2022, pp. 40-41), Šváb (2023, p. 33).
+    Inspiration: Šamánková & Kubíková (2022, pp. 40-41), Šváb (2021, p. 33).
 
     Attributes:
         max_negation_frac (float): the highest (# of negations / # of words with polarity) \
@@ -92,11 +92,11 @@ class RuleTooManyNegations(ClusterRule):
     en_human_readable_name: str = 'Too many negations'
     cz_doc: str = (
         'Negativní formulace zamlžují sdělení a natahují text. '
-        + 'Srov. Šamánková & Kubíková (2022, s. 40–41), Šváb (2023, s. 33).'
+        + 'Srov. Šamánková & Kubíková (2022, s. 40–41), Šváb (2021, s. 33).'
     )
     en_doc: str = (
         'Negative formulations blur the message and prolong the text. '
-        + 'Šamánková & Kubíková (2022, pp. 40–41), Šváb (2023, p. 33).'
+        + 'Šamánková & Kubíková (2022, pp. 40–41), Šváb (2021, p. 33).'
     )
     cz_paricipants: dict[str, str] = {'negative': 'Negativní výraz'}
     en_paricipants: dict[str, str] = {'negative': 'Negative expression'}
@@ -166,7 +166,15 @@ class RuleTooManyNominalConstructions(ClusterRule):
 
             nouns = [n for n in clause if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n))]
 
-            if (l := len(nouns)) > self.max_allowable_nouns and float(l) / len(clause) > self.max_noun_frac:
+            if (l := len(nouns)) > self.max_allowable_nouns and (
+                noun_frac := float(l) / len(clause)
+            ) > self.max_noun_frac:
+
+                self.annotate_parameter('max_noun_frac', self.max_noun_frac, *nouns)
+                self.annotate_measurement('max_noun_frac', noun_frac, *nouns)
+                self.annotate_parameter('max_allowable_nouns', self.max_allowable_nouns, *nouns)
+                self.annotate_measurement('max_allowable_nouns', l, *nouns)
+
                 self.annotate_node('noun', *nouns)
                 self.advance_application_id()
 
@@ -250,7 +258,13 @@ class RuleCaseRepetition(ClusterRule):
                 if len(notes_already_visited) == len(same_case_nodes):
                     break
 
-                if len(same_case_nodes) / len(following_nodes) > self.max_repetition_frac:
+                if (repetition_frac := len(same_case_nodes) / len(following_nodes)) > self.max_repetition_frac:
+                    self.annotate_parameter('max_repetition_count', self.max_repetition_count, *same_case_nodes)
+                    self.annotate_measurement('max_repetition_count', len(same_case_nodes), *same_case_nodes)
+                    self.annotate_parameter('max_repetition_frac', self.max_repetition_frac, *same_case_nodes)
+                    self.annotate_measurement('max_repetition_frac', repetition_frac, *same_case_nodes)
+                    self.annotate_parameter('include_adjectives', self.include_adjectives, *same_case_nodes)
+
                     self.annotate_node('case_repetition', *same_case_nodes)
                     self.advance_application_id()
                     break

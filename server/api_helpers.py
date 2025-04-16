@@ -21,38 +21,48 @@ import re
 # tmp reimport of everythin
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
-    # RulePossessiveGenitive,
-    RuleIncompleteConjunction,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
+    RuleIncompleteConjunction,
 )
-from document_applicables.rules.ambiguity import RuleAmbiguousRegards, RuleDoubleAdpos, RuleReflexivePassWithAnimSubj
+from document_applicables.rules.ambiguity import (
+    RuleDoubleAdpos,
+    RuleAmbiguousRegards,
+    RuleGPcoordovs,
+    RuleGPdeverbaddr,
+    RuleGPpatinstr,
+    RuleGPdeverbsubj,
+    RuleGPadjective,
+    RuleGPpatbenperson,
+    RuleGPwordorder,
+    RuleReflexivePassWithAnimSubj,
+)
 from document_applicables.rules.clusters import (
-    RuleTooManyNegations,
     RuleTooFewVerbs,
+    RuleTooManyNegations,
     RuleTooManyNominalConstructions,
     RuleCaseRepetition,
     RuleFunctionWordRepetition,
 )
 from document_applicables.rules.phrases import (
-    RuleLiteraryStyle,
-    RuleAbstractNouns,
-    RuleAnaphoricReferences,
-    RuleRedundantExpressions,
-    RuleConfirmationExpressions,
-    RuleRelativisticExpressions,
-    RuleTooLongExpressions,
     RuleWeakMeaningWords,
+    RuleAbstractNouns,
+    RuleRelativisticExpressions,
+    RuleConfirmationExpressions,
+    RuleRedundantExpressions,
+    RuleTooLongExpressions,
+    RuleAnaphoricReferences,
+    RuleLiteraryStyle,
 )
 from document_applicables.rules.structural import (
     RulePassive,
-    RuleLongSentences,
-    RuleVerbalNouns,
-    RuleMultiPartVerbs,
-    RuleInfVerbDistance,
-    RulePredObjDistance,
     RulePredSubjDistance,
+    RulePredObjDistance,
+    RuleInfVerbDistance,
+    RuleMultiPartVerbs,
+    RuleLongSentences,
     RulePredAtClauseBeginning,
+    RuleVerbalNouns,
 )
 
 
@@ -89,10 +99,7 @@ def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None) -> list[Rul
 
 
 def compute_metrics(metric_list: list[Metric], doc: Document) -> list[dict[str, float]]:
-    return [
-        {re.sub(r'([a-z])([A-Z])', r'\1 \2', metric.__class__.__name__.removeprefix('Metric')): metric.apply(doc)}
-        for metric in metric_list
-    ]
+    return [{metric.metric_id: metric.apply(doc)} for metric in metric_list]
 
 
 def apply_rules(rule_list: list[Rule], doc: Document) -> str:
