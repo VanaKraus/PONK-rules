@@ -138,6 +138,7 @@ class EngineTTR(MetricEngine):
     """
     Type-token ratio. Measures the ratio of types (lemmas) to tokens.
     """
+
     cz_human_readable_name: str = 'TTR'
     en_human_readable_name: str = 'TTR'
     cz_doc: str = 'Type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
@@ -154,6 +155,7 @@ class EngineEntropy(MetricEngine):
     """
     Measures the entropy of the text, considering either lemmas or word forms.
     """
+
     cz_human_readable_name: str = 'Entropie'
     en_human_readable_name: str = 'Entropy'
     cz_doc: str = 'Měří entropii textu, s ohledem na lemmata nebo slovní tvary.'
@@ -175,6 +177,7 @@ class MetricSentenceCount(Metric):
     """
     A metric for counting sentences.
     """
+
     cz_human_readable_name: str = 'Počet vět'
     en_human_readable_name: str = 'Sentence Count'
     cz_doc: str = 'Počet vět v textu.'
@@ -190,6 +193,7 @@ class MetricWordCount(MetricPunctExcluding):
     """
     A metric for counting words.
     """
+
     cz_human_readable_name: str = 'Počet slov'
     en_human_readable_name: str = 'Word Count'
     cz_doc: str = 'Počet slov v textu.'
@@ -205,6 +209,7 @@ class MetricSyllableCount(MetricPunctExcluding):
     """
     A metric for counting syllables.
     """
+
     cz_human_readable_name: str = 'Počet slabik'
     en_human_readable_name: str = 'Syllable Count'
     cz_doc: str = 'Počet slabik v textu.'
@@ -220,6 +225,7 @@ class MetricCharacterCount(MetricPunctExcluding):
     """
     A metric for counting characters.
     """
+
     cz_human_readable_name: str = 'Počet znaků'
     en_human_readable_name: str = 'Character Count'
     cz_doc: str = 'Počet znaků v textu.'
@@ -257,10 +263,13 @@ class MetricCLI(MetricPunctExcluding):
     where chars is the number of characters in the text, wordgs is the number of words and
     sents is the number of sentences.
     """
+
     cz_human_readable_name: str = 'Coleman-Liau index'
     en_human_readable_name: str = 'Coleman-Liau Index'
     cz_doc: str = 'Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
+    en_hint: str = 'Use fewer long words, and shorter sentences.'
 
     metric_id: Literal['cli'] = 'cli'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -287,10 +296,17 @@ class MetricARI(MetricPunctExcluding):
     where chars is the number of characters in the text, words is the number of words and
     sents is the number of sentences.
     """
+
     cz_human_readable_name: str = 'ARI'
     en_human_readable_name: str = 'ARI'
-    cz_doc: str = 'Automatizovaný index čitelnosti. Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
-    en_doc: str = 'Automated readability index. Measures readability in years of education necessary for successful understanding.'
+    cz_doc: str = (
+        'Automatizovaný index čitelnosti. Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
+    )
+    en_doc: str = (
+        'Automated readability index. Measures readability in years of education necessary for successful understanding.'
+    )
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
 
     metric_id: Literal['ari'] = 'ari'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -311,6 +327,7 @@ class MetricHapaxCount(MetricPunctExcluding):
     """
     The count of words that appear in the text only once.
     """
+
     cz_human_readable_name: str = 'Počet hapaxů'
     en_human_readable_name: str = 'Hapax Count'
     cz_doc: str = 'Počet slov, která se v textu vyskytují pouze jednou.'
@@ -331,6 +348,7 @@ class MetricEntropy(MetricPunctExcluding):
     """
     Measures the entropy of the text, considering either lemmas or word forms.
     """
+
     cz_human_readable_name: str = 'Entropie'
     en_human_readable_name: str = 'Entropy'
     cz_doc: str = 'Měří entropii textu, s ohledem na lemmata nebo slovní tvary.'
@@ -350,10 +368,13 @@ class MetricMovingAverageEntropy(MetricMovingAverageBase):
     '''
     Measures entropy over chunks of text of length window_size and averages them.
     '''
+
     cz_human_readable_name: str = 'Entropie - klouzavý průměr'
     en_human_readable_name: str = 'Entropy - moving average'
     cz_doc: str = 'Měří klouzavý průměr entropie v textu, s ohledem na lemmata nebo slovní tvary.'
     en_doc: str = 'Measures the moving average of the text\'s entropy, considering either lemmas or word forms.'
+    cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
+    en_hint: str = 'Use less synonyms, if possible.'
 
     metric_id: Literal['maentropy'] = 'maentropy'
     use_lemma: bool = Field(
@@ -370,10 +391,13 @@ class MetricMovingAverageEntropyVariation(MetricMovingAverageBase):
     '''
     Measures entropy over chunks of text of length window_size and averages them.
     '''
+
     cz_human_readable_name: str = 'Entropie - klouzavý průměr - rozptyl'
     en_human_readable_name: str = 'Entropy - moving average - variation'
     cz_doc: str = 'Měří rozptyl klouzavého průměru entropie v textu, s ohledem na lemmata nebo slovní tvary.'
-    en_doc: str = 'Measures the variance of the moving average of the text\'s entropy, considering either lemmas or word forms.'
+    en_doc: str = (
+        'Measures the variance of the moving average of the text\'s entropy, considering either lemmas or word forms.'
+    )
 
     metric_id: Literal['maentropy.v'] = 'maentropy.v'
     use_lemma: bool = Field(
@@ -390,6 +414,7 @@ class MetricTTR(MetricPunctExcluding):
     """
     Type-token ratio. Measures the ratio of types (lemmas) to tokens.
     """
+
     cz_human_readable_name: str = 'TTR'
     en_human_readable_name: str = 'TTR'
     cz_doc: str = 'Type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
@@ -409,10 +434,13 @@ class MetricMovingAverageTTR(MetricMovingAverageBase):
     """
     Measures Type-token ratio over chunks of text of length window_size and averages them.
     """
+
     cz_human_readable_name: str = 'TTR - klouzavý průměr'
     en_human_readable_name: str = 'TTR - moving average'
     cz_doc: str = 'Klouzavý průměr type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
     en_doc: str = 'Moving average of type-token ratio. Measures the ratio of types (lemmas) to tokens.'
+    cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
+    en_hint: str = 'Use less synonyms, if possible.'
 
     metric_id: Literal['mattr'] = 'mattr'
     use_lemma: bool = Field(
@@ -432,6 +460,7 @@ class MetricMovingAverageTTRVariation(MetricMovingAverageBase):
     """
     Measures Type-token ratio over chunks of text of length window_size and returns a variation coefficient.
     """
+
     cz_human_readable_name: str = 'TTR - klouzavý průměr - rozptyl'
     en_human_readable_name: str = 'TTR - moving average - variation'
     cz_doc: str = 'Rozptyl klouzavého průměru type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
@@ -455,10 +484,13 @@ class MetricVerbDistance(Metric):
     """
     Measures the average distance between verbs.
     """
+
     cz_human_readable_name: str = 'Vzdálenost sloves'
     en_human_readable_name: str = 'Verb Distance'
     cz_doc: str = 'Měří průměrnou vzdálenost mezi slovesy (ve slovech).'
     en_doc: str = 'Measures the average distance between verbs.'
+    cz_hint: str = 'Používejte více sloves.'
+    en_hint: str = 'Use more verbs.'
 
     # MAYBE TODO: should we include punct here?
     metric_id: Literal['verb_dist'] = 'verb_dist'
@@ -486,6 +518,19 @@ class MetricActivity(Metric):
     Measures the activity of the text, i.e. the ratio of (#verbs)/(#verbs + #adjectives).
     """
 
+    cz_human_readable_name: str = 'Aktivita'
+    en_human_readable_name: str = 'Activity'
+    cz_doc: str = 'Míra aktivity textu (poměr sloves ku přídavným jménům a slovesům).'
+    en_doc: str = 'The degree of action of a text (ratio of verbs to adjectives and verbs).'
+    cz_hint: str = (
+        'Přídavná jména, která vyjadřují děj (např. "vyjadřující", "vyjadřovaný"), přepište do vět. '
+        + 'Vyvarujte se opisného trpného rodu.'
+    )
+    en_hint: str = (
+        'Rewrite adjectives expressing action (e.g. "vyjadřující", "vyjadřovaný") '
+        + 'into sentences ("který vyjadřuje"). Avoid passive voice.'
+    )
+
     metric_id: Literal['activity'] = 'activity'
 
     def apply(self, doc: Document) -> float:
@@ -505,10 +550,11 @@ class MetricHPoint(MetricPunctExcluding):
     where i the rank of the last word with its frequency greater than its rank,
     j is the rank of the following word, and fi, fj are frequencies of the words i and j.
     """
+
     cz_human_readable_name: str = 'h-point'
     en_human_readable_name: str = 'h-point'
-    cz_doc: str = 'h-point je těžké vysvětlit'
-    en_doc: str = 'h-pint is difficult to explain'
+    cz_doc: str = 'Postupný předěl mezi neplnovýznamovými a plnovýznamovými slovy, seřazenými sestupně podle frekvence.'
+    en_doc: str = 'A fuzzy boundary between function and content words, when sorted decreasingly by frequency.'
 
     metric_id: Literal['hpoint'] = 'hpoint'
     use_lemma: bool = Field(
@@ -535,6 +581,7 @@ class MetricAverageTokenLength(MetricPunctExcluding):
     """
     Measures the average length of tokens.
     """
+
     cz_human_readable_name: str = 'Průměrná délka tokenu'
     en_human_readable_name: str = 'Average token length'
     cz_doc: str = 'Průměrná dálka tokenu ve znacích.'
@@ -552,10 +599,11 @@ class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
     """
     Measures the difference between MATTR using word forms and MATTR using lemmas for the same window size.
     """
+
     cz_human_readable_name: str = 'Morfologická bohatost'
     en_human_readable_name: str = 'Morphological richness'
-    cz_doc: str = 'Měří rozdíl mezi klouzavým průměrem TTR na slovních tvarech a klouzavého průměru TTR na lemmatech.'
-    en_doc: str = 'Measures the difference between MATTR using word forms and MATTR using lemmas for the same window size.'
+    cz_doc: str = 'Rozdíl mezi klouzavým průměrem TTR na slovních tvarech a klouzavého průměru TTR na lemmatech.'
+    en_doc: str = 'Difference between MATTR using word forms and MATTR using lemmas for the same window size.'
 
     metric_id: Literal['mamr'] = 'mamr'
 
@@ -594,10 +642,17 @@ class MetricFleschReadingEase(MetricPunctExcluding):
     where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
     syllables
     """
+
     cz_human_readable_name: str = 'FRE'
     en_human_readable_name: str = 'FRE'
-    cz_doc: str = 'Fleshova snadnost čtení. Měří náročnost přečtení a pochopení textu na škále od 0 do 100, kde 100 je nejjednodušší a 0 je nejtěžší.'
-    en_doc: str = 'Flesch reading ease index. Measures the difficulty of reading and comprehending the test on a scale from 0 to 100.'
+    cz_doc: str = (
+        'Fleshova snadnost čtení. Měří náročnost přečtení a pochopení textu na škále od 0 do 100, kde 100 je nejjednodušší a 0 je nejtěžší.'
+    )
+    en_doc: str = (
+        'Flesch reading ease index. Measures the difficulty of reading and comprehending the test on a scale from 0 to 100.'
+    )
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
+    en_hint: str = 'Use fewer long words, and shorter sentences.'
 
     metric_id: Literal['fre'] = 'fre'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -624,10 +679,17 @@ class MetricFleschKincaidGradeLevel(MetricPunctExcluding):
     where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
     syllables
     """
+
     cz_human_readable_name: str = 'FKGL'
     en_human_readable_name: str = 'FKGL'
-    cz_doc: str = 'Fleshova-Kincaidova stupnice vzdělání. Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
-    en_doc: str = 'Flesch-Kincaid grade level index. Measures readability in years of education necessary for successful understanding.'
+    cz_doc: str = (
+        'Fleshova-Kincaidova stupnice vzdělání. Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
+    )
+    en_doc: str = (
+        'Flesch-Kincaid grade level index. Measures readability in years of education necessary for successful understanding.'
+    )
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
 
     metric_id: Literal['fkgl'] = 'fkgl'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -647,6 +709,7 @@ class PolysyllabicMetric(MetricPunctExcluding):
     """
     A base class for metrics utilizing a threshold of syllabic length.
     """
+
     syllab_threshold: int = 3
 
     def _is_word_complex(self, word: str):
@@ -664,11 +727,13 @@ class MetricGunningFog(PolysyllabicMetric):
     where words is the number of words in the text, sents is the number of sentences and complex_words is the number of
     words longer than the syllabic threshold.
     """
+
     cz_human_readable_name: str = 'Gunningův FOG index'
     en_human_readable_name: str = 'Gunning FOG index'
     cz_doc: str = 'Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
-
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
 
     metric_id: Literal['gf'] = 'gf'
 
@@ -696,10 +761,13 @@ class MetricSMOG(PolysyllabicMetric):
 
     The formula for this metric is modified, as the original relied on random sampling from the text.
     """
+
     cz_human_readable_name: str = 'SMOG index'
     en_human_readable_name: str = 'SMOG index'
     cz_doc: str = 'Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
 
     metric_id: Literal['smog'] = 'smog'
     coef_1: float = 1.043
