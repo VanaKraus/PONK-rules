@@ -208,6 +208,8 @@ class RuleMultiPartVerbs(StructuralRule):
             k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'
         }:
             parent = node.parent
+            if 'VerbForm' not in parent.feats:
+                return
 
             # find remaining auxiliaries
             auxiliaries = {node}
