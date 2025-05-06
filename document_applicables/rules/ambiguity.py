@@ -271,6 +271,7 @@ class RuleGPcoordovs(AmbiguityRule):
                     and 'Rel' not in next.feats['PronType'].split(',')
                 ):
                     self.annotate_node('same_case', previous, next)
+                    self.advance_application_id()
 
 
 class RuleGPdeverbaddr(AmbiguityRule):
@@ -426,6 +427,8 @@ class RuleGPdeverbsubj(AmbiguityRule):
         'A noun could be interpreted both as nominative or as instrumental and can thus depend on different words. '
         + 'Cf. Ceháková & Chromý (2023).'
     )
+    cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
+    en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
     cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
     en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
 
