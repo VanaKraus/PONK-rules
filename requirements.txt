@@ -8,3 +8,4 @@ nltk==3.8.1 # TODO: remove unneeded dependencies
 fastapi==0.110.0
 uvicorn==0.29.0
 python-multipart==0.0.9 # TODO: check if required
+pandas==2.2.3

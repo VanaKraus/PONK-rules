@@ -8,6 +8,7 @@ from math import log2, sqrt
 from statistics import mean, stdev
 
 from document_applicables import Documentable
+from document_applicables import intervals as intervs
 import document_applicables.rules.util as rutil
 
 from pydantic import BaseModel, Field
@@ -20,6 +21,9 @@ class Metric(Documentable):
 
     def apply(self, doc: Document) -> float:
         raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
+
+    def id(self) -> str:
+        return self.metric_id
 
     @staticmethod
     def get_word_counts(nodes: List[Node], use_lemma=False, from_to: Tuple[int, int] | None = None) -> dict[str, int]:
@@ -270,6 +274,7 @@ class MetricCLI(MetricPunctExcluding):
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
     en_hint: str = 'Use fewer long words, and shorter sentences.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('cli')
 
     metric_id: Literal['cli'] = 'cli'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -307,6 +312,7 @@ class MetricARI(MetricPunctExcluding):
     )
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
     en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('ari')
 
     metric_id: Literal['ari'] = 'ari'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -375,6 +381,7 @@ class MetricMovingAverageEntropy(MetricMovingAverageBase):
     en_doc: str = 'Measures the moving average of the text\'s entropy, considering either lemmas or word forms.'
     cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
     en_hint: str = 'Use less synonyms, if possible.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('maentropy')
 
     metric_id: Literal['maentropy'] = 'maentropy'
     use_lemma: bool = Field(
@@ -441,6 +448,7 @@ class MetricMovingAverageTTR(MetricMovingAverageBase):
     en_doc: str = 'Moving average of type-token ratio. Measures the ratio of types (lemmas) to tokens.'
     cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
     en_hint: str = 'Use less synonyms, if possible.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('mattr')
 
     metric_id: Literal['mattr'] = 'mattr'
     use_lemma: bool = Field(
@@ -491,6 +499,7 @@ class MetricVerbDistance(Metric):
     en_doc: str = 'Measures the average distance between verbs.'
     cz_hint: str = 'Používejte více sloves.'
     en_hint: str = 'Use more verbs.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('verb_dist')
 
     # MAYBE TODO: should we include punct here?
     metric_id: Literal['verb_dist'] = 'verb_dist'
@@ -530,6 +539,7 @@ class MetricActivity(Metric):
         'Rewrite adjectives expressing action (e.g. "vyjadřující", "vyjadřovaný") '
         + 'into sentences ("který vyjadřuje"). Avoid passive voice.'
     )
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('activity')
 
     metric_id: Literal['activity'] = 'activity'
 
@@ -653,6 +663,7 @@ class MetricFleschReadingEase(MetricPunctExcluding):
     )
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
     en_hint: str = 'Use fewer long words, and shorter sentences.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('fre')
 
     metric_id: Literal['fre'] = 'fre'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -683,13 +694,14 @@ class MetricFleschKincaidGradeLevel(MetricPunctExcluding):
     cz_human_readable_name: str = 'FKGL'
     en_human_readable_name: str = 'FKGL'
     cz_doc: str = (
-        'Fleshova-Kincaidova stupnice vzdělání. Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
+        'Fleshova-Kincaidova stupnice vzdělání. Měří čitelnost textu v letech vzdělání nutných k pochopení textu.'
     )
     en_doc: str = (
         'Flesch-Kincaid grade level index. Measures readability in years of education necessary for successful understanding.'
     )
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
     en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('fkgl')
 
     metric_id: Literal['fkgl'] = 'fkgl'
     count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
@@ -730,10 +742,11 @@ class MetricGunningFog(PolysyllabicMetric):
 
     cz_human_readable_name: str = 'Gunningův FOG index'
     en_human_readable_name: str = 'Gunning FOG index'
-    cz_doc: str = 'Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
+    cz_doc: str = 'Měří čitelnost textu v letech vzdělání nutných k pochopení textu.'
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
     en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('gf')
 
     metric_id: Literal['gf'] = 'gf'
 
@@ -764,10 +777,11 @@ class MetricSMOG(PolysyllabicMetric):
 
     cz_human_readable_name: str = 'SMOG index'
     en_human_readable_name: str = 'SMOG index'
-    cz_doc: str = 'Měří čitelnost text v letech vzdělání nutných k pochopení textu.'
+    cz_doc: str = 'Měří čitelnost textu v letech vzdělání nutných k pochopení textu.'
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
     en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('smog')
 
     metric_id: Literal['smog'] = 'smog'
     coef_1: float = 1.043
