@@ -76,10 +76,7 @@ def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
         metrics = [metric() for metric in Metric.get_final_children()]
     if rules is None:
         rules = [rule() for rule in Rule.get_final_children()]
-    return (
-        sorted(metrics, key=lambda x: x.metric_id),
-        sorted(rules, key=lambda x: x.rule_id),
-    )
+    return (metrics, rules)
 
 
 def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None) -> list[Metric]:

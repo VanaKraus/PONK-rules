@@ -1,4 +1,4 @@
-from document_applicables.rules import Rule
+from document_applicables.rules import Rule, PostProcessRule
 from document_applicables.metrics import Metric
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
@@ -137,7 +137,7 @@ def get_noninstitutional_rules() -> list[Rule]:
 
 
 def get_noninstitutional_metrics() -> list[Metric]:
-    raise NotImplementedError()
+    return [NotImplementedError()]
 
 
 def set_rules_verbose(rules: list[Rule]) -> list[Rule]:
@@ -146,9 +146,32 @@ def set_rules_verbose(rules: list[Rule]) -> list[Rule]:
     return rules
 
 
+def set_rules_corrective(rules: list[Rule]) -> list[Rule]:
+    for rule in rules:
+        if isinstance(rule, PostProcessRule):
+            rules.remove(rule)
+        elif isinstance(rule, RuleTooLongExpressions):
+            rule.detect_only = False
+
+    rules += [PostProcessRule()]
+
+    return rules
+
+
 profiles = {
     'default': (None, None),
-    'noninstitutional': (get_noninstitutional_metrics(), get_noninstitutional_rules()),
+    'default_corrective': (
+        None,
+        set_rules_corrective([rule() for rule in Rule.get_final_children()]),
+    ),
+    'noninstitutional': (
+        get_noninstitutional_metrics(),
+        get_noninstitutional_rules(),
+    ),
+    'noninstitutional_corrective': (
+        get_noninstitutional_metrics(),
+        set_rules_corrective(get_noninstitutional_rules()),
+    ),
     'minimal': (
         None,  # default metrics
         get_minimal_rules(),

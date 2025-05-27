@@ -306,6 +306,16 @@ class RuleTooLongExpressions(PhrasesRule):
             case 'důsledek':
                 if (adp := node.parent).lemma == 'v' and adp.parent and (pron := adp.parent).upos in ('PRON', 'DET'):
                     self.annotate_node('v_důsledku_toho', node, adp, pron)
+
+                    if not self.detect_only:
+                        correction = pron.parent.create_child(
+                            form='proto', lemma='proto', upos='CCONJ', xpos='J^-------------', deprel='cc'
+                        )
+                        correction.shift_after_subtree(pron)
+
+                        self.annotate_action('add', correction)
+                        self.annotate_action('remove', *pron.descendants(add_self=True))
+
                     self.advance_application_id()
 
             # v případě, že
@@ -316,17 +326,52 @@ class RuleTooLongExpressions(PhrasesRule):
                     and (adp := [c for c in noun.children if c.lemma == 'v'])
                 ):
                     self.annotate_node('v_případě_že', node, noun, *adp)
+
+                    if not self.detect_only:
+                        correction = node.parent.create_child(
+                            form='pokud', lemma='pokud', upos='SCONJ', xpos='J,-------------', deprel='mark'
+                        )
+                        correction.shift_after_subtree(node)
+                        self.annotate_action('add', correction)
+
+                        self.annotate_action('remove', node, noun, *adp)
+                        for n in node.parent.children:
+                            if n.ord == node.ord - 1 and n.form == ',':
+                                self.annotate_action('remove', n)
+
                     self.advance_application_id()
+
             # týkající se
             case 'týkající':
                 if expl := [c for c in node.children if c.deprel == 'expl:pv']:
                     self.annotate_node('týkající_se', node, *expl)
+
+                    if not self.detect_only:
+                        obl_arg = [n for n in node.children if n.deprel == 'obl:arg'][0]
+                        correction = obl_arg.create_child(
+                            form='o', lemma='o', upos='ADP', xpos='RR--6----------', deprel='case'
+                        )
+                        correction.shift_before_subtree(obl_arg)
+
+                        self.annotate_action('remove', node, *expl)
+                        self.annotate_action('add', correction)
+
                     self.advance_application_id()
 
             # za účelem
             case 'účel':
                 if (adp := node.parent).lemma == 'za':
                     self.annotate_node('za_účelem', node, adp)
+
+                    if not self.detect_only:
+                        correction = adp.parent.create_child(
+                            form='kvůli', lemma='kvůli', upos='ADP', xpos='RR--3----------', deprel='case'
+                        )
+                        correction.shift_after_subtree(adp)
+
+                        self.annotate_action('remove', node, adp)
+                        self.annotate_action('add', correction)
+
                     self.advance_application_id()
 
             # jste oprávněn
