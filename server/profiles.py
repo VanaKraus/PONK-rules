@@ -92,37 +92,41 @@ def get_minimal_rules() -> list[Rule]:
 def get_noninstitutional_rules() -> list[Rule]:
     return [
         RulePassive(),
-        RulePredSubjDistance(max_distance=5),
+        RulePredSubjDistance(
+            max_distance=5,  # effect size < 0.06
+        ),
         RulePredObjDistance(max_distance=4),
         RuleMultiPartVerbs(max_distance=4),
         RuleLongSentences(max_length=22),
-        RulePredAtClauseBeginning(max_order=4),
+        RulePredAtClauseBeginning(
+            max_order=4,  # effect size < 0.06
+        ),
         RuleVerbalNouns(),
         RuleTooFewVerbs(min_verb_frac=0.169),
         RuleTooManyNegations(
             max_allowable_negations=2,
-            max_negation_frac=0.215,  # measurable effect counter-intuitive
+            max_negation_frac=0.168,  # measurable effect counter-intuitive
         ),
         RuleWeakMeaningWords(),
-        RuleAbstractNouns(),
+        RuleAbstractNouns(),  # effect size < 0.06
         RuleRelativisticExpressions(),
-        RuleConfirmationExpressions(),
+        RuleConfirmationExpressions(),  # effect size < 0.06
         RuleRedundantExpressions(),
         RuleTooLongExpressions(),
-        RuleAnaphoricReferences(),
+        RuleAnaphoricReferences(),  # effect size < 0.06
         RuleTooManyNominalConstructions(max_allowable_nouns=5, max_noun_frac=0.728),
         RuleCaseRepetition(max_repetition_count=3),
-        RuleGPcoordovs(),
-        RuleGPdeverbaddr(),
         RuleGPpatinstr(),
-        RuleGPdeverbsubj(),
-        RuleGPadjective(),
-        RuleGPpatbenperson(),
-        RuleGPwordorder(),
-        RuleReflexivePassWithAnimSubj(),
+        RuleReflexivePassWithAnimSubj(),  # effect size < 0.06
         RuleLiteraryStyle(),
+        # RuleGPcoordovs(), # effect size < 0.06
+        # RuleGPdeverbaddr(), # no good/bad interval border difference
+        # RuleGPdeverbsubj(), # no good/bad interval border difference
+        # RuleGPadjective(), # effect size < 0.06
+        # RuleGPpatbenperson(), # effect size < 0.06
+        # RuleGPwordorder(), # effect size < 0.06
         # RuleDoubleAdpos(max_allowable_distance=0), # counter-intuitive measurable effect
-        # RuleInfVerbDistance(max_distance=0), # counter-intuitive measurable effect
+        # RuleInfVerbDistance(max_distance=0), # counter-intuitive measurable effect # effect size < 0.06
         # RuleAmbiguousRegards(), # unreliable
         # RuleDoubleComparison(), # unreliable + acceptability
         # RuleWrongValencyCase(), # unreliable + acceptability
