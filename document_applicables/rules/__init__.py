@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from numbers import Number
 
-from typing import Any
+from typing import Any, Literal
 import os
 
 import sys
@@ -65,6 +65,11 @@ class Rule(Documentable):
             key += f":{flag}"
         super().annotate_node(key, annotation, *node)
 
+    def annotate_action(self, action: Literal['remove', 'add'], *node: Node):
+        if action not in ['remove', 'add']:
+            raise ValueError(f'action required to be "remove" or "add"; "{action}" supplied')
+        self.annotate_node(action, *node, flag='action')
+
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (
             (self.average_measured_values.get(m_name) or 0) * self.application_count + m_value
@@ -96,6 +101,16 @@ class Rule(Documentable):
 
     def process_node(self, node: Node):
         raise NotImplementedError('A rule is expected to have a \'process_node\' method.')
+
+
+class PostProcessRule(Rule):
+    rule_id: Literal['_PostProcessRule'] = '_PostProcessRule'
+    cz_doc: str = 'Dokument upraven'
+    en_doc: str = 'Document amended'
+
+    def process_node(self, node):
+        if node.udeprel == 'root':
+            node.root.text = node.root.compute_text()
 
 
 class RuleBlockWrapper(Block):

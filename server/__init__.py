@@ -96,7 +96,7 @@ def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | d
             "cz_participants": rule.cz_paricipants,
             "en_participants": rule.en_paricipants,
         }
-        for ord, rule in enumerate(rule_list)
+        for ord, rule in enumerate(sorted(rule_list, key=lambda x: x.rule_id))
         if rule.application_count != 0
     }
 
