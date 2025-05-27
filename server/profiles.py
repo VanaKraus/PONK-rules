@@ -1,5 +1,5 @@
 from document_applicables.rules import Rule
-from document_applicables.metrics import Metric
+from document_applicables.metrics import Metric, MetricActivity, MetricARI, MetricVerbDistance, MetricMovingAverageTTR
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
@@ -133,7 +133,12 @@ def get_noninstitutional_rules() -> list[Rule]:
 
 
 def get_noninstitutional_metrics() -> list[Metric]:
-    raise NotImplementedError()
+    return [
+        MetricActivity(),
+        MetricARI(),
+        MetricVerbDistance(),
+        MetricMovingAverageTTR(),
+    ]
 
 
 def set_rules_verbose(rules: list[Rule]) -> list[Rule]:
