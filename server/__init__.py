@@ -113,7 +113,7 @@ def make_metric_info(metric_list: list[Metric]) -> dict[str, dict[str, str | dic
             "en_hint": metric.en_hint if 'en_hint' in metric.__dir__() else None,
             'intrevals': metric.intervals if 'intervals' in metric.__dir__() else None,
         }
-        for ord, metric in enumerate(metric_list)
+        for ord, metric in enumerate(sorted(metric_list, key=lambda x: x.metric_id))
     }
 
 
