@@ -632,8 +632,41 @@ class RuleLiteraryStyle(PhrasesRule):
         # some subordinate conjunctions
         elif node.lemma in ('jestliže', 'pakliže', 'li') and node.upos == 'SCONJ':
             self.annotate_node('conditional_conjunction', node)
+
+            if not self.detect_only:
+                correction = node.parent.create_child(
+                    form='pokud', lemma='pokud', upos=node.upos, xpos=node.xpos, deprel=node.deprel
+                )
+
+                self.annotate_action('add', correction)
+                self.annotate_action('remove', node)
+
+                match node.lemma:
+                    case 'li':
+                        clause = util.get_clause(node.parent)
+                        if clause[0].upos == 'PUNCT':
+                            correction.shift_after_subtree(clause[0])
+                        else:
+                            correction.shift_before_subtree(clause[0])
+
+                        for n in node.parent.children:
+                            if n.lemma == '-':
+                                self.annotate_action('remove', n)
+                    case _:
+                        correction.shift_after_subtree(node)
+
             self.advance_application_id()
 
         elif node.lemma in ('poněvadž', 'jelikož') and node.upos == 'SCONJ':
             self.annotate_node('causal_conjunction', node)
+
+            if not self.detect_only:
+                correction = node.parent.create_child(
+                    form='protože', lemma='protože', upos=node.upos, xpos=node.xpos, deprel=node.deprel
+                )
+                correction.shift_after_subtree(node)
+
+                self.annotate_action('remove', node)
+                self.annotate_action('add', correction)
+
             self.advance_application_id()
