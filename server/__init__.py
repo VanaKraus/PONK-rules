@@ -58,7 +58,7 @@ class MainReply(BaseModel):
                     "en_doc": "Measures readability in years of education necessary for successful understanding.",
                     "en_hint": "Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.",
                     "en_name": "SMOG index",
-                    "intrevals": {
+                    "intervals": {
                         "bad": [13.62265750478578, None],
                         "good": [None, 12.320016079839352],
                         "medium": [12.320016079839352, 13.62265750478578],
@@ -74,7 +74,7 @@ class MainReply(BaseModel):
                     "en_doc": "The count of words in the text.",
                     "en_hint": None,
                     "en_name": "Word Count",
-                    "intrevals": None,
+                    "intervals": None,
                     "order": 21,
                 }
             },
@@ -111,7 +111,7 @@ def make_metric_info(metric_list: list[Metric]) -> dict[str, dict[str, str | dic
             "en_doc": metric.en_doc,
             "cz_hint": metric.cz_hint if 'cz_hint' in metric.__dir__() else None,
             "en_hint": metric.en_hint if 'en_hint' in metric.__dir__() else None,
-            'intrevals': metric.intervals if 'intervals' in metric.__dir__() else None,
+            'intervals': metric.intervals if 'intervals' in metric.__dir__() else None,
         }
         for ord, metric in enumerate(sorted(metric_list, key=lambda x: x.metric_id))
     }
