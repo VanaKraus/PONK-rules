@@ -163,26 +163,32 @@ def set_rules_corrective(rules: list[Rule]) -> list[Rule]:
     return rules
 
 
-profiles = {
-    'default': (None, None),
-    'default_corrective': (
-        None,
-        set_rules_corrective([rule() for rule in Rule.get_final_children()]),
-    ),
-    'noninstitutional': (
-        get_noninstitutional_metrics(),
-        get_noninstitutional_rules(),
-    ),
-    'noninstitutional_corrective': (
-        get_noninstitutional_metrics(),
-        set_rules_corrective(get_noninstitutional_rules()),
-    ),
-    'minimal': (
-        None,  # default metrics
-        get_minimal_rules(),
-    ),
-    'minimal_verbose': (
-        None,  # default metrics
-        set_rules_verbose(get_minimal_rules()),
-    ),
-}
+def get(profile: str) -> tuple[list[Metric], list[Rule]]:
+    match profile:
+        case 'default_corrective':
+            return (
+                None,
+                set_rules_corrective([rule() for rule in Rule.get_final_children()]),
+            )
+        case 'noninstitutional':
+            return (
+                get_noninstitutional_metrics(),
+                get_noninstitutional_rules(),
+            )
+        case 'noninstitutional_corrective':
+            return (
+                get_noninstitutional_metrics(),
+                set_rules_corrective(get_noninstitutional_rules()),
+            )
+        case 'minimal':
+            return (
+                None,  # default metrics
+                get_minimal_rules(),
+            )
+        case 'minimal_verbose':
+            return (
+                None,  # default metrics
+                set_rules_verbose(get_minimal_rules()),
+            )
+        case _:
+            return (None, None)
