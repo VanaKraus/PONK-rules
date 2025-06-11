@@ -66,10 +66,10 @@ class Rule(Documentable):
             key += f":{flag}"
         super().annotate_node(key, annotation, *node)
 
-    def annotate_action(self, action: Literal['remove', 'add'], *node: Node):
-        if action not in ['remove', 'add']:
+    def annotate_action(self, action: Literal['remove', 'rebind'], *node: Node, value: str = '_'):
+        if action not in ['remove', 'rebind']:
             raise ValueError(f'action required to be "remove" or "add"; "{action}" supplied')
-        self.annotate_node(action, *node, flag='action')
+        self.annotate_node(value, *node, flag=action)
 
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (

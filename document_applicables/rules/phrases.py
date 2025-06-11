@@ -342,12 +342,13 @@ class RuleTooLongExpressions(PhrasesRule):
                             xpos='J,-------------',
                             deprel='mark',
                         )
-                        self.add_node(correction, node.root, min(a.ord for a in adp) - 1, node.parent.ord)
+                        self.add_node(correction, node.root, node.ord - 1, node.parent.ord)
 
                         self.annotate_action('remove', node, noun, *adp)
-                        for n in node.parent.children:
-                            if n.ord == node.ord - 1 and n.form == ',':
-                                self.annotate_action('remove', n)
+                        # for n in node.parent.children:
+                        #     if n.ord == node.ord - 1 and n.form == ',':
+                        #         self.annotate_action('remove', n)
+                        self.annotate_action('rebind', node.parent, value=noun.parent.ord)
 
                     self.advance_application_id()
 
