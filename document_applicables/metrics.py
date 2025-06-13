@@ -183,7 +183,7 @@ class MetricSentenceCount(Metric):
     """
 
     cz_human_readable_name: str = 'Počet vět'
-    en_human_readable_name: str = 'Sentence Count'
+    en_human_readable_name: str = 'Sentence count'
     cz_doc: str = 'Počet vět v textu.'
     en_doc: str = 'The count of sentences in the text.'
 
@@ -199,7 +199,7 @@ class MetricWordCount(MetricPunctExcluding):
     """
 
     cz_human_readable_name: str = 'Počet slov'
-    en_human_readable_name: str = 'Word Count'
+    en_human_readable_name: str = 'Word count'
     cz_doc: str = 'Počet slov v textu.'
     en_doc: str = 'The count of words in the text.'
 
@@ -215,7 +215,7 @@ class MetricSyllableCount(MetricPunctExcluding):
     """
 
     cz_human_readable_name: str = 'Počet slabik'
-    en_human_readable_name: str = 'Syllable Count'
+    en_human_readable_name: str = 'Syllable count'
     cz_doc: str = 'Počet slabik v textu.'
     en_doc: str = 'The count of syllables in the text.'
 
@@ -231,7 +231,7 @@ class MetricCharacterCount(MetricPunctExcluding):
     """
 
     cz_human_readable_name: str = 'Počet znaků'
-    en_human_readable_name: str = 'Character Count'
+    en_human_readable_name: str = 'Character count'
     cz_doc: str = 'Počet znaků v textu.'
     en_doc: str = 'The count of characters in the text.'
 
@@ -268,8 +268,8 @@ class MetricCLI(MetricPunctExcluding):
     sents is the number of sentences.
     """
 
-    cz_human_readable_name: str = 'Coleman-Liau index'
-    en_human_readable_name: str = 'Coleman-Liau Index'
+    cz_human_readable_name: str = 'CLI'
+    en_human_readable_name: str = 'CLI'
     cz_doc: str = 'Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
     en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
@@ -335,7 +335,7 @@ class MetricHapaxCount(MetricPunctExcluding):
     """
 
     cz_human_readable_name: str = 'Počet hapaxů'
-    en_human_readable_name: str = 'Hapax Count'
+    en_human_readable_name: str = 'Hapax count'
     cz_doc: str = 'Počet slov, která se v textu vyskytují pouze jednou.'
     en_doc: str = 'The count of words that appear in the text only once.'
 
@@ -685,7 +685,7 @@ class MetricFleschKincaidGradeLevel(MetricPunctExcluding):
 
     The index is calculated according to this formula:
 
-    coef_1 * (words / sents) + coef_2 * (syllabs / words) - const_1
+    coef_1 * (words / se'nts) + coef_2 * (syllabs / words) - const_1
 
     where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
     syllables
