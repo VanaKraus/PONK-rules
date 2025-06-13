@@ -101,8 +101,8 @@ def get_noninstitutional_rules() -> list[Rule]:
         RulePredAtClauseBeginning(
             max_order=4,  # effect size < 0.06
         ),
-        RuleVerbalNouns(),
-        RuleTooFewVerbs(min_verb_frac=0.169),
+        # RuleTooFewVerbs(min_verb_frac=0.169),
+        RuleTooFewVerbs(min_verb_frac=0.06),  # default value
         RuleTooManyNegations(
             max_allowable_negations=2,
             max_negation_frac=0.168,  # measurable effect counter-intuitive
@@ -117,8 +117,8 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleTooManyNominalConstructions(max_allowable_nouns=5, max_noun_frac=0.728),
         RuleCaseRepetition(max_repetition_count=3),
         RuleGPpatinstr(),
-        RuleReflexivePassWithAnimSubj(),  # effect size < 0.06
         RuleLiteraryStyle(),
+        # RuleVerbalNouns(), # hard to interpret
         # RuleGPcoordovs(), # effect size < 0.06
         # RuleGPdeverbaddr(), # no good/bad interval border difference
         # RuleGPdeverbsubj(), # no good/bad interval border difference
@@ -133,6 +133,7 @@ def get_noninstitutional_rules() -> list[Rule]:
         # RuleWrongVerbonominalCase(), # unreliable + acceptability
         # RuleIncompleteConjunction(), # acceptability
         # RuleFunctionWordRepetition(), # unreliable
+        # RuleReflexivePassWithAnimSubj(),  # effect size < 0.06
     ]
 
 
