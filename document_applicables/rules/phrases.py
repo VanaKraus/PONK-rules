@@ -308,12 +308,18 @@ class RuleTooLongExpressions(PhrasesRule):
                     self.annotate_node('v_důsledku_toho', node, adp, pron)
 
                     if not self.detect_only:
-                        correction = pron.parent.create_child(
-                            form='proto', lemma='proto', upos='CCONJ', xpos='J^-------------', deprel='cc'
+                        correction = Node(
+                            root=pron.parent.ord,
+                            form='proto',
+                            lemma='proto',
+                            upos='CCONJ',
+                            xpos='J^-------------',
+                            deprel='cc',
                         )
-                        correction.shift_after_subtree(pron)
+                        self.add_node(
+                            correction, node.root, pron.descendants(add_self=True)[0].ord - 1, pron.parent.ord
+                        )
 
-                        self.annotate_action('add', correction)
                         self.annotate_action('remove', *pron.descendants(add_self=True))
 
                     self.advance_application_id()
@@ -328,16 +334,21 @@ class RuleTooLongExpressions(PhrasesRule):
                     self.annotate_node('v_případě_že', node, noun, *adp)
 
                     if not self.detect_only:
-                        correction = node.parent.create_child(
-                            form='pokud', lemma='pokud', upos='SCONJ', xpos='J,-------------', deprel='mark'
+                        correction = Node(
+                            root=node.parent.ord,
+                            form='pokud',
+                            lemma='pokud',
+                            upos='SCONJ',
+                            xpos='J,-------------',
+                            deprel='mark',
                         )
-                        correction.shift_after_subtree(node)
-                        self.annotate_action('add', correction)
+                        self.add_node(correction, node.root, node.ord - 1, node.parent.ord)
 
                         self.annotate_action('remove', node, noun, *adp)
-                        for n in node.parent.children:
-                            if n.ord == node.ord - 1 and n.form == ',':
-                                self.annotate_action('remove', n)
+                        # for n in node.parent.children:
+                        #     if n.ord == node.ord - 1 and n.form == ',':
+                        #         self.annotate_action('remove', n)
+                        self.annotate_action('rebind', node.parent, value=noun.parent.ord)
 
                     self.advance_application_id()
 
@@ -346,15 +357,17 @@ class RuleTooLongExpressions(PhrasesRule):
                 if expl := [c for c in node.children if c.deprel == 'expl:pv']:
                     self.annotate_node('týkající_se', node, *expl)
 
-                    if not self.detect_only:
-                        obl_arg = [n for n in node.children if n.deprel == 'obl:arg'][0]
-                        correction = obl_arg.create_child(
-                            form='o', lemma='o', upos='ADP', xpos='RR--6----------', deprel='case'
-                        )
-                        correction.shift_before_subtree(obl_arg)
+                    # if not self.detect_only:
+                    #     raise NotImplementedError('1. do not modify syntax directly\n2. fix case morphology')
 
-                        self.annotate_action('remove', node, *expl)
-                        self.annotate_action('add', correction)
+                    #     obl_arg = [n for n in node.children if n.deprel == 'obl:arg'][0]
+                    #     correction = obl_arg.create_child(
+                    #         form='o', lemma='o', upos='ADP', xpos='RR--6----------', deprel='case'
+                    #     )
+                    #     correction.shift_before_subtree(obl_arg)
+
+                    #     self.annotate_action('remove', node, *expl)
+                    #     self.annotate_action('add', correction)
 
                     self.advance_application_id()
 
@@ -363,14 +376,15 @@ class RuleTooLongExpressions(PhrasesRule):
                 if (adp := node.parent).lemma == 'za':
                     self.annotate_node('za_účelem', node, adp)
 
-                    if not self.detect_only:
-                        correction = adp.parent.create_child(
-                            form='kvůli', lemma='kvůli', upos='ADP', xpos='RR--3----------', deprel='case'
-                        )
-                        correction.shift_after_subtree(adp)
+                    # if not self.detect_only:
+                    #     raise NotImplementedError('1. do not modify syntax directly\n2. fix case morphology')
+                    #     correction = adp.parent.create_child(
+                    #         form='kvůli', lemma='kvůli', upos='ADP', xpos='RR--3----------', deprel='case'
+                    #     )
+                    #     correction.shift_after_subtree(adp)
 
-                        self.annotate_action('remove', node, adp)
-                        self.annotate_action('add', correction)
+                    #     self.annotate_action('remove', node, adp)
+                    #     self.annotate_action('add', correction)
 
                     self.advance_application_id()
 
@@ -633,27 +647,18 @@ class RuleLiteraryStyle(PhrasesRule):
         elif node.lemma in ('jestliže', 'pakliže', 'li') and node.upos == 'SCONJ':
             self.annotate_node('conditional_conjunction', node)
 
-            if not self.detect_only:
-                correction = node.parent.create_child(
-                    form='pokud', lemma='pokud', upos=node.upos, xpos=node.xpos, deprel=node.deprel
+            if not self.detect_only and node.lemma in ('jestliže', 'pakliže'):
+                correction = Node(
+                    root=node.parent.ord,
+                    form='pokud',
+                    lemma='pokud',
+                    upos=node.upos,
+                    xpos=node.xpos,
+                    deprel=node.deprel,
                 )
+                self.add_node(correction, node.root, node.ord - 1, node.parent.ord)
 
-                self.annotate_action('add', correction)
                 self.annotate_action('remove', node)
-
-                match node.lemma:
-                    case 'li':
-                        clause = util.get_clause(node.parent)
-                        if clause[0].upos == 'PUNCT':
-                            correction.shift_after_subtree(clause[0])
-                        else:
-                            correction.shift_before_subtree(clause[0])
-
-                        for n in node.parent.children:
-                            if n.lemma == '-':
-                                self.annotate_action('remove', n)
-                    case _:
-                        correction.shift_after_subtree(node)
 
             self.advance_application_id()
 
@@ -661,12 +666,16 @@ class RuleLiteraryStyle(PhrasesRule):
             self.annotate_node('causal_conjunction', node)
 
             if not self.detect_only:
-                correction = node.parent.create_child(
-                    form='protože', lemma='protože', upos=node.upos, xpos=node.xpos, deprel=node.deprel
+                correction = Node(
+                    root=node.parent.ord,
+                    form='protože',
+                    lemma='protože',
+                    upos=node.upos,
+                    xpos=node.xpos,
+                    deprel=node.deprel,
                 )
-                correction.shift_after_subtree(node)
+                self.add_node(correction, node.root, node.ord - 1, node.parent.ord)
 
                 self.annotate_action('remove', node)
-                self.annotate_action('add', correction)
 
             self.advance_application_id()

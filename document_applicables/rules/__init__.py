@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from numbers import Number
+import json
 
 from typing import Any, Literal
 import os
@@ -65,10 +66,10 @@ class Rule(Documentable):
             key += f":{flag}"
         super().annotate_node(key, annotation, *node)
 
-    def annotate_action(self, action: Literal['remove', 'add'], *node: Node):
-        if action not in ['remove', 'add']:
+    def annotate_action(self, action: Literal['remove', 'rebind'], *node: Node, value: str = '_'):
+        if action not in ['remove', 'rebind']:
             raise ValueError(f'action required to be "remove" or "add"; "{action}" supplied')
-        self.annotate_node(action, *node, flag='action')
+        self.annotate_node(value, *node, flag=action)
 
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (
@@ -89,6 +90,46 @@ class Rule(Documentable):
     def after_process_document(self, document):
         for root in self.modified_roots:
             root.text = root.compute_text()
+
+    def add_global_comment(self, value: str, *node: Node, key: str = None):
+        comment = RULE_ANNOTATION_PREFIX + (f':{key}' if key else '') + ' = ' + value
+
+        roots = list({n.root for n in node})
+        for r in roots:
+            r.add_comment(comment)
+
+    def add_node(self, new_node: Node, root: Node, add_after: str | int, parent: str | int) -> str:
+        """Add a comment describing the addition of a new node
+
+        Args:
+            new_node (Node): the node to be added
+            root (Node): root of the tree the new node belongs to
+            add_after (str | int): which node the new node should be shifted after;
+                node order expected when shifting after an existing node,
+                node ID expected when shifting after another newly added node
+            parent (str | int): which node should be the parent of the new node;
+                node order expected when expanding an existing node,
+                node ID expected when expanding another newly added node
+
+        Returns:
+            str: ID of the new node; an 8-character HEX key
+        """
+        node_id = f'new_{os.urandom(4).hex()}'
+
+        self.add_global_comment(
+            json.dumps(
+                {
+                    'id': node_id,
+                    'add_after': str(add_after),
+                    'parent': parent,
+                    'node': util.node_serializable(new_node),
+                }
+            ),
+            root,
+            key=f'{self.__class__.id()}:{self.process_id}:add',
+        )
+
+        return node_id
 
     def advance_application_id(self):
         self.process_id = self.get_application_id()

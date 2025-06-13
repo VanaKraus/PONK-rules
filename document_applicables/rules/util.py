@@ -40,6 +40,21 @@ def clone_node(
     return res
 
 
+def node_serializable(node: Node, **kwargs) -> dict[str, str]:
+    return {
+        'form': node.form,
+        'lemma': node.lemma,
+        'upos': node.upos,
+        'xpos': node.xpos,
+        'feats': str(node.feats),
+        'parent': node.parent,
+        'deprel': node.deprel,
+        'deps': str(node.deps),
+        'misc': str(node.misc),
+        **kwargs,
+    }
+
+
 def is_aux(node: Node, grammatical_only: bool = False) -> bool:
     if grammatical_only:
         return node.udeprel in ('aux', 'cop') or node.deprel == 'expl:pass'
