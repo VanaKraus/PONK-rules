@@ -204,7 +204,7 @@ class RuleMultiPartVerbs(StructuralRule):
 
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
-        if util.is_aux(node) and not {
+        if util.is_aux(node, grammatical_only=True) and not {
             k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'
         }:
             parent = node.parent
@@ -214,7 +214,7 @@ class RuleMultiPartVerbs(StructuralRule):
             # find remaining auxiliaries
             auxiliaries = {node}
             for child in parent.children:
-                if util.is_aux(child) and not child in auxiliaries:
+                if util.is_aux(child, grammatical_only=True) and not child in auxiliaries:
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
