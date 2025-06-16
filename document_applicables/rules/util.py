@@ -47,7 +47,7 @@ def node_serializable(node: Node, **kwargs) -> dict[str, str]:
         'upos': node.upos,
         'xpos': node.xpos,
         'feats': str(node.feats),
-        'parent': node.parent,
+        'parent': node.parent.ord if node.parent else None,
         'deprel': node.deprel,
         'deps': str(node.deps),
         'misc': str(node.misc),
