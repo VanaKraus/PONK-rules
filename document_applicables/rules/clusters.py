@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal
+import math
 
 from udapi.core.node import Node
 
@@ -217,7 +218,7 @@ class RuleCaseRepetition(ClusterRule):
     rule_id: Literal['RuleCaseRepetition'] = 'RuleCaseRepetition'
     include_adjectives: bool = True
     max_repetition_count: int = 4
-    max_repetition_frac: float = 0.7
+    max_repetition_frac: float = 0.8
 
     cz_human_readable_name: str = 'Opakování pádů'
     en_human_readable_name: str = 'Case repetition'
@@ -234,10 +235,23 @@ class RuleCaseRepetition(ClusterRule):
 
     def process_node(self, node: Node):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
-            descendants = node.root.descendants()
+            descendants = util.get_clause(node, without_punctuation=True)
+
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
             ]
+
+            # do not consider coordinations
+            min_conj_ord = math.inf
+            for n in following_nodes:
+                if n != node and n.deprel == 'conj':
+                    min_conj_ord = min(min_conj_ord, n.ord)
+
+                    for d in node.descendants(add_self=True):
+                        if d in following_nodes:
+                            following_nodes.remove(d)
+
+            following_nodes = [n for n in following_nodes if n.ord < min_conj_ord]
 
             while len(following_nodes) >= self.max_repetition_count:
                 ne_reg = util.NEregister(node)

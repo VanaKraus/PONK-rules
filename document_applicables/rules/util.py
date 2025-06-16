@@ -137,6 +137,17 @@ def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     return bool(n1_values.intersection(n2_values))
 
 
+def remove_punct_sym(nodes: list[Node]) -> list[Node]:
+    return [n for n in nodes if n.upos not in ('PUNCT', 'SYM')]
+
+
+def distance_from_list(nodes: list[Node], nodeA: Node, nodeB: Node) -> int:
+    indexA = nodes.index(nodeA)
+    indexB = nodes.index(nodeB)
+
+    return abs(indexB - indexA)
+
+
 class NEregister:
     '''Keeps track of named entities visited.'''
 
