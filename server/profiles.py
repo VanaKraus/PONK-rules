@@ -195,4 +195,5 @@ def get(profile: str) -> tuple[list[Metric], list[Rule]]:
                 set_rules_verbose(get_minimal_rules()),
             )
         case _:
+            print(f'Profile {profile} doesn\'t exist.')
             return (None, None)

@@ -69,7 +69,7 @@ from document_applicables.rules.structural import (
 def select_profile(profile_str: str) -> tuple[list[Metric], list[Rule]]:
     # return appropriate set of rules and metrics based on the profiles selected
     # for now, just return the defaults
-    print(f'Profile {profile_str} has been selected.')
+    print(f'Profile {profile_str} has been requested.')
     metrics, rules = profiles.get(profile_str) or (None, None)
     if metrics is None:
         # return all available metrics
