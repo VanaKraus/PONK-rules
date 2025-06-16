@@ -15,7 +15,7 @@ app = FastAPI(
 
 @app.get("/")
 def root():
-    return {"this is": "dog"}
+    return {"this is": "ponk-app1"}
 
 
 @app.get("/docs/foo", response_class=HTMLResponse, tags=['visual'])
