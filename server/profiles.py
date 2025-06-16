@@ -114,7 +114,10 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleRedundantExpressions(),
         RuleTooLongExpressions(),
         RuleAnaphoricReferences(),  # effect size < 0.06
-        RuleTooManyNominalConstructions(max_allowable_nouns=5, max_noun_frac=0.728),
+        RuleTooManyNominalConstructions(
+            max_allowable_nouns=5,
+            max_noun_frac=0.4,  # wouldn't catch anything with 0.728
+        ),
         RuleCaseRepetition(max_repetition_count=3),
         RuleLiteraryStyle(),
         # RuleVerbalNouns(), # hard to interpret
