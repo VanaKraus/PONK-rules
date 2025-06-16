@@ -93,7 +93,9 @@ class RulePredSubjDistance(StructuralRule):
                 else:
                     subj = clause[0]
 
-            if (max_dst := abs(subj.ord - pred.ord)) > self.max_distance:
+            if (
+                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), subj, pred)
+            ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
 
@@ -130,7 +132,9 @@ class RulePredObjDistance(StructuralRule):
         if node.deprel in ('obj', 'iobj'):
             parent = node.parent
 
-            if (max_dst := abs(parent.ord - node.ord)) > self.max_distance:
+            if (
+                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), node, parent)
+            ) > self.max_distance:
                 self.annotate_node('object', node)
                 self.annotate_node('parent', parent)
 
@@ -169,7 +173,9 @@ class RuleInfVerbDistance(StructuralRule):
             and node.upos != 'AUX'
         ):
 
-            if (max_dst := abs(verb.ord - infinitive.ord)) > self.max_distance:
+            if (
+                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), verb, infinitive)
+            ) > self.max_distance:
                 self.annotate_node('infinitive', infinitive)
                 self.annotate_node('verb', verb)
 
@@ -218,10 +224,12 @@ class RuleMultiPartVerbs(StructuralRule):
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
+            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+
             too_far_apart = False
             max_dst = 0
             for aux in auxiliaries:
-                dst = abs(parent.ord - aux.ord)
+                dst = util.distance_from_list(sentence_wo_punct_sym, parent, aux)
                 max_dst = max(max_dst, dst)
                 too_far_apart |= dst > self.max_distance
 
@@ -267,10 +275,9 @@ class RuleLongSentences(StructuralRule):
             if not descendants:
                 return
 
-            # len(descendants) always >= 1 when add_self == True
-            beginning, end = descendants[0], descendants[-1]
+            words_and_numerals = util.remove_punct_sym(descendants)
 
-            if (max_length := end.ord - beginning.ord) >= self.max_length:
+            if (max_length := len(words_and_numerals)) > self.max_length:
                 self.annotate_node('long_sentence', *descendants)
 
                 self.annotate_measurement('max_length', max_length, *descendants)
@@ -322,8 +329,12 @@ class RulePredAtClauseBeginning(StructuralRule):
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
+            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
-            if (max_ord := first_predicate_token.ord - clause_beginning.ord + 1) > self.max_order:
+            if (
+                max_ord := util.distance_from_list(sentence_wo_punct_sym, first_predicate_token, clause_beginning) + 1
+            ) > self.max_order:
                 self.annotate_node('predicate', *predicate_tokens)
 
                 self.annotate_measurement('max_order', max_ord, *predicate_tokens)
