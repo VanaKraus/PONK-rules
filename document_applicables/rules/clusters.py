@@ -164,20 +164,30 @@ class RuleTooManyNominalConstructions(ClusterRule):
     def process_node(self, node: Node):
         if util.is_clause_root(node):
             clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+            clause_tmp = clause.copy()
 
-            nouns = [n for n in clause if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n))]
+            # separate into subclauses if an embedded clause is present
+            subclauses = []
+            for i, n in enumerate(clause[:-1]):
+                if clause[i + 1].ord - n.ord > 3:
+                    subclauses.append(clause[clause.index(clause_tmp[0]) : i + 1])
+                    clause_tmp = clause[i + 1 :]
+            subclauses.append(clause_tmp)
 
-            if (l := len(nouns)) > self.max_allowable_nouns and (
-                noun_frac := float(l) / len(clause)
-            ) > self.max_noun_frac:
+            for subclause in subclauses:
+                nouns = [n for n in subclause if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n))]
 
-                self.annotate_parameter('max_noun_frac', self.max_noun_frac, *nouns)
-                self.annotate_measurement('max_noun_frac', noun_frac, *nouns)
-                self.annotate_parameter('max_allowable_nouns', self.max_allowable_nouns, *nouns)
-                self.annotate_measurement('max_allowable_nouns', l, *nouns)
+                if (l := len(nouns)) > self.max_allowable_nouns and (
+                    noun_frac := float(l) / len(subclause)
+                ) > self.max_noun_frac:
 
-                self.annotate_node('noun', *nouns)
-                self.advance_application_id()
+                    self.annotate_parameter('max_noun_frac', self.max_noun_frac, *nouns)
+                    self.annotate_measurement('max_noun_frac', noun_frac, *nouns)
+                    self.annotate_parameter('max_allowable_nouns', self.max_allowable_nouns, *nouns)
+                    self.annotate_measurement('max_allowable_nouns', l, *nouns)
+
+                    self.annotate_node('noun', *nouns)
+                    self.advance_application_id()
 
 
 class RuleFunctionWordRepetition(ClusterRule):
