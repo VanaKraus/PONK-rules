@@ -44,6 +44,7 @@ from document_applicables.rules.clusters import (
     RuleCaseRepetition,
     RuleFunctionWordRepetition,
     RulePassive,
+    RuleVerbalNouns,
 )
 from document_applicables.rules.phrases import (
     RuleWeakMeaningWords,
@@ -62,11 +63,10 @@ from document_applicables.rules.structural import (
     RuleMultiPartVerbs,
     RuleLongSentences,
     RulePredAtClauseBeginning,
-    RuleVerbalNouns,
 )
 
 
-def select_profile(profile_str: str) -> (list[Metric], list[Rule]):
+def select_profile(profile_str: str) -> tuple[list[Metric], list[Rule]]:
     # return appropriate set of rules and metrics based on the profiles selected
     # for now, just return the defaults
     print(f'Profile {profile_str} has been selected.')

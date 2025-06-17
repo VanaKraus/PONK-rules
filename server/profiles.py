@@ -25,6 +25,7 @@ from document_applicables.rules.clusters import (
     RuleCaseRepetition,
     RuleFunctionWordRepetition,
     RulePassive,
+    RuleVerbalNouns,
 )
 from document_applicables.rules.phrases import (
     RuleWeakMeaningWords,
@@ -43,7 +44,6 @@ from document_applicables.rules.structural import (
     RuleMultiPartVerbs,
     RuleLongSentences,
     RulePredAtClauseBeginning,
-    RuleVerbalNouns,
 )
 
 
