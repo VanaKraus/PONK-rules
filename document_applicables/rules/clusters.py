@@ -284,3 +284,34 @@ class RuleCaseRepetition(ClusterRule):
                     break
 
                 following_nodes.pop()
+
+
+class RulePassive(ClusterRule):
+    """Capture be-passives.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2021, p. 27).
+    """
+
+    rule_id: Literal['RulePassive'] = 'RulePassive'
+
+    cz_human_readable_name: str = 'Opisné pasivum'
+    en_human_readable_name: str = 'Participial passive'
+    cz_doc: str = (
+        'Použijte činný rod („nařídíme další opatření“), případně zvratné pasivum („nařídí se další opatření“). '
+        + 'Srov. Šamánková & Kubíková (2022, s. 39–40), Šváb (2021, s. 27).'
+    )
+    en_doc: str = (
+        'Use the active voice (“nařídíme další opatření”) or the reflexive passive (“nařídí se další opatření”). '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 39–40), Šváb (2021, p. 27).'
+    )
+    cz_paricipants: dict[str, str] = {'aux': 'Pomocné sloveso', 'participle': 'Příčestí trpné'}
+    en_paricipants: dict[str, str] = {'aux': 'Auxiliary verb', 'participle': 'Passive participle'}
+
+    def process_node(self, node):
+        if node.deprel == 'aux:pass':
+            parent = node.parent
+
+            self.annotate_node('aux', node)
+            self.annotate_node('participle', parent)
+
+            self.advance_application_id()
