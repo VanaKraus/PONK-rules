@@ -63,7 +63,9 @@ class RulePredSubjDistance(StructuralRule):
                     subj = clause[0]
 
             if (
-                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), subj, pred)
+                max_dst := util.distance_from_list(
+                    util.remove_punct_sym(node.root.descendants(), keep=(subj, pred)), subj, pred
+                )
             ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
@@ -102,7 +104,9 @@ class RulePredObjDistance(StructuralRule):
             parent = node.parent
 
             if (
-                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), node, parent)
+                max_dst := util.distance_from_list(
+                    util.remove_punct_sym(node.root.descendants(), keep=(node, parent)), node, parent
+                )
             ) > self.max_distance:
                 self.annotate_node('object', node)
                 self.annotate_node('parent', parent)
@@ -143,7 +147,9 @@ class RuleInfVerbDistance(StructuralRule):
         ):
 
             if (
-                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), verb, infinitive)
+                max_dst := util.distance_from_list(
+                    util.remove_punct_sym(node.root.descendants(), keep=[verb]), verb, infinitive
+                )
             ) > self.max_distance:
                 self.annotate_node('infinitive', infinitive)
                 self.annotate_node('verb', verb)
@@ -193,7 +199,7 @@ class RuleMultiPartVerbs(StructuralRule):
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
-            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants(), keep=(parent, *auxiliaries))
 
             too_far_apart = False
             max_dst = 0
@@ -290,8 +296,6 @@ class RulePredAtClauseBeginning(StructuralRule):
 
             clause = util.get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
 
-            clause_beginning = clause[0]
-
             # tokens forming the predicate, i.e. predicate root and potentially auxiliaries
             predicate_tokens = [pred_root] + [child for child in pred_root.children if util.is_aux(child)]
             # sort by order in the sentence
@@ -299,6 +303,12 @@ class RulePredAtClauseBeginning(StructuralRule):
             first_predicate_token = predicate_tokens[0]
 
             sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+
+            clause_filter_intersect = [n for n in clause if n in sentence_wo_punct_sym]
+            if not clause_filter_intersect:
+                return
+
+            clause_beginning = clause_filter_intersect[0]
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
             if (

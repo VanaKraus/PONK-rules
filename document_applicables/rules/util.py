@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 import re
 from dataclasses import dataclass
+from typing import Iterable
 
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
@@ -137,8 +137,8 @@ def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     return bool(n1_values.intersection(n2_values))
 
 
-def remove_punct_sym(nodes: list[Node]) -> list[Node]:
-    return [n for n in nodes if n.upos not in ('PUNCT', 'SYM')]
+def remove_punct_sym(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]:
+    return [n for n in nodes if n.upos not in ('PUNCT', 'SYM') or n in keep]
 
 
 def distance_from_list(nodes: list[Node], nodeA: Node, nodeB: Node) -> int:
