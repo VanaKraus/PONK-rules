@@ -235,7 +235,7 @@ class RuleCaseRepetition(ClusterRule):
 
     def process_node(self, node: Node):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
-            descendants = util.get_clause(node, without_punctuation=True)
+            descendants = util.get_clause(node, without_punctuation=True, without_subordinates=True)
 
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
@@ -250,6 +250,11 @@ class RuleCaseRepetition(ClusterRule):
                     for d in node.descendants(add_self=True):
                         if d in following_nodes:
                             following_nodes.remove(d)
+
+            for i, n in enumerate(following_nodes[:-1]):
+                if following_nodes[i + 1].ord - n.ord > 3:
+                    following_nodes = following_nodes[: i + 1]
+                    break
 
             following_nodes = [n for n in following_nodes if n.ord < min_conj_ord]
 
@@ -284,3 +289,34 @@ class RuleCaseRepetition(ClusterRule):
                     break
 
                 following_nodes.pop()
+
+
+class RulePassive(ClusterRule):
+    """Capture be-passives.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2021, p. 27).
+    """
+
+    rule_id: Literal['RulePassive'] = 'RulePassive'
+
+    cz_human_readable_name: str = 'Opisné pasivum'
+    en_human_readable_name: str = 'Participial passive'
+    cz_doc: str = (
+        'Použijte činný rod („nařídíme další opatření“), případně zvratné pasivum („nařídí se další opatření“). '
+        + 'Srov. Šamánková & Kubíková (2022, s. 39–40), Šváb (2021, s. 27).'
+    )
+    en_doc: str = (
+        'Use the active voice (“nařídíme další opatření”) or the reflexive passive (“nařídí se další opatření”). '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 39–40), Šváb (2021, p. 27).'
+    )
+    cz_paricipants: dict[str, str] = {'aux': 'Pomocné sloveso', 'participle': 'Příčestí trpné'}
+    en_paricipants: dict[str, str] = {'aux': 'Auxiliary verb', 'participle': 'Passive participle'}
+
+    def process_node(self, node):
+        if node.deprel == 'aux:pass':
+            parent = node.parent
+
+            self.annotate_node('aux', node)
+            self.annotate_node('participle', parent)
+
+            self.advance_application_id()
