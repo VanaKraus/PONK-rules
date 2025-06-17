@@ -24,6 +24,7 @@ from document_applicables.rules.clusters import (
     RuleTooManyNominalConstructions,
     RuleCaseRepetition,
     RuleFunctionWordRepetition,
+    RulePassive,
 )
 from document_applicables.rules.phrases import (
     RuleWeakMeaningWords,
@@ -36,7 +37,6 @@ from document_applicables.rules.phrases import (
     RuleLiteraryStyle,
 )
 from document_applicables.rules.structural import (
-    RulePassive,
     RulePredSubjDistance,
     RulePredObjDistance,
     RuleInfVerbDistance,

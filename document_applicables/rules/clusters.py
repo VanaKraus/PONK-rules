@@ -235,7 +235,7 @@ class RuleCaseRepetition(ClusterRule):
 
     def process_node(self, node: Node):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
-            descendants = util.get_clause(node, without_punctuation=True)
+            descendants = util.get_clause(node, without_punctuation=True, without_subordinates=True)
 
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
@@ -250,6 +250,11 @@ class RuleCaseRepetition(ClusterRule):
                     for d in node.descendants(add_self=True):
                         if d in following_nodes:
                             following_nodes.remove(d)
+
+            for i, n in enumerate(following_nodes[:-1]):
+                if following_nodes[i + 1].ord - n.ord > 3:
+                    following_nodes = following_nodes[: i + 1]
+                    break
 
             following_nodes = [n for n in following_nodes if n.ord < min_conj_ord]
 
