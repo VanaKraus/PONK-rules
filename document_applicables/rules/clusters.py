@@ -320,3 +320,34 @@ class RulePassive(ClusterRule):
             self.annotate_node('participle', parent)
 
             self.advance_application_id()
+
+
+class RuleVerbalNouns(ClusterRule):
+    """Capture verbal nouns.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).
+    """
+
+    rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
+
+    cz_human_readable_name: str = 'Podstatná jména slovesná'
+    en_human_readable_name: str = 'Verbal nouns'
+    cz_doc: str = (
+        'Zvažte nahrazení podstatného jména slovesného větou. '
+        + 'Srov. Šamánková & Kubíková (2022, s. 38–39), Šváb (2021, s. 30).'
+    )
+    en_doc: str = (
+        'Consider replacing the verbal noun with a clause. '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).'
+    )
+    cz_paricipants: dict[str, str] = {'verbal_noun': 'Podstatné jméno slovesné'}
+    en_paricipants: dict[str, str] = {'verbal_noun': 'Verbal noun'}
+
+    @classmethod
+    def _is_terminology(cls, node: Node) -> bool:
+        return node.lemma in ('usnesení', 'rozhodnutí', 'dovolání', 'odvolání')
+
+    def process_node(self, node):
+        if node.feats['VerbForm'] == 'Vnoun' and not self._is_terminology(node):
+            self.annotate_node('verbal_noun', node)
+            self.advance_application_id()

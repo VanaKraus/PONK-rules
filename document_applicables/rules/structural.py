@@ -63,7 +63,9 @@ class RulePredSubjDistance(StructuralRule):
                     subj = clause[0]
 
             if (
-                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), subj, pred)
+                max_dst := util.distance_from_list(
+                    util.remove_punct_sym(node.root.descendants(), keep=(subj, pred)), subj, pred
+                )
             ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
@@ -102,7 +104,9 @@ class RulePredObjDistance(StructuralRule):
             parent = node.parent
 
             if (
-                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), node, parent)
+                max_dst := util.distance_from_list(
+                    util.remove_punct_sym(node.root.descendants(), keep=(node, parent)), node, parent
+                )
             ) > self.max_distance:
                 self.annotate_node('object', node)
                 self.annotate_node('parent', parent)
@@ -143,7 +147,9 @@ class RuleInfVerbDistance(StructuralRule):
         ):
 
             if (
-                max_dst := util.distance_from_list(util.remove_punct_sym(node.root.descendants()), verb, infinitive)
+                max_dst := util.distance_from_list(
+                    util.remove_punct_sym(node.root.descendants(), keep=[verb]), verb, infinitive
+                )
             ) > self.max_distance:
                 self.annotate_node('infinitive', infinitive)
                 self.annotate_node('verb', verb)
@@ -193,7 +199,7 @@ class RuleMultiPartVerbs(StructuralRule):
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
-            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants(), keep=(parent, *auxiliaries))
 
             too_far_apart = False
             max_dst = 0
@@ -290,8 +296,6 @@ class RulePredAtClauseBeginning(StructuralRule):
 
             clause = util.get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
 
-            clause_beginning = clause[0]
-
             # tokens forming the predicate, i.e. predicate root and potentially auxiliaries
             predicate_tokens = [pred_root] + [child for child in pred_root.children if util.is_aux(child)]
             # sort by order in the sentence
@@ -299,6 +303,12 @@ class RulePredAtClauseBeginning(StructuralRule):
             first_predicate_token = predicate_tokens[0]
 
             sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+
+            clause_filter_intersect = [n for n in clause if n in sentence_wo_punct_sym]
+            if not clause_filter_intersect:
+                return
+
+            clause_beginning = clause_filter_intersect[0]
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
             if (
@@ -310,34 +320,3 @@ class RulePredAtClauseBeginning(StructuralRule):
                 self.annotate_parameter('max_order', self.max_order, *predicate_tokens)
 
                 self.advance_application_id()
-
-
-class RuleVerbalNouns(StructuralRule):
-    """Capture verbal nouns.
-
-    Inspiration: Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).
-    """
-
-    rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
-
-    cz_human_readable_name: str = 'Podstatná jména slovesná'
-    en_human_readable_name: str = 'Verbal nouns'
-    cz_doc: str = (
-        'Zvažte nahrazení podstatného jména slovesného větou. '
-        + 'Srov. Šamánková & Kubíková (2022, s. 38–39), Šváb (2021, s. 30).'
-    )
-    en_doc: str = (
-        'Consider replacing the verbal noun with a clause. '
-        + 'Cf. Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).'
-    )
-    cz_paricipants: dict[str, str] = {'verbal_noun': 'Podstatné jméno slovesné'}
-    en_paricipants: dict[str, str] = {'verbal_noun': 'Verbal noun'}
-
-    @classmethod
-    def _is_terminology(cls, node: Node) -> bool:
-        return node.lemma in ('usnesení', 'rozhodnutí', 'dovolání', 'odvolání')
-
-    def process_node(self, node):
-        if node.feats['VerbForm'] == 'Vnoun' and not self._is_terminology(node):
-            self.annotate_node('verbal_noun', node)
-            self.advance_application_id()
