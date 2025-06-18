@@ -615,7 +615,7 @@ class RuleLiteraryStyle(PhrasesRule):
             node.upos == 'ADJ'
             and node.feats['Variant'] == 'Short'
             and 'VerbForm' not in node.feats  # rule out passive participles
-            and node.lemma not in ('rád', 'bosý')
+            and node.lemma not in ('rád', 'bosý', 'povinný')
         ):
             self.annotate_node('short_adjective_variant', node)
             self.advance_application_id()
