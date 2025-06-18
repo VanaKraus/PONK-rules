@@ -56,6 +56,7 @@ class RulePredSubjDistance(StructuralRule):
             # locate subject
             subj = node
             if node.udeprel == 'csubj':
+                raise NotImplementedError('Revise')
                 clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
                 if node.ord < pred.ord:
                     subj = clause[-1]

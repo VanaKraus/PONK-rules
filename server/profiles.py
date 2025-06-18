@@ -93,13 +93,21 @@ def get_noninstitutional_rules() -> list[Rule]:
     return [
         RulePassive(),
         RulePredSubjDistance(
-            max_distance=5,  # effect size < 0.06
+            # max_distance=5,  # effect size < 0.06
+            max_distance=6,  # default value
         ),
-        RulePredObjDistance(max_distance=4),
-        RuleMultiPartVerbs(max_distance=4),
+        RulePredObjDistance(
+            # max_distance=4,  # p > .1
+            max_distance=6,  # default value
+        ),
+        RuleMultiPartVerbs(
+            # max_distance=4, # effect size < 0.06
+            max_distance=5,  # default value
+        ),
         RuleLongSentences(max_length=22),
         RulePredAtClauseBeginning(
-            max_order=4,  # effect size < 0.06
+            # max_order=4,  # effect size < 0.06
+            max_order=5,  # default value
         ),
         # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
         RuleTooFewVerbs(min_verb_frac=0.06),  # default value
