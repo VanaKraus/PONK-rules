@@ -303,7 +303,7 @@ class RulePredAtClauseBeginning(StructuralRule):
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
-            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants())
+            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants(), keep=[first_predicate_token])
 
             clause_filter_intersect = [n for n in clause if n in sentence_wo_punct_sym]
             if not clause_filter_intersect:
