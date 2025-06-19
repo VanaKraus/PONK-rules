@@ -176,7 +176,6 @@ class PostProcessRule(Rule):
 
     def _capitalization(self, node):
         lines_new: list[str] = []
-        capitalized = False  # whether an added capitalization candidate has been encountered
 
         for line in node.root.comment.split('\n'):
             if m := re.match(' ' + RULE_ANNOTATION_PREFIX + r':([A-Za-z]+):([0-9a-f]{8}):add = (.+)', line):
@@ -192,14 +191,11 @@ class PostProcessRule(Rule):
                     else:
                         break
 
-                if content['add_after'] in [str(i) for i in range(first + 1)]:
-                    if not capitalized:
-                        if not content['preserve_capitalization']:
-                            content['node']['form'] = content['node']['form'].capitalize()
-
-                        capitalized = True
-                    elif not content['preserve_capitalization']:
-                        content['node']['form'] = content['node']['form'].lower()
+                if (
+                    content['add_after'] in [str(i) for i in range(first + 1)]
+                    and not content['preserve_capitalization']
+                ):
+                    content['node']['form'] = content['node']['form'].capitalize()
 
                 lines_new.append(f' {RULE_ANNOTATION_PREFIX}:{rule}:{application}:add = {json.dumps(content)}')
             else:
