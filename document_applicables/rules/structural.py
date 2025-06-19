@@ -292,7 +292,7 @@ class RulePredAtClauseBeginning(StructuralRule):
 
     def process_node(self, node):
         # finite verbs or l-participles
-        if util.is_finite_verb(node):
+        if util.is_finite_verb(node) and (self.rule_id not in util.rules_applied(node)):
             pred_root = node.parent if util.is_aux(node) else node
 
             clause = util.get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
