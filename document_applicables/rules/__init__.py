@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from numbers import Number
 import json
+import re
 
 from typing import Any, Literal
 import os
-
-import sys
 
 # from derinet.lexicon import Lexicon
 from udapi.core.block import Block
@@ -98,7 +97,9 @@ class Rule(Documentable):
         for r in roots:
             r.add_comment(comment)
 
-    def add_node(self, new_node: Node, root: Node, add_after: str | int, parent: str | int) -> str:
+    def add_node(
+        self, new_node: Node, root: Node, add_after: str | int, parent: str | int, preserve_capitalization: bool = False
+    ) -> str:
         """Add a comment describing the addition of a new node
 
         Args:
@@ -110,6 +111,8 @@ class Rule(Documentable):
             parent (str | int): which node should be the parent of the new node;
                 node order expected when expanding an existing node,
                 node ID expected when expanding another newly added node
+            preserve_capitalization (bool, optional): whether capitalization of the node form
+                should remain unmodified. Defaults to False.
 
         Returns:
             str: ID of the new node; an 8-character HEX key
@@ -122,6 +125,7 @@ class Rule(Documentable):
                     'id': node_id,
                     'add_after': str(add_after),
                     'parent': parent,
+                    'preserve_capitalization': preserve_capitalization,
                     'node': util.node_serializable(new_node),
                 }
             ),
@@ -149,8 +153,65 @@ class PostProcessRule(Rule):
     cz_doc: str = 'Dokument upraven'
     en_doc: str = 'Document amended'
 
+    def _punctuation(self, node):
+        # strip sentence-beginning punctuation if preceded by continuous removal commands
+        removing_rules: set[str] = None
+
+        for i, d in enumerate(node.root.descendants()):
+            rules = {
+                match[1]
+                for key in d.misc
+                if (match := re.match(RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', key))
+            }
+
+            if i == 0:
+                removing_rules = rules
+            elif d.upos == 'PUNCT':
+                for r in removing_rules:
+                    d.misc[f'{RULE_ANNOTATION_PREFIX}:{r}:remove'] = 'post-process'
+            else:
+                removing_rules = removing_rules.intersection(rules)
+                if not removing_rules:
+                    break
+
+    def _capitalization(self, node):
+        lines_new: list[str] = []
+        capitalized = False  # whether an added capitalization candidate has been encountered
+
+        for line in node.root.comment.split('\n'):
+            if m := re.match(' ' + RULE_ANNOTATION_PREFIX + r':([A-Za-z]+):([0-9a-f]{8}):add = (.+)', line):
+                rule = m[1]
+                application = m[2]
+                content = json.loads(m[3])
+
+                # determine the first node in the sentence structure the rule application would have kept
+                first = 0
+                for d in node.descendants():
+                    if [m for m in d.misc if m == f'{RULE_ANNOTATION_PREFIX}:{rule}:{application}:remove']:
+                        first += 1
+                    else:
+                        break
+
+                if content['add_after'] in [str(i) for i in range(first + 1)]:
+                    if not capitalized:
+                        if not content['preserve_capitalization']:
+                            content['node']['form'] = content['node']['form'].capitalize()
+
+                        capitalized = True
+                    elif not content['preserve_capitalization']:
+                        content['node']['form'] = content['node']['form'].lower()
+
+                lines_new.append(f' {RULE_ANNOTATION_PREFIX}:{rule}:{application}:add = {json.dumps(content)}')
+            else:
+                lines_new.append(line)
+
+        node.root.comment = '\n'.join(lines_new)
+
     def process_node(self, node):
         if node.udeprel == 'root':
+            self._punctuation(node)
+            self._capitalization(node)
+
             node.root.text = node.root.compute_text()
 
 
