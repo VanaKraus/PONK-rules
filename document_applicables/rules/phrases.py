@@ -549,7 +549,7 @@ class RuleLiteraryStyle(PhrasesRule):
         'causal_conjunction': 'Lépe „protože“',
     }
     en_paricipants: dict[str, str] = {
-        'být_vinnen_na_vině': 'Better as „vinu má/mají“',
+        'být_vinnen_na_vině': 'Better as „vinu má/mají“ (instead of “je vinnen / na vině”)',
         'genitive_object': 'Consider using accusative or dative',
         'gen_obj_head': 'Governing word',
         'short_adjective_variant': 'Better use the long form (e.g. “šťastný” instead of “šťasten”)',
