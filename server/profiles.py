@@ -156,9 +156,9 @@ def get_noninstitutional_rules() -> list[Rule]:
 
 def get_noninstitutional_metrics() -> list[Metric]:
     return [
+        MetricARI(),
         MetricVerbDistance(),
         MetricActivity(),
-        MetricARI(),
         MetricMovingAverageTTR(
             cz_human_readable_name='Slovní bohatství',
             en_human_readable_name='Lexical diversity',
