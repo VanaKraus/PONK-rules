@@ -8,7 +8,7 @@ from udapi.core.node import Node
 
 
 class StructuralRule(Rule):
-    foreground_color: Color = Color(70, 130, 33)
+    foreground_color: Color = Color(33, 108, 237)
     rule_id: Literal['structural'] = 'structural'
 
 

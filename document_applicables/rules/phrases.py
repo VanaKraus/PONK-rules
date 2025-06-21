@@ -8,7 +8,7 @@ from document_applicables.rules import Rule, Color, util
 
 
 class PhrasesRule(Rule):
-    foreground_color: Color = Color(5, 199, 147)
+    foreground_color: Color = Color(230, 35, 203)
     rule_id: Literal['phrases'] = 'phrases'
 
 
