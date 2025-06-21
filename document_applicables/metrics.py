@@ -302,14 +302,12 @@ class MetricARI(MetricPunctExcluding):
     sents is the number of sentences.
     """
 
-    cz_human_readable_name: str = 'ARI'
-    en_human_readable_name: str = 'ARI'
+    cz_human_readable_name: str = 'Automatizovaný index čitelnosti'
+    en_human_readable_name: str = 'Automated readability index'
     cz_doc: str = (
-        'Automatizovaný index čitelnosti. Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
+        'Automated readability index (ARI). Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
     )
-    en_doc: str = (
-        'Automated readability index. Measures readability in years of education necessary for successful understanding.'
-    )
+    en_doc: str = 'ARI. Measures readability in years of education necessary for successful understanding.'
     cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
     en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
     intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('ari')
@@ -444,8 +442,8 @@ class MetricMovingAverageTTR(MetricMovingAverageBase):
 
     cz_human_readable_name: str = 'TTR - klouzavý průměr'
     en_human_readable_name: str = 'TTR - moving average'
-    cz_doc: str = 'Klouzavý průměr type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
-    en_doc: str = 'Moving average of type-token ratio. Measures the ratio of types (lemmas) to tokens.'
+    cz_doc: str = 'Klouzavý průměr type-token ratio (MATTR). Měří poměr typů (lemmat) ku tokenům.'
+    en_doc: str = 'Moving average of type-token ratio (MATTR). Measures the ratio of types (lemmas) to tokens.'
     cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
     en_hint: str = 'Use less synonyms, if possible.'
     intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('mattr')

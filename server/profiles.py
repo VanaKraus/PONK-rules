@@ -48,50 +48,76 @@ from document_applicables.rules.structural import (
 
 
 def get_minimal_rules() -> list[Rule]:
-    return [
-        RuleDoubleAdpos(max_allowable_distance=0),
-        RulePassive(),
-        RulePredSubjDistance(max_distance=0),
-        RulePredObjDistance(max_distance=0),
-        RuleInfVerbDistance(max_distance=0),
-        RuleMultiPartVerbs(max_distance=0),
-        RuleLongSentences(max_length=0),
-        RulePredAtClauseBeginning(max_order=0),
-        RuleVerbalNouns(),
-        RuleTooFewVerbs(min_verb_frac=1),
-        RuleTooManyNegations(max_allowable_negations=0, max_negation_frac=0),
-        RuleWeakMeaningWords(),
-        RuleAbstractNouns(),
-        RuleRelativisticExpressions(),
-        RuleConfirmationExpressions(),
-        RuleRedundantExpressions(),
-        RuleTooLongExpressions(),
-        RuleAnaphoricReferences(),
-        RuleAmbiguousRegards(),
-        RuleTooManyNominalConstructions(max_allowable_nouns=0, max_noun_frac=0),
-        # leaving max_repetition_frac out as any nouns (followed by other tokens)
-        # would get flagged otherwise, distorting the measurement
-        RuleCaseRepetition(max_repetition_count=0),
-        RuleDoubleComparison(),
-        RuleWrongValencyCase(),
-        RuleWrongVerbonominalCase(),
-        RuleIncompleteConjunction(),
-        RuleGPcoordovs(),
-        RuleGPdeverbaddr(),
-        RuleGPpatinstr(),
-        RuleGPdeverbsubj(),
-        RuleGPadjective(),
-        RuleGPpatbenperson(),
-        RuleGPwordorder(),
-        RuleReflexivePassWithAnimSubj(),
-        RuleFunctionWordRepetition(),
-        RuleLiteraryStyle(),
-    ]
+    return sorted(
+        [
+            RuleDoubleAdpos(max_allowable_distance=0),
+            RulePassive(),
+            RulePredSubjDistance(max_distance=0),
+            RulePredObjDistance(max_distance=0),
+            RuleInfVerbDistance(max_distance=0),
+            RuleMultiPartVerbs(max_distance=0),
+            RuleLongSentences(max_length=0),
+            RulePredAtClauseBeginning(max_order=0),
+            RuleVerbalNouns(),
+            RuleTooFewVerbs(min_verb_frac=1),
+            RuleTooManyNegations(max_allowable_negations=0, max_negation_frac=0),
+            RuleWeakMeaningWords(),
+            RuleAbstractNouns(),
+            RuleRelativisticExpressions(),
+            RuleConfirmationExpressions(),
+            RuleRedundantExpressions(),
+            RuleTooLongExpressions(),
+            RuleAnaphoricReferences(),
+            RuleAmbiguousRegards(),
+            RuleTooManyNominalConstructions(max_allowable_nouns=0, max_noun_frac=0),
+            # leaving max_repetition_frac out as any nouns (followed by other tokens)
+            # would get flagged otherwise, distorting the measurement
+            RuleCaseRepetition(max_repetition_count=0),
+            RuleDoubleComparison(),
+            RuleWrongValencyCase(),
+            RuleWrongVerbonominalCase(),
+            RuleIncompleteConjunction(),
+            RuleGPcoordovs(),
+            RuleGPdeverbaddr(),
+            RuleGPpatinstr(),
+            RuleGPdeverbsubj(),
+            RuleGPadjective(),
+            RuleGPpatbenperson(),
+            RuleGPwordorder(),
+            RuleReflexivePassWithAnimSubj(),
+            RuleFunctionWordRepetition(),
+            RuleLiteraryStyle(),
+        ],
+        key=lambda x: x.rule_id,
+    )
 
 
 def get_noninstitutional_rules() -> list[Rule]:
     return [
+        # --- fluency ----
+        # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
+        RuleTooFewVerbs(min_verb_frac=0.06),  # default value
+        RuleTooManyNominalConstructions(
+            max_allowable_nouns=5,
+            max_noun_frac=0.4,  # wouldn't catch anything with 0.728
+        ),
+        RuleCaseRepetition(max_repetition_count=3),
+        RuleTooManyNegations(
+            max_allowable_negations=2,
+            max_negation_frac=0.168,  # measurable effect counter-intuitive
+        ),
         RulePassive(),
+        # --- phrases ---
+        RuleAbstractNouns(),  # effect size < 0.06
+        RuleWeakMeaningWords(),
+        RuleRedundantExpressions(),
+        RuleTooLongExpressions(),
+        RuleRelativisticExpressions(),
+        RuleConfirmationExpressions(),  # effect size < 0.06
+        RuleAnaphoricReferences(),  # effect size < 0.06
+        RuleLiteraryStyle(),
+        # --- distances ---
+        RuleLongSentences(max_length=22),
         RulePredSubjDistance(
             # max_distance=5,  # effect size < 0.06
             max_distance=6,  # default value
@@ -104,30 +130,10 @@ def get_noninstitutional_rules() -> list[Rule]:
             # max_distance=4, # effect size < 0.06
             max_distance=5,  # default value
         ),
-        RuleLongSentences(max_length=22),
         RulePredAtClauseBeginning(
             # max_order=4,  # effect size < 0.06
             max_order=5,  # default value
         ),
-        # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
-        RuleTooFewVerbs(min_verb_frac=0.06),  # default value
-        RuleTooManyNegations(
-            max_allowable_negations=2,
-            max_negation_frac=0.168,  # measurable effect counter-intuitive
-        ),
-        RuleWeakMeaningWords(),
-        RuleAbstractNouns(),  # effect size < 0.06
-        RuleRelativisticExpressions(),
-        RuleConfirmationExpressions(),  # effect size < 0.06
-        RuleRedundantExpressions(),
-        RuleTooLongExpressions(),
-        RuleAnaphoricReferences(),  # effect size < 0.06
-        RuleTooManyNominalConstructions(
-            max_allowable_nouns=5,
-            max_noun_frac=0.4,  # wouldn't catch anything with 0.728
-        ),
-        RuleCaseRepetition(max_repetition_count=3),
-        RuleLiteraryStyle(),
         # RuleVerbalNouns(), # hard to interpret
         # RuleGPpatinstr(), # questionable reliability
         # RuleGPcoordovs(), # effect size < 0.06
@@ -150,10 +156,13 @@ def get_noninstitutional_rules() -> list[Rule]:
 
 def get_noninstitutional_metrics() -> list[Metric]:
     return [
+        MetricVerbDistance(),
         MetricActivity(),
         MetricARI(),
-        MetricVerbDistance(),
-        MetricMovingAverageTTR(),
+        MetricMovingAverageTTR(
+            cz_human_readable_name='Slovní bohatství',
+            en_human_readable_name='Lexical diversity',
+        ),
     ]
 
 

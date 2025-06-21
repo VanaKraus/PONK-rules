@@ -96,7 +96,7 @@ def make_rule_info(rule_list: list[Rule]) -> dict[str, dict[str, str | Color | d
             "cz_participants": rule.cz_paricipants,
             "en_participants": rule.en_paricipants,
         }
-        for ord, rule in enumerate(sorted(rule_list, key=lambda x: x.rule_id))
+        for ord, rule in enumerate(rule_list)
         if rule.application_count != 0
     }
 
@@ -113,7 +113,7 @@ def make_metric_info(metric_list: list[Metric]) -> dict[str, dict[str, str | dic
             "en_hint": metric.en_hint if 'en_hint' in metric.__dir__() else None,
             'intervals': metric.intervals if 'intervals' in metric.__dir__() else None,
         }
-        for ord, metric in enumerate(sorted(metric_list, key=lambda x: x.metric_id))
+        for ord, metric in enumerate(metric_list)
     }
 
 
