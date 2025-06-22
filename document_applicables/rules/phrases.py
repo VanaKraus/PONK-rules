@@ -63,7 +63,7 @@ class RuleAbstractNouns(PhrasesRule):
 
     rule_id: Literal['RuleAbstractNouns'] = 'RuleAbstractNouns'
 
-    cz_human_readable_name: str = 'Vyprázdněná abstraktní substantiva'
+    cz_human_readable_name: str = 'Vyprázdněná abstraktní jména'
     en_human_readable_name: str = 'Weak-meaning abstract nouns'
     cz_doc: str = 'Vyvarujte se vyprázdněných podstatných jmen. Srov. Šamánková & Kubíková (2022, s. 41).'
     en_doc: str = 'Avoid weak-meaning abstract nouns. Cf. Šamánková & Kubíková (2022, p. 41).'
