@@ -146,12 +146,10 @@ class RuleTooManyNominalConstructions(ClusterRule):
             to remain inhibited.
     """
 
-    cz_human_readable_name: str = 'Přemíra nominálních konstrukcí'
-    en_human_readable_name: str = 'Too many nominal constructions'
-    cz_doc: str = (
-        'Přemíra nominálních konstrukcí snižuje přirozenost a čtivost textu. Srov. Sgall & Panevová (2014, s. 41).'
-    )
-    en_doc: str = 'Nominal constructions make the text less natural and readable. Cf. Sgall & Panevová (2014, p. 41).'
+    cz_human_readable_name: str = 'Přemíra podstatných jmen'
+    en_human_readable_name: str = 'Too many nouns'
+    cz_doc: str = 'Přemíra podstatných jmen snižuje přirozenost a čtivost textu. Srov. Sgall & Panevová (2014, s. 41).'
+    en_doc: str = 'Extensive noun use makes the text less natural and readable. Cf. Sgall & Panevová (2014, p. 41).'
     cz_paricipants: dict[str, str] = {'noun': 'Podstatné jméno'}
     en_paricipants: dict[str, str] = {'noun': 'Noun'}
 

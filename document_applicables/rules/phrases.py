@@ -120,8 +120,8 @@ class RuleRelativisticExpressions(PhrasesRule):
 
     rule_id: Literal['RuleRelativisticExpressions'] = 'RuleRelativisticExpressions'
 
-    cz_human_readable_name: str = 'Relativistické výrazy'
-    en_human_readable_name: str = 'Relativistic expressions'
+    cz_human_readable_name: str = 'Relativizující výrazy'
+    en_human_readable_name: str = 'Relativising expressions'
     cz_doc: str = 'Vyvarujte se relativizujících výrazů. Srov. Šamánková & Kubíková (2022, s. 42).'
     en_doc: str = 'Avoid relativistic expressions. Cf. Šamánková & Kubíková (2022, p. 42).'
     cz_paricipants: dict[str, str] = {'relativistic_expression': 'Relativizující výraz'}
