@@ -153,26 +153,78 @@ class PostProcessRule(Rule):
     cz_doc: str = 'Dokument upraven'
     en_doc: str = 'Document amended'
 
-    def _punctuation(self, node):
-        # strip sentence-beginning punctuation if preceded by continuous removal commands
-        removing_rules: set[str] = None
+    def _get_removing_rules(self, node) -> set[str]:
+        return {
+            mtch[1]
+            for nd in node.descendants()
+            for m in nd.misc
+            if (mtch := re.match(RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', m))
+        }
 
-        for i, d in enumerate(node.root.descendants()):
-            rules = {
-                match[1]
-                for key in d.misc
-                if (match := re.match(RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', key))
-            }
+    def _get_after_correction_mockup(self, node, rule_application: str) -> list[Node | None]:
+        nodes = node.root.descendants()
+        mockup = [nd for nd in nodes if f'{RULE_ANNOTATION_PREFIX}:{rule_application}:remove' not in nd.misc]
+        ids = [str(n.ord) for n in mockup]
 
-            if i == 0:
-                removing_rules = rules
-            elif d.upos == 'PUNCT':
-                for r in removing_rules:
-                    d.misc[f'{RULE_ANNOTATION_PREFIX}:{r}:remove'] = 'post-process'
+        for comment in node.root.comment.split('\n'):
+            match = re.match(r' ?' + RULE_ANNOTATION_PREFIX + ':' + rule_application + r':add = (.+)', comment)
+            if not match:
+                continue
+
+            new_node = json.loads(match[1])
+            add_after = new_node['add_after']
+
+            if add_after == '0':
+                ids.insert(0, new_node['id'])
+                mockup.insert(0, None)
             else:
-                removing_rules = removing_rules.intersection(rules)
-                if not removing_rules:
-                    break
+                for i in range(len(ids)):
+                    if ids[i] == add_after:
+                        ids.insert(i + 1, new_node['id'])
+                        mockup.insert(i + 1, None)
+
+        return mockup
+
+    def _remove_as_rule(self, node, rule_application: str):
+        node.misc[f'{RULE_ANNOTATION_PREFIX}:{rule_application}:remove'] = 'post-process'
+
+    def _sentence_initial_punctuation(self, node):
+        # strip sentence-beginning punctuation if preceded by continuous removal commands
+        removing_rules: set[str] = self._get_removing_rules(node)
+
+        for r in removing_rules:
+            nodes_wo = self._get_after_correction_mockup(node, r)
+            if nodes_wo and nodes_wo[0] and nodes_wo[0].upos == 'PUNCT':
+                self._remove_as_rule(nodes_wo[0], r)
+
+        # for i, d in enumerate(node.root.descendants()):
+        #     rules = {
+        #         match[1]
+        #         for key in d.misc
+        #         if (match := re.match(RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', key))
+        #     }
+
+        #     if i == 0:
+        #         removing_rules = rules
+        #     elif d.upos == 'PUNCT':
+        #         for r in removing_rules:
+        #             self._remove_as_rule(node, r)
+        #     else:
+        #         removing_rules = removing_rules.intersection(rules)
+        #         if not removing_rules:
+        #             break
+
+    def _after_coordination_punctuation(self, node):
+        removing_rules = self._get_removing_rules(node)
+
+        for rm_rule in removing_rules:
+            nodes_wo = self._get_after_correction_mockup(node, rm_rule)
+            if not nodes_wo:
+                continue
+
+            for i, n in enumerate(nodes_wo[1:]):  # nodes_wo[i] refers to the (i+1)th element here
+                if n and n.upos == 'PUNCT' and nodes_wo[i].deprel in ('cc', 'punct') and n.ord - nodes_wo[i].ord > 1:
+                    self._remove_as_rule(n, rm_rule)
 
     def _capitalization(self, node):
         lines_new: list[str] = []
@@ -205,7 +257,8 @@ class PostProcessRule(Rule):
 
     def process_node(self, node):
         if node.udeprel == 'root':
-            self._punctuation(node)
+            self._sentence_initial_punctuation(node)
+            self._after_coordination_punctuation(node)
             self._capitalization(node)
 
             node.root.text = node.root.compute_text()
