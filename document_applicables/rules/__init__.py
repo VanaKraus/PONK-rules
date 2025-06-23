@@ -194,7 +194,7 @@ class PostProcessRule(Rule):
 
         for r in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, r)
-            if nodes_wo and nodes_wo[0] and nodes_wo[0].upos == 'PUNCT' and nodes_wo[0].ord > 0:
+            if nodes_wo and nodes_wo[0] and nodes_wo[0].upos == 'PUNCT' and nodes_wo[0].ord > 1:
                 self._remove_as_rule(nodes_wo[0], r)
 
     def _after_coordination_punctuation(self, node):
