@@ -194,25 +194,8 @@ class PostProcessRule(Rule):
 
         for r in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, r)
-            if nodes_wo and nodes_wo[0] and nodes_wo[0].upos == 'PUNCT':
+            if nodes_wo and nodes_wo[0] and nodes_wo[0].upos == 'PUNCT' and nodes_wo[0].ord > 0:
                 self._remove_as_rule(nodes_wo[0], r)
-
-        # for i, d in enumerate(node.root.descendants()):
-        #     rules = {
-        #         match[1]
-        #         for key in d.misc
-        #         if (match := re.match(RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', key))
-        #     }
-
-        #     if i == 0:
-        #         removing_rules = rules
-        #     elif d.upos == 'PUNCT':
-        #         for r in removing_rules:
-        #             self._remove_as_rule(node, r)
-        #     else:
-        #         removing_rules = removing_rules.intersection(rules)
-        #         if not removing_rules:
-        #             break
 
     def _after_coordination_punctuation(self, node):
         removing_rules = self._get_removing_rules(node)
@@ -223,7 +206,13 @@ class PostProcessRule(Rule):
                 continue
 
             for i, n in enumerate(nodes_wo[1:]):  # nodes_wo[i] refers to the (i+1)th element here
-                if n and n.upos == 'PUNCT' and nodes_wo[i].deprel in ('cc', 'punct') and n.ord - nodes_wo[i].ord > 1:
+                if (
+                    n
+                    and nodes_wo[i]
+                    and n.upos == 'PUNCT'
+                    and nodes_wo[i].deprel in ('cc', 'punct')
+                    and n.ord - nodes_wo[i].ord > 1
+                ):
                     self._remove_as_rule(n, rm_rule)
 
     def _capitalization(self, node):
