@@ -299,6 +299,13 @@ class PostProcessRule(Rule):
 
         node.root.comment = '\n'.join(lines_new)
 
+    def _sort_global_comment(self, node):
+        lines = node.root.comment.split('\n')
+        node.root.comment = '\n'.join(
+            [l for l in lines if not l.startswith(f' {RULE_ANNOTATION_PREFIX}')]
+            + sorted([l for l in lines if l.startswith(f' {RULE_ANNOTATION_PREFIX}')])
+        )
+
     def process_node(self, node):
         if node.udeprel == 'root':
             self._sentence_initial_punctuation(node)
@@ -307,6 +314,8 @@ class PostProcessRule(Rule):
             self._capitalization(node)
 
             node.root.text = node.root.compute_text()
+
+            self._sort_global_comment(node)
 
 
 class RuleBlockWrapper(Block):
