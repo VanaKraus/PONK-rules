@@ -304,7 +304,12 @@ class RuleTooLongExpressions(PhrasesRule):
         match node.lemma:
             # v důsledku toho
             case 'důsledek':
-                if (adp := node.parent).lemma == 'v' and adp.parent and (pron := adp.parent).upos in ('PRON', 'DET'):
+                if (
+                    (adp := node.parent).lemma == 'v'
+                    and adp.parent
+                    and (pron := adp.parent).upos in ('PRON', 'DET')
+                    and len(pron.children) == 1  # modified by adp only
+                ):
                     self.annotate_node('v_důsledku_toho', node, adp, pron)
 
                     if not self.detect_only:
