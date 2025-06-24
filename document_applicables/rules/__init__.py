@@ -114,7 +114,7 @@ class Rule(Documentable):
                 {
                     'id': node_id,
                     'add_after': str(add_after),
-                    'parent': parent,
+                    'parent': str(parent),
                     'preserve_capitalization': preserve_capitalization,
                     'node': util.node_serializable(new_node),
                 }
@@ -167,14 +167,6 @@ class PostProcessRule(Rule):
     cz_doc: str = 'Dokument upraven'
     en_doc: str = 'Document amended'
 
-    def _get_removing_rules(self, node) -> set[str]:
-        return {
-            mtch[1]
-            for nd in node.descendants()
-            for m in nd.misc
-            if (mtch := re.match(RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', m))
-        }
-
     def _get_after_correction_mockup(self, node, rule_application: str) -> list[Node | None]:
         nodes = node.root.descendants()
         mockup = [nd for nd in nodes if f'{RULE_ANNOTATION_PREFIX}:{rule_application}:remove' not in nd.misc]
@@ -208,7 +200,7 @@ class PostProcessRule(Rule):
 
     def _sentence_initial_punctuation(self, node):
         # strip sentence-beginning punctuation if preceded by continuous removal commands
-        removing_rules: set[str] = self._get_removing_rules(node)
+        removing_rules: set[str] = util.get_removing_rules(node, descendants=True)
 
         for r in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, r)
@@ -216,7 +208,7 @@ class PostProcessRule(Rule):
                 self._remove_as_rule(nodes_wo[0], r)
 
     def _after_coordination_punctuation(self, node):
-        removing_rules = self._get_removing_rules(node)
+        removing_rules = util.get_removing_rules(node, descendants=True)
 
         for rm_rule in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, rm_rule)
@@ -234,7 +226,7 @@ class PostProcessRule(Rule):
                     self._remove_as_rule(n, rm_rule)
 
     def _punctuation_spacing(self, node):
-        removing_rules = self._get_removing_rules(node)
+        removing_rules = util.get_removing_rules(node, descendants=True)
 
         for rm_rule in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, rm_rule)
@@ -264,16 +256,14 @@ class PostProcessRule(Rule):
                             deprel=n.deprel,
                             misc=DualDict(dict(n.misc) | {'SpaceAfter': 'No'}),
                         )
+
+                        rebk = f'{RULE_ANNOTATION_PREFIX}:{rm_rule}:rebind'
                         self.add_node_as_rule(
                             rm_rule,
                             correction,
                             n.root,
-                            str(n.ord - 1),
-                            (
-                                n.misc[rebk]
-                                if (rebk := f'{RULE_ANNOTATION_PREFIX}:{rm_rule}:rebind' in n.misc)
-                                else str(n.parent.ord)
-                            ),
+                            n.ord - 1,
+                            (n.misc[rebk] if rebk in n.misc else n.parent.ord),
                         )
 
                         self._remove_as_rule(n, rm_rule)

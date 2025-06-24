@@ -255,6 +255,15 @@ def rules_applied(node: Node) -> set[str]:
     return {annotation[1] for annotation in rule_annotations}
 
 
+def get_removing_rules(node, descendants=False) -> set[str]:
+    return {
+        mtch[1]
+        for nd in (node.descendants() if descendants else [node])
+        for m in nd.misc
+        if (mtch := re.match(rules.RULE_ANNOTATION_PREFIX + r':([A-Za-z]+:[0-9a-f]{8}):remove', m))
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class Color:
     red: int

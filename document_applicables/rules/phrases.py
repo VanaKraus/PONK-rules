@@ -350,10 +350,9 @@ class RuleTooLongExpressions(PhrasesRule):
                         self.add_node(correction, node.root, node.ord - 1, node.parent.ord)
 
                         self.annotate_action('remove', node, noun, *adp)
-                        # for n in node.parent.children:
-                        #     if n.ord == node.ord - 1 and n.form == ',':
-                        #         self.annotate_action('remove', n)
-                        self.annotate_action('rebind', node.parent, value=noun.parent.ord)
+                        for c in noun.children:
+                            if f'{self.rule_id}:{self.process_id}' not in util.get_removing_rules(c):
+                                self.annotate_action('rebind', c, value=noun.parent.ord)
 
                     self.advance_application_id()
 
