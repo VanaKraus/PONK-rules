@@ -351,7 +351,7 @@ class RuleTooLongExpressions(PhrasesRule):
 
                         self.annotate_action('remove', node, noun, *adp)
                         for c in noun.children:
-                            if f'{self.rule_id}:{self.process_id}' not in util.get_removing_rules(c):
+                            if f'{self.id()}:{self.process_id}' not in util.get_removing_rules(c):
                                 self.annotate_action('rebind', c, value=noun.parent.ord)
 
                     self.advance_application_id()

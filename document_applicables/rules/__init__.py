@@ -60,16 +60,51 @@ class Rule(Documentable):
     def id(cls):
         return cls.__name__
 
+    def rule_application_key(self) -> str:
+        return f'{self.__class__.id()}:{self.process_id}'
+
     def annotate_node(self, annotation: str, *node: Node, flag: str | None = None):
-        key = f"{RULE_ANNOTATION_PREFIX}:{self.__class__.id()}:{self.process_id}"
+        self.annotate_node_as_rule(self.rule_application_key(), annotation, *node, flag=flag)
+
+    def annotate_node_as_rule(self, rule_application: str, annotation: str, *node: Node, flag: str | None = None):
+        key = f"{RULE_ANNOTATION_PREFIX}:{rule_application}"
         if flag:
             key += f":{flag}"
         super().annotate_node(key, annotation, *node)
 
-    def annotate_action(self, action: Literal['remove', 'rebind'], *node: Node, value: str = '_'):
+    def annotate_action_as_rule(
+        self, rule_application: str, action: Literal['remove', 'rebind'], *node: Node, value: str = '_'
+    ):
         if action not in ['remove', 'rebind']:
             raise ValueError(f'action required to be "remove" or "add"; "{action}" supplied')
-        self.annotate_node(value, *node, flag=action)
+
+        ruleapplmatch = re.search(r'^([A-Za-z]+):([0-9a-z]{8})$', rule_application)
+        if not ruleapplmatch:
+            raise ValueError(f'invalid {rule_application=}')
+
+        rule, application = ruleapplmatch[1], ruleapplmatch[2]
+
+        if action == 'rebind':
+            if value == '_':
+                raise ValueError('rebind target not specified')
+
+            for n in node:
+                if rule_application in util.get_removing_rules(n):
+                    return
+
+        if action == 'remove':
+            if rule != self.__class__.id() and value == '_':
+                raise ValueError('value needs to be specified when removing for a different rule')
+
+            rebk = f'{RULE_ANNOTATION_PREFIX}:{rule_application}:rebind'
+            for n in node:
+                if rebk in n.misc:
+                    del n.misc[rebk]
+
+        self.annotate_node_as_rule(rule_application, value, *node, flag=action)
+
+    def annotate_action(self, action: Literal['remove', 'rebind'], *node: Node, value: str = '_'):
+        self.annotate_action_as_rule(self.rule_application_key(), action, *node, value=value)
 
     def do_measurement_calculations(self, m_name: str, m_value: float):
         self.average_measured_values[m_name] = (
@@ -191,12 +226,8 @@ class PostProcessRule(Rule):
 
         return mockup
 
-    def _remove_as_rule(self, node, rule_application: str):
-        node.misc[f'{RULE_ANNOTATION_PREFIX}:{rule_application}:remove'] = 'post-process'
-
-    def _add_as_rule(self, new_node, root, add_after: str, parent: str, preserve_capitalization: bool = False):
-        self.add_node()
-        pass
+    def _remove_as_rule(self, node, rule_application):
+        self.annotate_action_as_rule(rule_application, 'remove', node, value='post-process')
 
     def _sentence_initial_punctuation(self, node):
         # strip sentence-beginning punctuation if preceded by continuous removal commands
@@ -232,8 +263,6 @@ class PostProcessRule(Rule):
             nodes_wo = self._get_after_correction_mockup(node, rm_rule)
             if not nodes_wo:
                 continue
-
-            print(rm_rule)
 
             for i, n in enumerate(nodes_wo[:-1]):
                 if (
