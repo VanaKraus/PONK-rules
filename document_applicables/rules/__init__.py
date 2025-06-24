@@ -268,7 +268,7 @@ class PostProcessRule(Rule):
                             rm_rule,
                             correction,
                             n.root,
-                            str(n.ord),
+                            str(n.ord - 1),
                             (
                                 n.misc[rebk]
                                 if (rebk := f'{RULE_ANNOTATION_PREFIX}:{rm_rule}:rebind' in n.misc)
