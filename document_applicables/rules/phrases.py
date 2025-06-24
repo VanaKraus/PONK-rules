@@ -281,7 +281,7 @@ class RuleTooLongExpressions(PhrasesRule):
         'za_podmínek_uvedených_ve_smlouvě': 'Lépe „podle (něčeho)“ (namísto „za podmínek uvedených (v něčem)“)',
         'v_rámci': 'Lépe „při (něčem)“ (namísto „v rámci (něčeho)“)',
         'uděluje_vyjadřuje_souhlas': 'Lépe „souhlasí“ (namísto „uděluje/vyjadřuje souhlas“)',
-        'ze_strany_banky': 'Lépe 7. pád („někým“; namísto „ze strany někoho“)',
+        'ze_strany_banky': 'Lépe 7. pád („někým“) nebo činný rod („někdo dělal něco“); namísto „ze strany někoho“',
         'předmětný_závazek': 'Lépe „tento (závazek)“ (namísto „předmětný (závazek)“)',
     }
     en_paricipants: dict[str, str] = {
@@ -296,7 +296,7 @@ class RuleTooLongExpressions(PhrasesRule):
         'za_podmínek_uvedených_ve_smlouvě': 'Better as “podle (něčeho)” (instead of “za podmínek uvedených (v něčem)”)',
         'v_rámci': 'Better as “při (něčem)” (instead of “v rámci (něčeho)”)',
         'uděluje_vyjadřuje_souhlas': 'Better as “souhlasí” (instead of “uděluje/vyjadřuje souhlas”)',
-        'ze_strany_banky': 'Better as instrumental (“někým”; instead of “ze strany někoho”)',
+        'ze_strany_banky': 'Better as instrumental (“někým”) or in active mood (“někdo dělal něco”); instead of “ze strany někoho”',
         'předmětný_závazek': 'Better as “tento (závazek)” (instead of “předmětný (závazek)”)',
     }
 
