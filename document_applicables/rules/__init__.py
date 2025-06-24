@@ -244,7 +244,6 @@ class PostProcessRule(Rule):
             print(rm_rule)
 
             for i, n in enumerate(nodes_wo[:-1]):
-                print(f'{n, nodes_wo[i+1]}')
                 if (
                     n
                     and nodes_wo[i + 1]
@@ -252,11 +251,9 @@ class PostProcessRule(Rule):
                     and 'SpacesAfter' not in n.misc
                     and 'SpacesBefore' not in nodes_wo[i + 1].misc
                 ):
-                    print('HERE??')
                     if nodes_wo[i + 1].form in (',', ';', '.', '?', '!', ')', ']') and (
                         'SpaceAfter' not in n.misc or n.misc['SpaceAfter'] != 'No'
                     ):
-                        print('HERE!!')
                         correction = Node(
                             root=node.root,
                             form=n.form,
@@ -280,6 +277,8 @@ class PostProcessRule(Rule):
                         )
 
                         self._remove_as_rule(n, rm_rule)
+
+                    # this is a place to handle other space-around-punctuation logic
 
     def _capitalization(self, node):
         lines_new: list[str] = []
