@@ -291,7 +291,7 @@ class PostProcessRule(Rule):
                             rm_rule,
                             correction,
                             n.root,
-                            n.ord - 1,
+                            n.ord,
                             (n.misc[rebk] if rebk in n.misc else n.parent.ord),
                         )
 
