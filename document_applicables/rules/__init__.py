@@ -11,6 +11,7 @@ import os
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
+from udapi.core.dualdict import DualDict
 from pydantic import Field
 
 from document_applicables import Documentable
@@ -97,6 +98,33 @@ class Rule(Documentable):
         for r in roots:
             r.add_comment(comment)
 
+    def add_node_as_rule(
+        self,
+        rule_application: str,
+        new_node: Node,
+        root: Node,
+        add_after: str | int,
+        parent: str | int,
+        preserve_capitalization: bool = False,
+    ) -> str:
+        node_id = f'new_{os.urandom(4).hex()}'
+
+        self.add_global_comment(
+            json.dumps(
+                {
+                    'id': node_id,
+                    'add_after': str(add_after),
+                    'parent': parent,
+                    'preserve_capitalization': preserve_capitalization,
+                    'node': util.node_serializable(new_node),
+                }
+            ),
+            root,
+            key=f'{rule_application}:add',
+        )
+
+        return node_id
+
     def add_node(
         self, new_node: Node, root: Node, add_after: str | int, parent: str | int, preserve_capitalization: bool = False
     ) -> str:
@@ -117,23 +145,9 @@ class Rule(Documentable):
         Returns:
             str: ID of the new node; an 8-character HEX key
         """
-        node_id = f'new_{os.urandom(4).hex()}'
-
-        self.add_global_comment(
-            json.dumps(
-                {
-                    'id': node_id,
-                    'add_after': str(add_after),
-                    'parent': parent,
-                    'preserve_capitalization': preserve_capitalization,
-                    'node': util.node_serializable(new_node),
-                }
-            ),
-            root,
-            key=f'{self.__class__.id()}:{self.process_id}:add',
+        return self.add_node_as_rule(
+            f'{self.__class__.id()}:{self.process_id}', new_node, root, add_after, parent, preserve_capitalization
         )
-
-        return node_id
 
     def advance_application_id(self):
         self.process_id = self.get_application_id()
@@ -188,6 +202,10 @@ class PostProcessRule(Rule):
     def _remove_as_rule(self, node, rule_application: str):
         node.misc[f'{RULE_ANNOTATION_PREFIX}:{rule_application}:remove'] = 'post-process'
 
+    def _add_as_rule(self, new_node, root, add_after: str, parent: str, preserve_capitalization: bool = False):
+        self.add_node()
+        pass
+
     def _sentence_initial_punctuation(self, node):
         # strip sentence-beginning punctuation if preceded by continuous removal commands
         removing_rules: set[str] = self._get_removing_rules(node)
@@ -214,6 +232,54 @@ class PostProcessRule(Rule):
                     and n.ord - nodes_wo[i].ord > 1
                 ):
                     self._remove_as_rule(n, rm_rule)
+
+    def _punctuation_spacing(self, node):
+        removing_rules = self._get_removing_rules(node)
+
+        for rm_rule in removing_rules:
+            nodes_wo = self._get_after_correction_mockup(node, rm_rule)
+            if not nodes_wo:
+                continue
+
+            print(rm_rule)
+
+            for i, n in enumerate(nodes_wo[:-1]):
+                print(f'{n, nodes_wo[i+1]}')
+                if (
+                    n
+                    and nodes_wo[i + 1]
+                    and nodes_wo[i + 1].ord - n.ord > 1
+                    and 'SpacesAfter' not in n.misc
+                    and 'SpacesBefore' not in nodes_wo[i + 1].misc
+                ):
+                    print('HERE??')
+                    if nodes_wo[i + 1].form in (',', ';', '.', '?', '!', ')', ']') and (
+                        'SpaceAfter' not in n.misc or n.misc['SpaceAfter'] != 'No'
+                    ):
+                        print('HERE!!')
+                        correction = Node(
+                            root=node.root,
+                            form=n.form,
+                            lemma=n.lemma,
+                            upos=n.upos,
+                            xpos=n.xpos,
+                            feats=n.feats,
+                            deprel=n.deprel,
+                            misc=DualDict(dict(n.misc) | {'SpaceAfter': 'No'}),
+                        )
+                        self.add_node_as_rule(
+                            rm_rule,
+                            correction,
+                            n.root,
+                            str(n.ord),
+                            (
+                                n.misc[rebk]
+                                if (rebk := f'{RULE_ANNOTATION_PREFIX}:{rm_rule}:rebind' in n.misc)
+                                else str(n.parent.ord)
+                            ),
+                        )
+
+                        self._remove_as_rule(n, rm_rule)
 
     def _capitalization(self, node):
         lines_new: list[str] = []
@@ -248,6 +314,7 @@ class PostProcessRule(Rule):
         if node.udeprel == 'root':
             self._sentence_initial_punctuation(node)
             self._after_coordination_punctuation(node)
+            self._punctuation_spacing(node)
             self._capitalization(node)
 
             node.root.text = node.root.compute_text()
