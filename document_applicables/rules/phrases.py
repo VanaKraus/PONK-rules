@@ -148,7 +148,7 @@ class RuleRelativisticExpressions(PhrasesRule):
                 else:
                     for matching_node in nodes:
                         self.annotate_node('relativistic_expression', matching_node)
-                        self.advance_application_id()
+                    self.advance_application_id()
 
 
 class RuleConfirmationExpressions(PhrasesRule):
