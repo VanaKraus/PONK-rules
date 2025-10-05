@@ -124,14 +124,28 @@ class RuleTooManyNegations(ClusterRule):
 
                 self.advance_application_id()
 
-    @staticmethod
-    def _is_positive(node) -> bool:
+    @classmethod
+    def _is_positive(cls, node) -> bool:
         # the aim is to capture (positives and) pronouns denoting an entity (not asking for it or relating it)
-        return (node.feats['Polarity'] == 'Pos') or (node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind'))
+        return (
+            (node.feats['Polarity'] == 'Pos')
+            or (node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind'))
+            or cls._overrride_polarity(node)
+        )
 
-    @staticmethod
-    def _is_negative(node) -> bool:
-        return (node.feats['Polarity'] == 'Neg') or (node.feats['PronType'] == 'Neg')
+    @classmethod
+    def _is_negative(cls, node) -> bool:
+        return ((node.feats['Polarity'] == 'Neg') or (node.feats['PronType'] == 'Neg')) and not cls._overrride_polarity(
+            node
+        )
+
+    @classmethod
+    def _overrride_polarity(cls, node) -> bool:
+        """Whether the node is morphologically a negative one but should be considered positive,
+        e.g. because it expresses a term or because it doesn't usually occur in its positive variant."""
+        return node.lemma in ('zletilý', 'stranný', 'zákonný', 'zákonně', 'vinný', 'zbytný') or (
+            node.lemma == 'zaopatřený' and node.parent.lemma == 'dítě'
+        )
 
 
 class RuleTooManyNominalConstructions(ClusterRule):
