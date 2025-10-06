@@ -127,13 +127,19 @@ class RuleTooManyNegations(ClusterRule):
     @classmethod
     def _is_positive(cls, node) -> bool:
         # the aim is to capture (positives and) pronouns denoting an entity (not asking for it or relating it)
-        return (node.feats['Polarity'] == 'Pos') or (node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind'))
+        return (
+            (node.feats['Polarity'] == 'Pos')
+            or (node.feats['PronType'] in ('Prs', 'Dem', 'Tot', 'Ind'))
+            or node.lemma in ('dostatek')
+        )
 
     @classmethod
     def _is_negative(cls, node) -> bool:
-        return ((node.feats['Polarity'] == 'Neg') or (node.feats['PronType'] == 'Neg')) and not cls._overrride_polarity(
-            node
-        )
+        return (
+            (node.feats['Polarity'] == 'Neg')
+            or (node.feats['PronType'] == 'Neg')
+            or node.lemma in ('ne', 'nikoli', 'nejen', 'nedostatek')
+        ) and not cls._overrride_polarity(node)
 
     @classmethod
     def _overrride_polarity(cls, node) -> bool:
