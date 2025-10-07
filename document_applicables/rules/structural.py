@@ -190,9 +190,11 @@ class RuleMultiPartVerbs(StructuralRule):
 
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
-        if util.is_aux(node, grammatical_only=True) and not {
-            k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'
-        }:
+        if (
+            util.is_aux(node, grammatical_only=True)
+            and not util.is_clitic(node)  # word order is very binding for clitics
+            and not {k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'}
+        ):
             parent = node.parent
             if 'VerbForm' not in parent.feats:
                 return

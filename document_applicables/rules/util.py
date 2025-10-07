@@ -62,6 +62,10 @@ def is_aux(node: Node, grammatical_only: bool = False) -> bool:
     return node.udeprel in ('aux', 'expl', 'cop')
 
 
+def is_clitic(node: Node) -> bool:
+    return node.lemma in ('se')  # TODO: expand the list
+
+
 def is_finite_verb(node: Node) -> bool:
     # Is marked as finite or an l-participle (e.g. "dělal")
     return (node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
