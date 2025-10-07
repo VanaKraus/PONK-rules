@@ -143,20 +143,24 @@ class RuleInfVerbDistance(StructuralRule):
             (infinitive := node).feats['VerbForm'] == 'Inf'
             and 'VerbForm' in (verb := infinitive.parent).feats
             and not util.is_clause_root(infinitive)
-            and node.deprel != 'conj'
-            and node.upos != 'AUX'
+            and infinitive.deprel not in ('conj', 'csubj')
+            and infinitive.upos != 'AUX'
+            # it mainly attributes the za+ACC argument to the ACC argument, behaving as an "epistemic copula" of sorts
+            and verb.lemma != 'považovat'
         ):
 
             if (
                 max_dst := util.distance_from_list(
-                    util.remove_punct_sym(node.root.descendants(), keep=[verb]), verb, infinitive
+                    util.remove_punct_sym(infinitive.root.descendants(), keep=[verb]), verb, infinitive
                 )
             ) > self.max_distance:
-                self.annotate_node('infinitive', infinitive)
-                self.annotate_node('verb', verb)
+                auxiliaries = [a for a in verb.children if a.deprel in ('aux', 'cop')]
 
-                self.annotate_measurement('max_distance', max_dst, infinitive, verb)
-                self.annotate_parameter('max_distance', self.max_distance, infinitive, verb)
+                self.annotate_node('infinitive', infinitive)
+                self.annotate_node('verb', verb, *auxiliaries)
+
+                self.annotate_measurement('max_distance', max_dst, infinitive, verb, *auxiliaries)
+                self.annotate_parameter('max_distance', self.max_distance, infinitive, verb, *auxiliaries)
 
                 self.advance_application_id()
 
