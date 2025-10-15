@@ -23,7 +23,7 @@ from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
-    RuleIncompleteConjunction,
+    RuleIncompleteConstruction,
 )
 from document_applicables.rules.ambiguity import (
     RuleDoubleAdpos,

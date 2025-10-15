@@ -4,7 +4,7 @@ from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
-    RuleIncompleteConjunction,
+    RuleIncompleteConstruction,
 )
 from document_applicables.rules.ambiguity import (
     RuleDoubleAdpos,
@@ -76,7 +76,7 @@ def get_minimal_rules() -> list[Rule]:
             RuleDoubleComparison(),
             RuleWrongValencyCase(),
             RuleWrongVerbonominalCase(),
-            RuleIncompleteConjunction(),
+            RuleIncompleteConstruction(),
             RuleGPcoordovs(),
             RuleGPdeverbaddr(),
             RuleGPpatinstr(),
@@ -93,6 +93,7 @@ def get_minimal_rules() -> list[Rule]:
 
 
 def get_noninstitutional_rules() -> list[Rule]:
+    # TODO: allow RuleIncompleteConstruction
     return [
         # --- fluency ----
         # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below

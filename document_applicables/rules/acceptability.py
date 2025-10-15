@@ -202,29 +202,47 @@ class RuleWrongVerbonominalCase(AcceptabilityRule):
             self.advance_application_id()
 
 
-class RuleIncompleteConjunction(AcceptabilityRule):
-    """Capture incomplete multi-token conjunctions.
+class RuleIncompleteConstruction(AcceptabilityRule):
+    """Capture incomplete multi-token constructions.
 
     Inspiration: Sgall & Panevová (2014, p. 85).
     """
 
-    rule_id: Literal['RuleIncompleteConjunction'] = 'RuleIncompleteConjunction'
-    # TODO: English terminology
-    cz_human_readable_name: str = 'Neúplná složená spojka'
-    en_human_readable_name: str = 'Incomplete analytic conjunction'
-    cz_doc: str = 'Vazba se spojkou „jednak“ vyžaduje i druhé „jednak“. Srov. Sgall & Panevová (2014, s. 85).'
-    en_doc: str = (
-        'The conjunction “jednak” requires its second part (“jednak … jednak”). Cf. Sgall & Panevová (2014, p. 85).'
-    )
-    cz_paricipants: dict[str, str] = {'conj_part': 'Část spojky'}
-    en_paricipants: dict[str, str] = {'conj_part': 'Part of the conjunction'}
+    rule_id: Literal['RuleIncompleteConstruction'] = 'RuleIncompleteConstruction'
+    cz_human_readable_name: str = 'Neúplná konstrukce'
+    en_human_readable_name: str = 'Incomplete construction'
+    cz_doc: str = 'Také srov. Sgall & Panevová (2014, s. 85).'
+    en_doc: str = 'Also cf. Sgall & Panevová (2014, p. 85).'
+    cz_paricipants: dict[str, str] = {
+        'jednak': 'Spojka „jednak“ vyžaduje i druhé „jednak“',
+        'bud': 'Spojku „buď“ má následovat „nebo“ (příp. „anebo“)',
+        'zaprve': 'Příslovce „zaprvé“ by mělo následovat „zadruhé“',
+    }
+    en_paricipants: dict[str, str] = {
+        'jednak': 'The conjunction “jednak” requires its second part (“jednak … jednak”)',
+        'bud': 'The conjunction „buď“ should be followed by „nebo“ (or „anebo“)',
+        'zaprve': 'The adverb “zaprvé” should be followed by “zadruhé”',
+    }
 
     def process_node(self, node: Node):
+        # TODO: this should see over sentence boundaries
         if node.lemma == 'jednak':
             conjunctions = [c for c in node.root.descendants() if c != node and c.lemma == 'jednak']
 
             if len(conjunctions) == 0:
-                self.annotate_node('conj_part', node)
+                self.annotate_node('jednak', node)
+                self.advance_application_id()
+
+        elif node.lemma == 'buď' and node.upos == 'CCONJ':
+            if not [
+                c for s in node.parent.children if s.ord > node.ord for c in s.children if c.lemma in ('nebo', 'anebo')
+            ]:
+                self.annotate_node('bud', node)
+                self.advance_application_id()
+
+        elif node.lemma == 'zaprvé':
+            if not [t for t in node.root.descendants() if t.ord > node.ord and t.lemma in ('zadruhé', 'zadruhý')]:
+                self.annotate_node('zaprve', node)
                 self.advance_application_id()
 
 
