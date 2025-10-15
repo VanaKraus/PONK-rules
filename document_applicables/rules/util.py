@@ -4,6 +4,7 @@ from typing import Iterable
 
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
+from udapi.core.bundle import Bundle
 from ufal.morphodita import Morpho, TaggedLemmasForms
 
 # FIXME: cyclic import
@@ -132,6 +133,31 @@ def get_coord_element_phrase(node: Node) -> list[Node]:
             to_remove += d.descendants(add_self=True)
 
     return [d for d in res if d not in to_remove] + [node]
+
+
+def get_surrounding_bundles(node: Node, no_prev: int, no_next: int, exclude_self: bool = False) -> list[Bundle]:
+    bundles = node.root.document.bundles
+    current_bundle_idx = bundles.index(node.root.bundle)
+
+    first_idx = max(current_bundle_idx - no_prev, 0)
+    last_idx = min(current_bundle_idx + no_next, len(bundles) - 1)
+
+    res = bundles[first_idx : last_idx + 1]
+    if exclude_self:
+        res.remove(node.root.bundle)
+
+    return res
+
+
+def serialize_bundles(*bundle: Bundle) -> list[Node]:
+    return [n for b in bundle for n in b.nodes]
+
+
+def get_surrounding_bundles_serialize(
+    node: Node, no_prev: int, no_next: int, exclude_self: bool = False, no_punct_sym: bool = False
+) -> list[Node]:
+    res = serialize_bundles(*get_surrounding_bundles(node, no_prev, no_next, exclude_self))
+    return remove_punct_sym(res) if no_punct_sym else res
 
 
 def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:

@@ -206,13 +206,26 @@ class RuleIncompleteConstruction(AcceptabilityRule):
     """Capture incomplete multi-token constructions.
 
     Inspiration: Sgall & Panevová (2014, p. 85).
+
+    Attributes:
+        max_right_context_length (int): within how many tokens (punctuation and symbols excluded) \
+            the completion is looked for.
+        max_right_bundles (int): within how many bundles (sentences) to the right the completeion \
+            is looked for.
     """
 
     rule_id: Literal['RuleIncompleteConstruction'] = 'RuleIncompleteConstruction'
+    max_right_context_length: int = 50
+    max_right_bundles: int = 3
+
     cz_human_readable_name: str = 'Neúplná konstrukce'
     en_human_readable_name: str = 'Incomplete construction'
-    cz_doc: str = 'Také srov. Sgall & Panevová (2014, s. 85).'
-    en_doc: str = 'Also cf. Sgall & Panevová (2014, p. 85).'
+    cz_doc: str = (
+        'Ujistěte se také, že od sebe části konstrukce nejsou příliš vzdálené. Srov. Sgall & Panevová (2014, s. 85).'
+    )
+    en_doc: str = (
+        'Also make sure that the elements of the construction are not too far apart. Cf. Sgall & Panevová (2014, p. 85).'
+    )
     cz_paricipants: dict[str, str] = {
         'jednak': 'Spojka „jednak“ vyžaduje i druhé „jednak“',
         'bud': 'Spojku „buď“ má následovat „nebo“ (příp. „anebo“)',
@@ -225,24 +238,49 @@ class RuleIncompleteConstruction(AcceptabilityRule):
     }
 
     def process_node(self, node: Node):
-        # TODO: this should see over sentence boundaries
         if node.lemma == 'jednak':
-            conjunctions = [c for c in node.root.descendants() if c != node and c.lemma == 'jednak']
+            right_context = [
+                c
+                for c in util.get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
+                if node.precedes(c)
+            ][: self.max_right_context_length]
 
-            if len(conjunctions) == 0:
+            # this is to check if it already is preceded by another "jednak"
+            left_context = [
+                c
+                for c in util.get_surrounding_bundles_serialize(node, self.max_right_bundles, 0, no_punct_sym=True)
+                if c.precedes(node)
+            ][-self.max_right_context_length :]
+
+            if not [c for c in left_context + right_context if c.lemma == 'jednak']:
                 self.annotate_node('jednak', node)
+                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
+                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
                 self.advance_application_id()
 
-        elif node.lemma == 'buď' and node.upos == 'CCONJ':
+        elif node.lemma in ('buď', 'buďto') and node.upos == 'CCONJ':
             if not [
                 c for s in node.parent.children if s.ord > node.ord for c in s.children if c.lemma in ('nebo', 'anebo')
             ]:
                 self.annotate_node('bud', node)
+                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
+                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
                 self.advance_application_id()
 
         elif node.lemma == 'zaprvé':
-            if not [t for t in node.root.descendants() if t.ord > node.ord and t.lemma in ('zadruhé', 'zadruhý')]:
+            right_context = [
+                n
+                for n in util.get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
+                if node.precedes(n)
+            ][: self.max_right_context_length]
+
+            if zaprv_i := [i for i, n in enumerate(right_context) if n.lemma == 'zaprvé']:
+                right_context = right_context[: zaprv_i[0]]
+
+            if not [t for t in right_context if t.lemma in ('zadruhé', 'zadruhý')]:
                 self.annotate_node('zaprve', node)
+                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
+                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
                 self.advance_application_id()
 
 
