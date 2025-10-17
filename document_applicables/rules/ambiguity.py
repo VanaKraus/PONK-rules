@@ -45,87 +45,83 @@ class RuleDoubleAdpos(AmbiguityRule):
         'orig_adpos': 'Předložka u prvního členu',
         'add': 'Předložka u druhého členu',
         'cconj': 'Spojka souřadicí',
-        'coord_el1': 'První člen spojení',
-        'coord_el2': 'Druhý člen spojení',
+        'coord_el': 'Člen spojení',
     }
     en_paricipants: dict[str, str] = {
         'orig_adpos': 'Preposition on the 1st element',
         'add': 'Preposition on the 2nd element',
         'cconj': 'Coordinate conjunction',
-        'coord_el1': '1st element of the coordination',
-        'coord_el2': '2nd element of the coordination',
+        'coord_el': 'Coordination element',
     }
 
+    @classmethod
+    def _adpositions(cls, node: Node) -> list[Node]:
+        return [nd for nd in node.children if nd.udeprel == "case" and nd.upos == "ADP"]
+
+    @classmethod
+    def _has_adposition(cls, node: Node) -> bool:
+        return bool(cls._adpositions(node))
+
     def process_node(self, node: Node):
-        if node.deprel != 'conj' or node.parent.parent is None:  # in case parent_adpos doesn't have a parent
-            return  # nothing we can do for this node, bail
+        if self._has_adposition(node):
+            # get all tokens the node is coordinated with (i.e. the whole coordination)
+            coordinations = [c for c in node.children if c.deprel == 'conj' and c.feats['Case'] == node.feats['Case']]
 
-        coord_el2 = node
+            # these will point to last element with an adposition throughout iterating
+            ref_el, ref_adp = node, self._adpositions(node)[-1]
 
-        # find an adposition present in the coordination
-        for parent_adpos in [nd for nd in coord_el2.siblings if nd.udeprel == "case" and nd.upos == "ADP"]:
-            coord_el1 = parent_adpos.parent
-            parent_adpos_desc = parent_adpos.descendants(add_self=True)
+            # reference element and no-adposition elements following it
+            coord_chain = [ref_el]
 
-            # check that the two coordination elements have the same case
-            if coord_el2.feats["Case"] != coord_el1.feats["Case"]:
-                continue
+            def attempt_coord_chain_annotation():
+                '''Check if annotation is desired and handle the process.'''
+                # if tokens without an adposition visited previously
+                if len(coord_chain) > 1:
+                    adp_highlight = ref_adp.descendants(add_self=True)
+                    element_phrases = [
+                        nd
+                        for el in coord_chain
+                        for nd in util.get_coord_element_phrase(el)
+                        if nd not in adp_highlight and not (nd.lemma == '.' and nd.parent.deprel == 'root')
+                    ]
+                    cconj_highlight = [nd for nd in element_phrases if nd.deprel == 'cc']
+                    el_highlight = [nd for nd in element_phrases if nd not in cconj_highlight]
 
-            # check that the two coordination elements aren't too close to each-other
-            if (dst := coord_el2.ord - coord_el1.ord) <= self.max_allowable_distance:
-                continue
+                    self.annotate_node('orig_adpos', *adp_highlight)
+                    self.annotate_node('coord_el', *el_highlight)
+                    self.annotate_node('cconj', *cconj_highlight)
 
-            # check that the second coordination element doesn't already have an adposition
-            if not [nd for nd in coord_el2.children if nd.lemma == parent_adpos.lemma] and not [
-                nd for nd in coord_el2.children if nd.upos == "ADP"
-            ]:
-                cconj = ([None] + [c for c in coord_el2.children if c.deprel in ('cc', 'punct') and c.lemma != '.'])[-1]
-
-                if not self.detect_only:
-                    raise NotImplementedError('multi-word adposition handling not implemented')
-                    correction = util.clone_node(
-                        parent_adpos,
-                        coord_el2,
-                        filter_misc_keys=r"^(?!Rule).*",
-                        include_subtree=True,
+                    self.annotate_parameter(
+                        'max_allowable_distance',
+                        self.max_allowable_distance,
+                        *adp_highlight,
+                        *el_highlight,
+                        *cconj_highlight,
+                    )
+                    self.annotate_measurement(
+                        'max_allowable_distance',
+                        coord_chain[-1].ord - ref_el.ord,
+                        *adp_highlight,
+                        *el_highlight,
+                        *cconj_highlight,
                     )
 
-                    correction.form = parent_adpos.form.lower()
-                    if cconj:
-                        correction.shift_after_subtree(cconj)
-                    else:
-                        correction.shift_before_node(coord_el2.descendants(add_self=True)[0])
+                    self.advance_application_id()
 
-                    for node_to_annotate in correction.descendants(add_self=True):
+            for coord in coordinations:
+                # token has an adposition
+                if adps := self._adpositions(coord):
+                    attempt_coord_chain_annotation()
 
-                        self.annotate_node('add', node_to_annotate)
+                    # reset
+                    ref_el, ref_adp = coord, adps[-1]
+                    coord_chain = [ref_el]
 
-                cel1highlight = [d for d in util.get_coord_element_phrase(coord_el1) if d not in parent_adpos_desc]
-                cel2highlight = util.get_coord_element_phrase(coord_el2)
+                # token has no adposition and is too far from the reference element
+                elif coord.ord - ref_el.ord > self.max_allowable_distance:
+                    coord_chain += [coord]
 
-                if cconj:
-                    self.annotate_node('cconj', cconj)
-                    self.annotate_measurement('max_allowable_distance', dst, cconj)
-                    self.annotate_parameter('max_allowable_distance', self.max_allowable_distance, cconj)
-
-                self.annotate_measurement(
-                    'max_allowable_distance', dst, *parent_adpos_desc, *cel1highlight, *cel2highlight
-                )
-                self.annotate_parameter(
-                    'max_allowable_distance',
-                    self.max_allowable_distance,
-                    *parent_adpos_desc,
-                    *cel1highlight,
-                    *cel2highlight,
-                )
-                self.annotate_node('orig_adpos', *parent_adpos_desc)
-                self.annotate_node('coord_el1', *cel1highlight)
-                self.annotate_node('coord_el2', *cel2highlight)
-
-                self.advance_application_id()
-
-                if not self.detect_only:
-                    self.modified_roots.add(cconj.root)
+            attempt_coord_chain_annotation()
 
 
 class RuleAmbiguousRegards(AmbiguityRule):
