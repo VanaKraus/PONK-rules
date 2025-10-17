@@ -93,7 +93,7 @@ def get_minimal_rules() -> list[Rule]:
 
 
 def get_noninstitutional_rules() -> list[Rule]:
-    # TODO: allow RuleIncompleteConstruction & RuleDoubleAdpos
+    # TODO: allow RuleIncompleteConstruction & RuleDoubleAdpos & RuleInfVerbDistance
     return [
         # --- fluency ----
         # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
