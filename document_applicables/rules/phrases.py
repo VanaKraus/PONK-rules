@@ -645,7 +645,7 @@ class RuleLiteraryStyle(PhrasesRule):
             self.annotate_node('ne_pronoun_form', node)
             self.advance_application_id()
 
-        elif node.lemma == 'jenž':
+        elif node.lemma == 'jenž' and node.feats['Case'] == 'Nom':
             self.annotate_node('jenž', node)
             self.advance_application_id()
 
