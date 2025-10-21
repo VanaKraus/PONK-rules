@@ -41,7 +41,9 @@ class RuleTooFewVerbs(ClusterRule):
     en_paricipants: dict[str, str] = {'verb': 'Verb'}
 
     def is_verb(self, node):
-        return is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
+        return (is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')) and not (
+            node.form.lower() == 'srov' and node.feats['Abbr'] == 'Yes'
+        )
 
     def process_node(self, node):
         if node.udeprel == 'root':
