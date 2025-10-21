@@ -9,7 +9,7 @@ from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.grammar_semantics import is_finite_verb, is_aux, is_named_entity, NEregister
 from document_applicables.rules.util.structure_info import is_clause_root
-from document_applicables.rules.util.structure_retrieval import get_clause
+from document_applicables.rules.util.structure_retrieval import get_clause, get_phrase_heads
 from document_applicables.rules.util.structure_modif import rules_applied
 
 
@@ -68,7 +68,7 @@ class RuleTooFewVerbs(ClusterRule):
                 )
             ]
 
-            if (min_frac := len(verbs) / len(sentence)) < self.min_verb_frac:
+            if (min_frac := len(verbs) / max(len(get_phrase_heads(sentence)), 1)) < self.min_verb_frac:
                 self.annotate_node('verb', *verbs)
 
                 self.annotate_measurement('min_verb_frac', min_frac, *verbs)
