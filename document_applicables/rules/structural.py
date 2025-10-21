@@ -7,7 +7,7 @@ from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb
 from document_applicables.rules.util.measurement import distance_from_list
 from document_applicables.rules.util.structure_info import is_clause_root
-from document_applicables.rules.util.structure_retrieval import remove_punct_sym, get_clause
+from document_applicables.rules.util.structure_retrieval import remove_punct_sym, get_phrase_heads, get_clause
 from document_applicables.rules.util.structure_modif import rules_applied
 
 
@@ -68,7 +68,7 @@ class RulePredSubjDistance(StructuralRule):
                     subj = clause[0]
 
             if (
-                max_dst := distance_from_list(remove_punct_sym(node.root.descendants(), keep=(subj, pred)), subj, pred)
+                max_dst := distance_from_list(get_phrase_heads(node.root.descendants(), keep=(subj, pred)), subj, pred)
             ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
@@ -108,7 +108,7 @@ class RulePredObjDistance(StructuralRule):
 
             if (
                 max_dst := distance_from_list(
-                    remove_punct_sym(node.root.descendants(), keep=(node, parent)), node, parent
+                    get_phrase_heads(node.root.descendants(), keep=(node, parent)), node, parent
                 )
             ) > self.max_distance:
                 self.annotate_node('object', node)
@@ -153,7 +153,7 @@ class RuleInfVerbDistance(StructuralRule):
 
             if (
                 max_dst := distance_from_list(
-                    remove_punct_sym(infinitive.root.descendants(), keep=[verb]), verb, infinitive
+                    get_phrase_heads(infinitive.root.descendants(), keep=[verb]), verb, infinitive
                 )
             ) > self.max_distance:
                 auxiliaries = [a for a in verb.children if a.deprel in ('aux', 'cop')]
@@ -208,7 +208,7 @@ class RuleMultiPartVerbs(StructuralRule):
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
-            sentence_wo_punct_sym = remove_punct_sym(node.root.descendants(), keep=(parent, *auxiliaries))
+            sentence_wo_punct_sym = get_phrase_heads(node.root.descendants(), keep=(parent, *auxiliaries))
 
             too_far_apart = False
             max_dst = 0
@@ -259,9 +259,9 @@ class RuleLongSentences(StructuralRule):
             if not descendants:
                 return
 
-            words_and_numerals = remove_punct_sym(descendants)
+            phrases = get_phrase_heads(descendants)
 
-            if (max_length := len(words_and_numerals)) > self.max_length:
+            if (max_length := len(phrases)) > self.max_length:
                 self.annotate_node('long_sentence', *descendants)
 
                 self.annotate_measurement('max_length', max_length, *descendants)
@@ -311,18 +311,16 @@ class RulePredAtClauseBeginning(StructuralRule):
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
-            sentence_wo_punct_sym = remove_punct_sym(node.root.descendants(), keep=[first_predicate_token])
+            phrases = get_phrase_heads(node.root.descendants(), keep=[first_predicate_token])
 
-            clause_filter_intersect = [n for n in clause if n in sentence_wo_punct_sym]
+            clause_filter_intersect = [n for n in clause if n in phrases]
             if not clause_filter_intersect:
                 return
 
             clause_beginning = clause_filter_intersect[0]
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
-            if (
-                max_ord := distance_from_list(sentence_wo_punct_sym, first_predicate_token, clause_beginning) + 1
-            ) > self.max_order:
+            if (max_ord := distance_from_list(phrases, first_predicate_token, clause_beginning) + 1) > self.max_order:
                 self.annotate_node('predicate', *predicate_tokens)
 
                 self.annotate_measurement('max_order', max_ord, *predicate_tokens)

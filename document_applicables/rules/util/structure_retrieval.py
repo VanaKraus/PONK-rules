@@ -90,9 +90,9 @@ def remove_punct_sym(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]
 
 def get_phrase_heads(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]:
     """Retrieve only such nodes that would be considered phrase heads. \
-         So far, this simply removes adjectival modifiers from the list."""
+         So far, this simply removes adjectival modifiers and adpositions from the list."""
     return [
         n
         for n in remove_punct_sym(nodes, keep=keep)
-        if not (n.deprel == 'amod' and n.feats['Case'] == n.parent.feats['Case']) or n in keep
+        if not (n.deprel in ('amod', 'det', 'case', 'fixed') and n.feats['Case'] == n.parent.feats['Case']) or n in keep
     ]
