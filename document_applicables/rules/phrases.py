@@ -4,7 +4,11 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, Color, util
+from document_applicables.rules import Rule
+from document_applicables.rules.util.communication import Color
+from document_applicables.rules.util.structure_info import descendants_include
+from document_applicables.rules.util.grammar_semantics import is_adposition
+from document_applicables.rules.util.structure_modif import get_removing_rules
 
 
 class PhrasesRule(Rule):
@@ -90,20 +94,18 @@ class RuleAbstractNouns(PhrasesRule):
             case 'stupeň':
                 # modifiers listed to exclude various elementary school grades.
                 # might be useful to discriminate court instances, which would however require more sophistication
-                return node.parent.lemma == 'soud' or util.descendants_include(
-                    node, {'první', 'druhý', '1', '2', 'I', 'II'}
-                )
+                return node.parent.lemma == 'soud' or descendants_include(node, {'první', 'druhý', '1', '2', 'I', 'II'})
             case 'činnost':
-                return util.descendants_include(node, {'trestný', 'pracovní'})
+                return descendants_include(node, {'trestný', 'pracovní'})
             case 'základ':
-                return util.descendants_include(node, {'mzda', 'stavba'})
+                return descendants_include(node, {'mzda', 'stavba'})
 
         return False
 
     def process_node(self, node):
         if (
             node.lemma in self._abstract_nouns
-            and not util.is_adposition(node)
+            and not is_adposition(node)
             and not self._is_terminology(node)
             and node.feats['Polarity'] != 'Neg'
             and node.feats['Abbr'] != 'Yes'
@@ -351,7 +353,7 @@ class RuleTooLongExpressions(PhrasesRule):
 
                         self.annotate_action('remove', node, noun, *adp)
                         for c in noun.children:
-                            if f'{self.id()}:{self.process_id}' not in util.get_removing_rules(c):
+                            if f'{self.id()}:{self.process_id}' not in get_removing_rules(c):
                                 self.annotate_action('rebind', c, value=noun.parent.ord)
 
                     self.advance_application_id()

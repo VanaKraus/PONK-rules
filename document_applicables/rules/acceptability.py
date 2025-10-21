@@ -4,7 +4,9 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util, Color  # , derinet_lexicon
+from document_applicables.rules import Rule  # , derinet_lexicon
+from document_applicables.rules.util.communication import Color
+from document_applicables.rules.util.structure_retrieval import get_surrounding_bundles_serialize
 
 
 class AcceptabilityRule(Rule):
@@ -241,14 +243,14 @@ class RuleIncompleteConstruction(AcceptabilityRule):
         if node.lemma == 'jednak':
             right_context = [
                 c
-                for c in util.get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
+                for c in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
                 if node.precedes(c)
             ][: self.max_right_context_length]
 
             # this is to check if it already is preceded by another "jednak"
             left_context = [
                 c
-                for c in util.get_surrounding_bundles_serialize(node, self.max_right_bundles, 0, no_punct_sym=True)
+                for c in get_surrounding_bundles_serialize(node, self.max_right_bundles, 0, no_punct_sym=True)
                 if c.precedes(node)
             ][-self.max_right_context_length :]
 
@@ -270,7 +272,7 @@ class RuleIncompleteConstruction(AcceptabilityRule):
         elif node.lemma == 'zaprvé':
             right_context = [
                 n
-                for n in util.get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
+                for n in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
                 if node.precedes(n)
             ][: self.max_right_context_length]
 

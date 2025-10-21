@@ -18,7 +18,7 @@ from document_applicables import Documentable
 from document_applicables.rules import util
 
 
-from document_applicables.rules.util import Color
+from document_applicables.rules.util.communication import Color
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
