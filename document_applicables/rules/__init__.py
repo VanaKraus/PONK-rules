@@ -15,10 +15,8 @@ from udapi.core.dualdict import DualDict
 from pydantic import Field
 
 from document_applicables import Documentable
-from document_applicables.rules import util
-
-
-from document_applicables.rules.util import Color
+from document_applicables.rules.util.communication import Color
+from document_applicables.rules.util.structure_modif import get_removing_rules, node_serializable
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
@@ -89,7 +87,7 @@ class Rule(Documentable):
                 raise ValueError('rebind target not specified')
 
             for n in node:
-                if rule_application in util.get_removing_rules(n):
+                if rule_application in get_removing_rules(n):
                     return
 
         if action == 'remove':
@@ -151,7 +149,7 @@ class Rule(Documentable):
                     'add_after': str(add_after),
                     'parent': str(parent),
                     'preserve_capitalization': preserve_capitalization,
-                    'node': util.node_serializable(new_node),
+                    'node': node_serializable(new_node),
                 }
             ),
             root,
@@ -231,7 +229,7 @@ class PostProcessRule(Rule):
 
     def _sentence_initial_punctuation(self, node):
         # strip sentence-beginning punctuation if preceded by continuous removal commands
-        removing_rules: set[str] = util.get_removing_rules(node, descendants=True)
+        removing_rules: set[str] = get_removing_rules(node, descendants=True)
 
         for r in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, r)
@@ -239,7 +237,7 @@ class PostProcessRule(Rule):
                 self._remove_as_rule(nodes_wo[0], r)
 
     def _after_coordination_punctuation(self, node):
-        removing_rules = util.get_removing_rules(node, descendants=True)
+        removing_rules = get_removing_rules(node, descendants=True)
 
         for rm_rule in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, rm_rule)
@@ -257,7 +255,7 @@ class PostProcessRule(Rule):
                     self._remove_as_rule(n, rm_rule)
 
     def _punctuation_spacing(self, node):
-        removing_rules = util.get_removing_rules(node, descendants=True)
+        removing_rules = get_removing_rules(node, descendants=True)
 
         for rm_rule in removing_rules:
             nodes_wo = self._get_after_correction_mockup(node, rm_rule)

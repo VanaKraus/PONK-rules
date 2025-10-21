@@ -5,7 +5,12 @@ import math
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util, Color
+from document_applicables.rules import Rule
+from document_applicables.rules.util.communication import Color
+from document_applicables.rules.util.grammar_semantics import is_finite_verb, is_aux, is_named_entity, NEregister
+from document_applicables.rules.util.structure_info import is_clause_root
+from document_applicables.rules.util.structure_retrieval import get_clause, get_phrase_heads
+from document_applicables.rules.util.structure_modif import rules_applied
 
 
 class ClusterRule(Rule):
@@ -36,11 +41,13 @@ class RuleTooFewVerbs(ClusterRule):
     en_paricipants: dict[str, str] = {'verb': 'Verb'}
 
     def is_verb(self, node):
-        return util.is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
+        return (is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')) and not (
+            node.form.lower() == 'srov' and node.feats['Abbr'] == 'Yes'
+        )
 
     def process_node(self, node):
         if node.udeprel == 'root':
-            sentence = util.get_clause(node, without_punctuation=True, node_is_root=True)
+            sentence = get_clause(node, without_punctuation=True, node_is_root=True)
 
             if not sentence:
                 return
@@ -51,19 +58,19 @@ class RuleTooFewVerbs(ClusterRule):
                 for nd in sentence
                 if self.is_verb(nd)
                 and not (
-                    util.is_aux(nd, grammatical_only=True)
+                    is_aux(nd, grammatical_only=True)
                     and (
                         self.is_verb(nd.parent)
                         or [
                             preceding_nd
                             for preceding_nd in nd.parent.descendants(preceding_only=True)
-                            if preceding_nd != nd and util.is_aux(preceding_nd, grammatical_only=True)
+                            if preceding_nd != nd and is_aux(preceding_nd, grammatical_only=True)
                         ]
                     )
                 )
             ]
 
-            if (min_frac := len(verbs) / len(sentence)) < self.min_verb_frac:
+            if (min_frac := len(verbs) / max(len(get_phrase_heads(sentence)), 1)) < self.min_verb_frac:
                 self.annotate_node('verb', *verbs)
 
                 self.annotate_measurement('min_verb_frac', min_frac, *verbs)
@@ -104,7 +111,7 @@ class RuleTooManyNegations(ClusterRule):
 
     def process_node(self, node):
         if node.udeprel == 'root':
-            clause = util.get_clause(node, without_punctuation=True, node_is_root=True)
+            clause = get_clause(node, without_punctuation=True, node_is_root=True)
 
             positives = [nd for nd in clause if self._is_positive(nd)]
             negatives = [nd for nd in clause if self._is_negative(nd)]
@@ -176,8 +183,8 @@ class RuleTooManyNominalConstructions(ClusterRule):
     max_allowable_nouns: int = 3
 
     def process_node(self, node: Node):
-        if util.is_clause_root(node):
-            clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+        if is_clause_root(node):
+            clause = get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
             clause_tmp = clause.copy()
 
             # separate into subclauses if an embedded clause is present
@@ -189,7 +196,7 @@ class RuleTooManyNominalConstructions(ClusterRule):
             subclauses.append(clause_tmp)
 
             for subclause in subclauses:
-                nouns = [n for n in subclause if n.upos == 'NOUN' and (n.ord == 1 or not util.is_named_entity(n))]
+                nouns = [n for n in subclause if n.upos == 'NOUN' and (n.ord == 1 or not is_named_entity(n))]
 
                 if (l := len(nouns)) > self.max_allowable_nouns and (
                     noun_frac := float(l) / len(subclause)
@@ -259,7 +266,7 @@ class RuleCaseRepetition(ClusterRule):
 
     def process_node(self, node: Node):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
-            descendants = util.get_clause(node, without_punctuation=True, without_subordinates=True)
+            descendants = get_clause(node, without_punctuation=True, without_subordinates=True)
 
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
@@ -283,7 +290,7 @@ class RuleCaseRepetition(ClusterRule):
             following_nodes = [n for n in following_nodes if n.ord < min_conj_ord]
 
             while len(following_nodes) >= self.max_repetition_count:
-                ne_reg = util.NEregister(node)
+                ne_reg = NEregister(node)
 
                 same_case_nodes = [
                     n
@@ -297,7 +304,7 @@ class RuleCaseRepetition(ClusterRule):
                     break
 
                 # if the rule has already been applied to all nodes in same_case_nodes, there's no point in continuing
-                notes_already_visited = [n for n in same_case_nodes if self.__class__.id() in util.rules_applied(n)]
+                notes_already_visited = [n for n in same_case_nodes if self.__class__.id() in rules_applied(n)]
                 if len(notes_already_visited) == len(same_case_nodes):
                     break
 

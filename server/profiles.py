@@ -97,7 +97,8 @@ def get_noninstitutional_rules() -> list[Rule]:
     return [
         # --- fluency ----
         # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
-        RuleTooFewVerbs(min_verb_frac=0.06),  # default value
+        # RuleTooFewVerbs(min_verb_frac=0.06),  # default value
+        RuleTooFewVerbs(min_verb_frac=0.1),  # TODO: temporary adjustment to the new measurement criteria
         RuleTooManyNominalConstructions(
             max_allowable_nouns=5,
             max_noun_frac=0.4,  # wouldn't catch anything with 0.728

@@ -4,7 +4,19 @@ from typing import Literal
 
 from udapi.core.node import Node
 
-from document_applicables.rules import Rule, util, Color
+from document_applicables.rules import Rule
+from document_applicables.rules.util.communication import Color
+from document_applicables.rules.util.grammar_semantics import (
+    is_adposition,
+    is_finite_verb,
+    is_animate,
+    n_syncretic,
+    n_syncretic_with,
+    feat_overlap,
+)
+from document_applicables.rules.util.structure_info import is_clause_root
+from document_applicables.rules.util.structure_retrieval import get_coord_element_phrase, get_clause, get_clause_root
+from document_applicables.rules.util.external_tools import morphodita_generate
 
 
 class AmbiguityRule(Rule):
@@ -81,7 +93,7 @@ class RuleDoubleAdpos(AmbiguityRule):
                     element_phrases = [
                         nd
                         for el in coord_chain
-                        for nd in util.get_coord_element_phrase(el)
+                        for nd in get_coord_element_phrase(el)
                         if nd not in adp_highlight and not (nd.lemma == '.' and nd.parent.deprel == 'root')
                     ]
                     cconj_highlight = [nd for nd in element_phrases if nd.deprel == 'cc']
@@ -163,8 +175,8 @@ class RuleAmbiguousRegards(AmbiguityRule):
     def process_node(self, node):
         if (
             (sconj := node).lemma == 'než'
-            and not util.is_clause_root(landmark := node.parent)
-            and not [c for c in landmark.children if util.is_adposition(c)]
+            and not is_clause_root(landmark := node.parent)
+            and not [c for c in landmark.children if is_adposition(c)]
             and (comparative := landmark.parent)
             and comparative.feats['Degree'] == 'Cmp'
             and comparative.parent
@@ -217,9 +229,9 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
             node.deprel in ('expl:pass', 'obj')
             and node.form.lower() == 'se'
             and (verb := node.parent)
-            and util.is_finite_verb(verb)
+            and is_finite_verb(verb)
             and (subj := [s for s in verb.children if s.udeprel == 'nsubj'])
-            and util.is_animate(subj[0])
+            and is_animate(subj[0])
         ):
             self.annotate_node('refl_pass', node, verb)
             self.annotate_node('subj', subj[0])
@@ -246,7 +258,7 @@ class RuleGPcoordovs(AmbiguityRule):
     en_paricipants: dict[str, str] = {'same_case': 'Same case'}
 
     def process_node(self, node: Node):
-        if (node.deprel in ('punct', 'cc')) and node.parent.deprel == 'conj' and util.is_clause_root(node.parent):
+        if (node.deprel in ('punct', 'cc')) and node.parent.deprel == 'conj' and is_clause_root(node.parent):
             sentence = node.root.descendants()
 
             if (
@@ -262,8 +274,8 @@ class RuleGPcoordovs(AmbiguityRule):
                     and 'Case' in next.feats
                     and 'case' not in (previous.deprel, next.deprel)
                     and previous.feats['Case'] == next.feats['Case']
-                    and not util.is_clause_root(previous)
-                    and not util.is_clause_root(next)
+                    and not is_clause_root(previous)
+                    and not is_clause_root(next)
                     and 'Rel' not in next.feats['PronType'].split(',')
                 ):
                     self.annotate_node('same_case', previous, next)
@@ -297,12 +309,12 @@ class RuleGPdeverbaddr(AmbiguityRule):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Dat', 'Ins')
-            and not util.is_adposition(node)
-            and util.is_animate(node)  # ADDR should be animate
-            and not [c for c in node.children if util.is_adposition(c) or c.feats['Case'] == node.feats['Case']]
+            and not is_adposition(node)
+            and is_animate(node)  # ADDR should be animate
+            and not [c for c in node.children if is_adposition(c) or c.feats['Case'] == node.feats['Case']]
         ):
-            clause_root = util.get_clause_root(node)
-            clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
+            clause_root = get_clause_root(node)
+            clause = get_clause(clause_root, without_subordinates=True, node_is_root=True)
 
             if node.ord > clause_root.ord and (  # node after the predicate
                 pbind := [  # nodes the node could possibly bind onto
@@ -312,7 +324,7 @@ class RuleGPdeverbaddr(AmbiguityRule):
                 ]
             ):
                 tag_wildcard = node.xpos[:3] + '?[37]' + node.xpos[5:]  # generate DAT and INS only
-                paradigms = util.morphodita_generate(node.lemma, tag_wildcard)
+                paradigms = morphodita_generate(node.lemma, tag_wildcard)
 
                 for p in paradigms:
                     for tag, form in p.items():
@@ -360,17 +372,17 @@ class RuleGPpatinstr(AmbiguityRule):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Acc', 'Ins')
-            and not util.is_adposition(node)
+            and not is_adposition(node)
             and not node.deprel == 'conj'
             and not [
                 c
                 for c in node.children
                 if c.udeprel in ('case', 'conj')
-                or (c.feats['Case'] == node.feats['Case'] and not util.n_syncretic(c, '4', '7'))
+                or (c.feats['Case'] == node.feats['Case'] and not n_syncretic(c, '4', '7'))
             ]
         ):
-            clause_root = util.get_clause_root(node)
-            clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
+            clause_root = get_clause_root(node)
+            clause = get_clause(clause_root, without_subordinates=True, node_is_root=True)
 
             root_bind = clause_root
             if xcomp := [c for c in root_bind.children if c.deprel == 'xcomp']:
@@ -388,17 +400,17 @@ class RuleGPpatinstr(AmbiguityRule):
 
                     if (
                         'Case' not in po.feats
-                        or util.is_adposition(po)
+                        or is_adposition(po)
                         or po.deprel == 'conj'
-                        or [c for c in po.children if util.is_adposition(c)]
+                        or [c for c in po.children if is_adposition(c)]
                     ):
                         continue
 
-                    if util.n_syncretic_with(po, '4', disregard_number=True):
+                    if n_syncretic_with(po, '4', disregard_number=True):
                         potential_obj = po
                         break
 
-                if potential_obj and util.n_syncretic(node, '4', '7'):
+                if potential_obj and n_syncretic(node, '4', '7'):
                     self.annotate_node('sync', node)
                     self.annotate_node('possible_bind', root_bind)
                     self.annotate_node('potential_obj', potential_obj)
@@ -437,8 +449,8 @@ class RuleGPdeverbsubj(AmbiguityRule):
             and node.udeprel not in ('fixed', 'case', 'conj')
             and not [c for c in node.children if c.udeprel in ('case', 'conj')]
         ):
-            clause_root = util.get_clause_root(node)
-            clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
+            clause_root = get_clause_root(node)
+            clause = get_clause(clause_root, without_subordinates=True, node_is_root=True)
 
             if node.ord > clause_root.ord and (  # node after the predicate
                 pbind := [  # nodes the node could possibly bind onto
@@ -448,7 +460,7 @@ class RuleGPdeverbsubj(AmbiguityRule):
                     # binding to VERB tends to be obvious, and binding to NOUN should be impossible
                     and t.upos in ('ADJ', 'ADV')
                     and ('VerbForm' in t.feats)
-                    and not [c for c in t.children if util.is_adposition(c)]
+                    and not [c for c in t.children if is_adposition(c)]
                 ]
             ):
                 # check if there's a potential subject after the node
@@ -458,16 +470,16 @@ class RuleGPdeverbsubj(AmbiguityRule):
                     if (
                         potential_subj.ord <= node.ord
                         or 'Case' not in potential_subj.feats
-                        or util.is_adposition(potential_subj)
-                        or [c for c in potential_subj.children if util.is_adposition(c)]
+                        or is_adposition(potential_subj)
+                        or [c for c in potential_subj.children if is_adposition(c)]
                     ):
                         continue
 
-                    if util.n_syncretic_with(potential_subj, '1', disregard_number=True):
+                    if n_syncretic_with(potential_subj, '1', disregard_number=True):
                         potential_subj_present = True
                         break
 
-                if potential_subj_present and util.n_syncretic(node, '1', '7'):
+                if potential_subj_present and n_syncretic(node, '1', '7'):
                     self.annotate_node('sync', node)
                     self.annotate_node('possible_bind', clause_root, *pbind)
                     self.advance_application_id()
@@ -533,9 +545,9 @@ class RuleGPadjective(AmbiguityRule):
 
     def process_node(self, node: Node):
         if self._scope_beginning(node):
-            clause = util.get_clause(node, without_subordinates=True)
+            clause = get_clause(node, without_subordinates=True)
 
-            if sync := [n for n in clause if n.ord == node.ord + 1 and util.n_syncretic(n, '3', '6')]:
+            if sync := [n for n in clause if n.ord == node.ord + 1 and n_syncretic(n, '3', '6')]:
                 scope = sync[0].parent.descendants(add_self=True)
 
                 for i, s in enumerate(scope):
@@ -601,17 +613,17 @@ class RuleGPpatbenperson(AmbiguityRule):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.feats['Case'] in ('Acc', 'Dat')
-            and not util.is_adposition(node)
-            and util.is_animate(node)
+            and not is_adposition(node)
+            and is_animate(node)
             and not [
                 c
                 for c in node.children
                 if c.udeprel in ('case', 'conj')
-                or (c.feats['Case'] == node.feats['Case'] and not util.n_syncretic(c, '3', '4'))
+                or (c.feats['Case'] == node.feats['Case'] and not n_syncretic(c, '3', '4'))
             ]
         ):
-            clause_root = util.get_clause_root(node)
-            clause = util.get_clause(clause_root, without_subordinates=True, node_is_root=True)
+            clause_root = get_clause_root(node)
+            clause = get_clause(clause_root, without_subordinates=True, node_is_root=True)
 
             root_bind = clause_root
             if xcomp := [c for c in root_bind.children if c.deprel == 'xcomp']:
@@ -624,7 +636,7 @@ class RuleGPpatbenperson(AmbiguityRule):
                 and not [
                     c
                     for c in o.children
-                    if c.feats['Case'] == o.feats['Case'] and util.n_syncretic(c, '3', '4', disregard_number=True)
+                    if c.feats['Case'] == o.feats['Case'] and n_syncretic(c, '3', '4', disregard_number=True)
                 ]  # has an object
             ]:
                 # check if there's a potential object after the node
@@ -639,21 +651,20 @@ class RuleGPpatbenperson(AmbiguityRule):
                         'Case' not in po.feats
                         or (po.upos == 'ADJ' and po.parent.upos == 'NOUN')
                         or po.deprel in ('case', 'conj')
-                        or util.is_adposition(po)
-                        or [c for c in po.children if util.is_adposition(c)]
+                        or is_adposition(po)
+                        or [c for c in po.children if is_adposition(c)]
                     ):
                         continue
 
-                    if util.n_syncretic_with(po, '4', disregard_number=True) and not [
+                    if n_syncretic_with(po, '4', disregard_number=True) and not [
                         c
                         for c in po.children
-                        if c.feats['Case'] == po.feats['Case']
-                        and not util.n_syncretic_with(c, '4', disregard_number=True)
+                        if c.feats['Case'] == po.feats['Case'] and not n_syncretic_with(c, '4', disregard_number=True)
                     ]:
                         potential_obj = po
                         break
 
-                if potential_obj and util.n_syncretic(node, '4', '3'):
+                if potential_obj and n_syncretic(node, '4', '3'):
                     self.annotate_node('sync', node)
                     self.annotate_node('possible_bind', root_bind)
                     self.annotate_node('potential_obj', potential_obj)
@@ -687,32 +698,32 @@ class RuleGPwordorder(AmbiguityRule):
         if (
             node.upos in ('NOUN', 'PROPN')
             and node.udeprel == 'obj'
-            and (util.is_clause_root(node.parent) or node.parent.udeprel == 'xcomp')
+            and (is_clause_root(node.parent) or node.parent.udeprel == 'xcomp')
             and not [
                 c
                 for c in node.children
                 if c.udeprel in ('case', 'conj')
                 or (
                     c.feats['Case'] == node.feats['Case']
-                    and not [cc for cc in c.children if util.is_adposition(cc)]
-                    and not util.n_syncretic_with(c, '1')
+                    and not [cc for cc in c.children if is_adposition(cc)]
+                    and not n_syncretic_with(c, '1')
                 )
             ]
         ):
-            clause = util.get_clause(node, without_subordinates=True)
-            finite = [t for t in clause if util.is_finite_verb(t)]
+            clause = get_clause(node, without_subordinates=True)
+            finite = [t for t in clause if is_finite_verb(t)]
 
             # node before the subject
             if (
                 finite
-                and (util.feat_overlap(node, finite[0], 'Gender') or 'Gender' not in finite[0].feats)
-                and util.feat_overlap(node, finite[0], 'Number')
+                and (feat_overlap(node, finite[0], 'Gender') or 'Gender' not in finite[0].feats)
+                and feat_overlap(node, finite[0], 'Number')
                 and (nsubj := [c for c in clause if c.udeprel == 'nsubj'])
             ):
                 if (
                     node.ord < nsubj[0].ord
-                    and util.n_syncretic_with(nsubj[0], '1', disregard_number=True)
-                    and util.n_syncretic(node, '1', '4', disregard_number=True)
+                    and n_syncretic_with(nsubj[0], '1', disregard_number=True)
+                    and n_syncretic(node, '1', '4', disregard_number=True)
                 ):
                     self.annotate_node('obj', node)
                     self.annotate_node('nsubj', *nsubj)

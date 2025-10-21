@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from typing import Literal
 
-from document_applicables.rules import Rule, util, Color
-
-from udapi.core.node import Node
+from document_applicables.rules import Rule
+from document_applicables.rules.util.communication import Color
+from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb
+from document_applicables.rules.util.measurement import distance_from_list
+from document_applicables.rules.util.structure_info import is_clause_root
+from document_applicables.rules.util.structure_retrieval import remove_punct_sym, get_phrase_heads, get_clause
+from document_applicables.rules.util.structure_modif import rules_applied
 
 
 class StructuralRule(Rule):
@@ -64,9 +68,7 @@ class RulePredSubjDistance(StructuralRule):
                     subj = clause[0]
 
             if (
-                max_dst := util.distance_from_list(
-                    util.remove_punct_sym(node.root.descendants(), keep=(subj, pred)), subj, pred
-                )
+                max_dst := distance_from_list(get_phrase_heads(node.root.descendants(), keep=(subj, pred)), subj, pred)
             ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
@@ -105,8 +107,8 @@ class RulePredObjDistance(StructuralRule):
             parent = node.parent
 
             if (
-                max_dst := util.distance_from_list(
-                    util.remove_punct_sym(node.root.descendants(), keep=(node, parent)), node, parent
+                max_dst := distance_from_list(
+                    get_phrase_heads(node.root.descendants(), keep=(node, parent)), node, parent
                 )
             ) > self.max_distance:
                 self.annotate_node('object', node)
@@ -142,7 +144,7 @@ class RuleInfVerbDistance(StructuralRule):
         if (
             (infinitive := node).feats['VerbForm'] == 'Inf'
             and 'VerbForm' in (verb := infinitive.parent).feats
-            and not util.is_clause_root(infinitive)
+            and not is_clause_root(infinitive)
             and infinitive.deprel not in ('conj', 'csubj')
             and infinitive.upos != 'AUX'
             # it mainly attributes the za+ACC argument to the ACC argument, behaving as an "epistemic copula" of sorts
@@ -150,8 +152,8 @@ class RuleInfVerbDistance(StructuralRule):
         ):
 
             if (
-                max_dst := util.distance_from_list(
-                    util.remove_punct_sym(infinitive.root.descendants(), keep=[verb]), verb, infinitive
+                max_dst := distance_from_list(
+                    get_phrase_heads(infinitive.root.descendants(), keep=[verb]), verb, infinitive
                 )
             ) > self.max_distance:
                 auxiliaries = [a for a in verb.children if a.deprel in ('aux', 'cop')]
@@ -191,8 +193,8 @@ class RuleMultiPartVerbs(StructuralRule):
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
         if (
-            util.is_aux(node, grammatical_only=True)
-            and not util.is_clitic(node)  # word order is very binding for clitics
+            is_aux(node, grammatical_only=True)
+            and not is_clitic(node)  # word order is very binding for clitics
             and not {k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'}
         ):
             parent = node.parent
@@ -202,16 +204,16 @@ class RuleMultiPartVerbs(StructuralRule):
             # find remaining auxiliaries
             auxiliaries = {node}
             for child in parent.children:
-                if util.is_aux(child, grammatical_only=True) and not child in auxiliaries:
+                if is_aux(child, grammatical_only=True) and not child in auxiliaries:
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
-            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants(), keep=(parent, *auxiliaries))
+            sentence_wo_punct_sym = get_phrase_heads(node.root.descendants(), keep=(parent, *auxiliaries))
 
             too_far_apart = False
             max_dst = 0
             for aux in auxiliaries:
-                dst = util.distance_from_list(sentence_wo_punct_sym, parent, aux)
+                dst = distance_from_list(sentence_wo_punct_sym, parent, aux)
                 max_dst = max(max_dst, dst)
                 too_far_apart |= dst > self.max_distance
 
@@ -252,14 +254,14 @@ class RuleLongSentences(StructuralRule):
 
     def process_node(self, node):
         if node.udeprel == 'root':
-            descendants = util.get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
+            descendants = get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
 
             if not descendants:
                 return
 
-            words_and_numerals = util.remove_punct_sym(descendants)
+            phrases = get_phrase_heads(descendants)
 
-            if (max_length := len(words_and_numerals)) > self.max_length:
+            if (max_length := len(phrases)) > self.max_length:
                 self.annotate_node('long_sentence', *descendants)
 
                 self.annotate_measurement('max_length', max_length, *descendants)
@@ -298,29 +300,27 @@ class RulePredAtClauseBeginning(StructuralRule):
 
     def process_node(self, node):
         # finite verbs or l-participles
-        if util.is_finite_verb(node) and (self.rule_id not in util.rules_applied(node)):
-            pred_root = node.parent if util.is_aux(node) else node
+        if is_finite_verb(node) and (self.rule_id not in rules_applied(node)):
+            pred_root = node.parent if is_aux(node) else node
 
-            clause = util.get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
+            clause = get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
 
             # tokens forming the predicate, i.e. predicate root and potentially auxiliaries
-            predicate_tokens = [pred_root] + [child for child in pred_root.children if util.is_aux(child)]
+            predicate_tokens = [pred_root] + [child for child in pred_root.children if is_aux(child)]
             # sort by order in the sentence
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
-            sentence_wo_punct_sym = util.remove_punct_sym(node.root.descendants(), keep=[first_predicate_token])
+            phrases = get_phrase_heads(node.root.descendants(), keep=[first_predicate_token])
 
-            clause_filter_intersect = [n for n in clause if n in sentence_wo_punct_sym]
+            clause_filter_intersect = [n for n in clause if n in phrases]
             if not clause_filter_intersect:
                 return
 
             clause_beginning = clause_filter_intersect[0]
 
             # add 1 to make the parameter 1-indexed instead of being 0-indexed
-            if (
-                max_ord := util.distance_from_list(sentence_wo_punct_sym, first_predicate_token, clause_beginning) + 1
-            ) > self.max_order:
+            if (max_ord := distance_from_list(phrases, first_predicate_token, clause_beginning) + 1) > self.max_order:
                 self.annotate_node('predicate', *predicate_tokens)
 
                 self.annotate_measurement('max_order', max_ord, *predicate_tokens)
