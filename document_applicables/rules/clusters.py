@@ -7,7 +7,13 @@ from udapi.core.node import Node
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.grammar_semantics import is_finite_verb, is_aux, is_named_entity, NEregister
+from document_applicables.rules.util.grammar_semantics import (
+    is_finite_verb,
+    is_aux,
+    is_named_entity,
+    NEregister,
+    is_adposition,
+)
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import get_clause, get_phrase_heads
 from document_applicables.rules.util.structure_modif import rules_applied
@@ -326,9 +332,13 @@ class RulePassive(ClusterRule):
     """Capture be-passives.
 
     Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2021, p. 27).
+
+    Arguments:
+        overt_agent_only (bool): only highlight passives with an overt agent.
     """
 
     rule_id: Literal['RulePassive'] = 'RulePassive'
+    overt_agent_only: bool = True
 
     cz_human_readable_name: str = 'Opisné pasivum'
     en_human_readable_name: str = 'Participial passive'
@@ -347,10 +357,22 @@ class RulePassive(ClusterRule):
         if node.deprel == 'aux:pass':
             parent = node.parent
 
-            self.annotate_node('aux', node)
-            self.annotate_node('participle', parent)
+            # TODO: overt agts. can also be expressed as od+GEN. hook up to Vallex?
+            if (not self.overt_agent_only) or (
+                [
+                    n
+                    for n in parent.children
+                    if n.deprel == 'obl:arg'
+                    and n.feats['Case'] == 'Ins'
+                    and not [c for c in n.children if is_adposition(c)]
+                ]
+                # "být shledán/uznán nějakým (např. nedostatečným)"
+                and parent.lemma not in ('shledaný', 'uznaný')
+            ):
+                self.annotate_node('aux', node)
+                self.annotate_node('participle', parent)
 
-            self.advance_application_id()
+                self.advance_application_id()
 
 
 class RuleVerbalNouns(ClusterRule):

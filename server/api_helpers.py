@@ -23,7 +23,6 @@ from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
-    RuleIncompleteConstruction,
 )
 from document_applicables.rules.ambiguity import (
     RuleDoubleAdpos,
@@ -36,6 +35,7 @@ from document_applicables.rules.ambiguity import (
     RuleGPpatbenperson,
     RuleGPwordorder,
     RuleReflexivePassWithAnimSubj,
+    RuleIncompleteConstruction,
 )
 from document_applicables.rules.clusters import (
     RuleTooFewVerbs,
