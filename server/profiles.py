@@ -4,7 +4,6 @@ from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
     RuleWrongVerbonominalCase,
-    RuleIncompleteConstruction,
 )
 from document_applicables.rules.ambiguity import (
     RuleDoubleAdpos,
@@ -17,6 +16,7 @@ from document_applicables.rules.ambiguity import (
     RuleGPpatbenperson,
     RuleGPwordorder,
     RuleReflexivePassWithAnimSubj,
+    RuleIncompleteConstruction,
 )
 from document_applicables.rules.clusters import (
     RuleTooFewVerbs,
@@ -93,7 +93,6 @@ def get_minimal_rules() -> list[Rule]:
 
 
 def get_noninstitutional_rules() -> list[Rule]:
-    # TODO: allow RuleIncompleteConstruction & RuleDoubleAdpos & RuleInfVerbDistance
     return [
         # --- fluency ----
         # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
@@ -110,18 +109,18 @@ def get_noninstitutional_rules() -> list[Rule]:
         ),
         RulePassive(),
         # --- phrases ---
-        RuleAbstractNouns(),  # effect size < 0.06
+        RuleAbstractNouns(),
         RuleWeakMeaningWords(),
         RuleRedundantExpressions(),
         RuleTooLongExpressions(),
         RuleRelativisticExpressions(),
-        RuleConfirmationExpressions(),  # effect size < 0.06
-        RuleAnaphoricReferences(),  # effect size < 0.06
+        RuleConfirmationExpressions(),
+        RuleAnaphoricReferences(),
         RuleLiteraryStyle(),
         # --- distances ---
         RuleLongSentences(max_length=22),
         RulePredSubjDistance(
-            # max_distance=5,  # effect size < 0.06
+            # max_distance=5,
             max_distance=6,  # default value
         ),
         RulePredObjDistance(
@@ -129,13 +128,17 @@ def get_noninstitutional_rules() -> list[Rule]:
             max_distance=6,  # default value
         ),
         RuleMultiPartVerbs(
-            # max_distance=4, # effect size < 0.06
+            # max_distance=4
             max_distance=5,  # default value
         ),
         RulePredAtClauseBeginning(
-            # max_order=4,  # effect size < 0.06
+            # max_order=4,
             max_order=5,  # default value
         ),
+        RuleInfVerbDistance(max_distance=0),
+        # --- ambiguity ---
+        RuleDoubleAdpos(),  # counter-intuitive measurable effect
+        RuleIncompleteConstruction(),
         # RuleVerbalNouns(), # hard to interpret
         # RuleGPpatinstr(), # questionable reliability
         # RuleGPcoordovs(), # effect size < 0.06
@@ -144,13 +147,10 @@ def get_noninstitutional_rules() -> list[Rule]:
         # RuleGPadjective(), # effect size < 0.06
         # RuleGPpatbenperson(), # effect size < 0.06
         # RuleGPwordorder(), # effect size < 0.06
-        # RuleDoubleAdpos(max_allowable_distance=0), # counter-intuitive measurable effect
-        # RuleInfVerbDistance(max_distance=0), # counter-intuitive measurable effect # effect size < 0.06
         # RuleAmbiguousRegards(), # unreliable
         # RuleDoubleComparison(), # unreliable + acceptability
         # RuleWrongValencyCase(), # unreliable + acceptability
         # RuleWrongVerbonominalCase(), # unreliable + acceptability
-        # RuleIncompleteConjunction(), # acceptability
         # RuleFunctionWordRepetition(), # unreliable
         # RuleReflexivePassWithAnimSubj(),  # effect size < 0.06
     ]

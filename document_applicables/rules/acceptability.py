@@ -6,7 +6,6 @@ from udapi.core.node import Node
 
 from document_applicables.rules import Rule  # , derinet_lexicon
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.structure_retrieval import get_surrounding_bundles_serialize
 
 
 class AcceptabilityRule(Rule):
@@ -202,88 +201,6 @@ class RuleWrongVerbonominalCase(AcceptabilityRule):
             self.annotate_node('copula', *cop)
             self.annotate_node('req_nominative', node)
             self.advance_application_id()
-
-
-class RuleIncompleteConstruction(AcceptabilityRule):
-    """Capture incomplete multi-token constructions.
-
-    Inspiration: Sgall & Panevová (2014, p. 85).
-
-    Attributes:
-        max_right_context_length (int): within how many tokens (punctuation and symbols excluded) \
-            the completion is looked for.
-        max_right_bundles (int): within how many bundles (sentences) to the right the completeion \
-            is looked for.
-    """
-
-    rule_id: Literal['RuleIncompleteConstruction'] = 'RuleIncompleteConstruction'
-    max_right_context_length: int = 50
-    max_right_bundles: int = 3
-
-    cz_human_readable_name: str = 'Neúplná konstrukce'
-    en_human_readable_name: str = 'Incomplete construction'
-    cz_doc: str = (
-        'Ujistěte se také, že od sebe části konstrukce nejsou příliš vzdálené. Srov. Sgall & Panevová (2014, s. 85).'
-    )
-    en_doc: str = (
-        'Also make sure that the elements of the construction are not too far apart. Cf. Sgall & Panevová (2014, p. 85).'
-    )
-    cz_paricipants: dict[str, str] = {
-        'jednak': 'Spojka „jednak“ vyžaduje i druhé „jednak“',
-        'bud': 'Spojku „buď“ má následovat „nebo“ (příp. „anebo“)',
-        'zaprve': 'Příslovce „zaprvé“ by mělo následovat „zadruhé“',
-    }
-    en_paricipants: dict[str, str] = {
-        'jednak': 'The conjunction “jednak” requires its second part (“jednak … jednak”)',
-        'bud': 'The conjunction „buď“ should be followed by „nebo“ (or „anebo“)',
-        'zaprve': 'The adverb “zaprvé” should be followed by “zadruhé”',
-    }
-
-    def process_node(self, node: Node):
-        if node.lemma == 'jednak':
-            right_context = [
-                c
-                for c in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
-                if node.precedes(c)
-            ][: self.max_right_context_length]
-
-            # this is to check if it already is preceded by another "jednak"
-            left_context = [
-                c
-                for c in get_surrounding_bundles_serialize(node, self.max_right_bundles, 0, no_punct_sym=True)
-                if c.precedes(node)
-            ][-self.max_right_context_length :]
-
-            if not [c for c in left_context + right_context if c.lemma == 'jednak']:
-                self.annotate_node('jednak', node)
-                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
-                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
-                self.advance_application_id()
-
-        elif node.lemma in ('buď', 'buďto') and node.upos == 'CCONJ':
-            if not [
-                c for s in node.parent.children if s.ord > node.ord for c in s.children if c.lemma in ('nebo', 'anebo')
-            ]:
-                self.annotate_node('bud', node)
-                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
-                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
-                self.advance_application_id()
-
-        elif node.lemma == 'zaprvé':
-            right_context = [
-                n
-                for n in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
-                if node.precedes(n)
-            ][: self.max_right_context_length]
-
-            if zaprv_i := [i for i, n in enumerate(right_context) if n.lemma == 'zaprvé']:
-                right_context = right_context[: zaprv_i[0]]
-
-            if not [t for t in right_context if t.lemma in ('zadruhé', 'zadruhý')]:
-                self.annotate_node('zaprve', node)
-                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
-                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
-                self.advance_application_id()
 
 
 # class RulePossessiveGenitive(AcceptabilityRule):
