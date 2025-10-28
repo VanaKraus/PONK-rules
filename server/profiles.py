@@ -97,15 +97,15 @@ def get_noninstitutional_rules() -> list[Rule]:
         # --- fluency ----
         # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
         # RuleTooFewVerbs(min_verb_frac=0.06),  # default value
-        RuleTooFewVerbs(min_verb_frac=0.1),  # TODO: temporary adjustment to the new measurement criteria
+        RuleTooFewVerbs(min_verb_frac=0.1),  # TODO: temporary adjustment to new measurement criteria
         RuleTooManyNominalConstructions(
             max_allowable_nouns=5,
             max_noun_frac=0.4,  # wouldn't catch anything with 0.728
         ),
         RuleCaseRepetition(max_repetition_count=3),
         RuleTooManyNegations(
-            max_allowable_negations=2,
-            max_negation_frac=0.168,  # measurable effect counter-intuitive
+            max_allowable_negations=3,
+            max_negation_frac=0.25,  # TODO: temporary adjustment to new measurement criteria
         ),
         RulePassive(),
         # --- phrases ---
