@@ -15,7 +15,11 @@ from document_applicables.rules.util.grammar_semantics import (
     is_adposition,
 )
 from document_applicables.rules.util.structure_info import is_clause_root
-from document_applicables.rules.util.structure_retrieval import get_clause, get_phrase_heads
+from document_applicables.rules.util.structure_retrieval import (
+    get_clause,
+    get_phrase_heads,
+    get_surrounding_bundles_serialize,
+)
 from document_applicables.rules.util.structure_modif import rules_applied
 
 
@@ -99,8 +103,12 @@ class RuleTooManyNegations(ClusterRule):
     """
 
     rule_id: Literal['RuleTooManyNegations'] = 'RuleTooManyNegations'
-    max_negation_frac: float = 0.1
+    max_negation_frac: float = 0.25
     max_allowable_negations: int = 3
+    max_right_context_size: int = 40
+    max_right_bundles_count: int = 1
+
+    _step: int = 4
 
     cz_human_readable_name: str = 'Přemíra negací'
     en_human_readable_name: str = 'Too many negations'
@@ -116,26 +124,38 @@ class RuleTooManyNegations(ClusterRule):
     en_paricipants: dict[str, str] = {'negative': 'Negative expression'}
 
     def process_node(self, node):
-        if node.udeprel == 'root':
-            clause = get_clause(node, without_punctuation=True, node_is_root=True)
+        if self.rule_id not in rules_applied(node) and (self._is_positive(node) or self._is_negative(node)):
+            context = [
+                n
+                for n in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles_count, no_punct_sym=True)
+                if not n.precedes(node)
+            ][: self.max_right_context_size + 1]
 
-            positives = [nd for nd in clause if self._is_positive(nd)]
-            negatives = [nd for nd in clause if self._is_negative(nd)]
+            if [n for n in context if self.rule_id in rules_applied(n)]:
+                return
 
-            no_pos, no_neg = len(positives), len(negatives)
+            while len(context) > self.max_allowable_negations:
+                positives = [nd for nd in context if self._is_positive(nd)]
+                negatives = [nd for nd in context if self._is_negative(nd)]
 
-            if (
-                no_neg > self.max_allowable_negations
-                and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
-            ):
-                self.annotate_node('negative', *negatives)
+                no_pos, no_neg = len(positives), len(negatives)
 
-                self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives)
-                self.annotate_measurement('max_allowable_negations', no_neg, *negatives)
-                self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives)
-                self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
+                if (
+                    no_neg > self.max_allowable_negations
+                    and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
+                ):
+                    self.annotate_node('negative', *negatives)
 
-                self.advance_application_id()
+                    self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives)
+                    self.annotate_measurement('max_allowable_negations', no_neg, *negatives)
+                    self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives)
+                    self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
+
+                    self.advance_application_id()
+
+                    break
+
+                context = context[: -self._step]
 
     @classmethod
     def _is_positive(cls, node) -> bool:
