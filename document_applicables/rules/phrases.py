@@ -6,9 +6,11 @@ from udapi.core.node import Node
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.structure_info import descendants_include
 from document_applicables.rules.util.grammar_semantics import is_adposition
+from document_applicables.rules.util.structure_info import descendants_include
 from document_applicables.rules.util.structure_modif import get_removing_rules
+from document_applicables.rules.util.structure_retrieval import remove_punct_sym
+from document_applicables.rules.util.measurement import distance_from_list
 
 
 class PhrasesRule(Rule):
@@ -46,7 +48,6 @@ class RuleWeakMeaningWords(PhrasesRule):
         'ovlivňovat',
         'provádět',
         'provést',
-        'postup',
         'obdobně',
         'velmi',
         'uskutečnit',
@@ -76,16 +77,17 @@ class RuleAbstractNouns(PhrasesRule):
 
     _abstract_nouns: list[str] = [
         'základ',
-        'situace',
         'úvaha',
         'charakter',
         'stupeň',
         'aspekt',
         'okolnosti',
         'událost',
-        'snaha',
         'podmínky',
         'činnost',
+        'postup',
+        'podstata',
+        'kritérium',
     ]
 
     @staticmethod
@@ -99,6 +101,14 @@ class RuleAbstractNouns(PhrasesRule):
                 return descendants_include(node, {'trestný', 'pracovní'})
             case 'základ':
                 return descendants_include(node, {'mzda', 'stavba'})
+            case 'postup':
+                return descendants_include(node, {'úřední', 'zákonný'}) or [
+                    n
+                    for n in node.children
+                    if n.deprel == 'nmod'
+                    and (n.feats['Case'] == 'Gen' or n.feats['Abbr'] == 'Yes')
+                    and not [a for a in n.children if a.deprel == 'case']
+                ]
 
         return False
 

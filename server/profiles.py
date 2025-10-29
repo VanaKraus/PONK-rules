@@ -1,3 +1,5 @@
+import math
+
 from document_applicables.rules import Rule, PostProcessRule
 from document_applicables.metrics import Metric, MetricActivity, MetricARI, MetricVerbDistance, MetricMovingAverageTTR
 from document_applicables.rules.acceptability import (
