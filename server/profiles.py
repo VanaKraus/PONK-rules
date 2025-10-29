@@ -69,7 +69,7 @@ def get_minimal_rules() -> list[Rule]:
             RuleTooLongExpressions(),
             RuleAnaphoricReferences(),
             RuleAmbiguousRegards(),
-            RuleTooManyNominalConstructions(max_allowable_nouns=0, max_noun_frac=0),
+            RuleTooManyNominalConstructions(max_allowable_nouns=0, max_noun_frac=0, max_dismissable_span_length=0),
             # leaving max_repetition_frac out as any nouns (followed by other tokens)
             # would get flagged otherwise, distorting the measurement
             RuleCaseRepetition(max_repetition_count=0),
@@ -100,7 +100,8 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleTooFewVerbs(min_verb_frac=0.1),  # TODO: temporary adjustment to the new measurement criteria
         RuleTooManyNominalConstructions(
             max_allowable_nouns=5,
-            max_noun_frac=0.4,  # wouldn't catch anything with 0.728
+            max_noun_frac=0.45,  # wouldn't catch anything with 0.728
+            max_dismissable_span_length=15,
         ),
         RuleCaseRepetition(max_repetition_count=3),
         RuleTooManyNegations(
