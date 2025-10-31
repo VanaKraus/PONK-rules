@@ -98,7 +98,7 @@ class RuleAbstractNouns(PhrasesRule):
                 # might be useful to discriminate court instances, which would however require more sophistication
                 return node.parent.lemma == 'soud' or descendants_include(node, {'první', 'druhý', '1', '2', 'I', 'II'})
             case 'činnost':
-                return descendants_include(node, {'trestný', 'pracovní'})
+                return descendants_include(node, {'trestný', 'pracovní', 'výdělečný'})
             case 'základ':
                 return descendants_include(node, {'mzda', 'stavba'})
             case 'postup':
