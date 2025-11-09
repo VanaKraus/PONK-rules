@@ -9,4 +9,6 @@ def descendants_include(node: Node, lemmas: set) -> bool:
 
 
 def is_clause_root(node: Node) -> bool:
-    return utilgs.is_finite_verb(node) or bool([nd for nd in node.children if utilgs.is_aux(nd, grammatical_only=True)])
+    return utilgs.is_finite_verb(node) or bool(
+        [nd for nd in node.children if utilgs.is_aux(nd, grammatical_only=True) and utilgs.is_finite_verb(nd)]
+    )

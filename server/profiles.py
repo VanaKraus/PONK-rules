@@ -1,3 +1,5 @@
+import math
+
 from document_applicables.rules import Rule, PostProcessRule
 from document_applicables.metrics import Metric, MetricActivity, MetricARI, MetricVerbDistance, MetricMovingAverageTTR
 from document_applicables.rules.acceptability import (
@@ -69,7 +71,7 @@ def get_minimal_rules() -> list[Rule]:
             RuleTooLongExpressions(),
             RuleAnaphoricReferences(),
             RuleAmbiguousRegards(),
-            RuleTooManyNominalConstructions(max_allowable_nouns=0, max_noun_frac=0),
+            RuleTooManyNominalConstructions(max_allowable_nouns=0, max_noun_frac=0, max_dismissable_span_length=0),
             # leaving max_repetition_frac out as any nouns (followed by other tokens)
             # would get flagged otherwise, distorting the measurement
             RuleCaseRepetition(max_repetition_count=0),
@@ -100,9 +102,10 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleTooFewVerbs(min_verb_frac=0.1),  # TODO: temporary adjustment to new measurement criteria
         RuleTooManyNominalConstructions(
             max_allowable_nouns=5,
-            max_noun_frac=0.4,  # wouldn't catch anything with 0.728
+            max_noun_frac=0.45,  # wouldn't catch anything with 0.728
+            max_dismissable_span_length=15,
         ),
-        RuleCaseRepetition(max_repetition_count=3),
+        RuleCaseRepetition(max_repetition_count=4, include_adjectives=False),
         RuleTooManyNegations(
             max_allowable_negations=3,
             max_negation_frac=0.25,  # TODO: temporary adjustment to new measurement criteria
@@ -120,20 +123,17 @@ def get_noninstitutional_rules() -> list[Rule]:
         # --- distances ---
         RuleLongSentences(max_length=22),
         RulePredSubjDistance(
-            # max_distance=5,
             max_distance=6,  # default value
         ),
         RulePredObjDistance(
-            # max_distance=4,  # p > .1
             max_distance=6,  # default value
         ),
         RuleMultiPartVerbs(
-            # max_distance=4
             max_distance=5,  # default value
         ),
         RulePredAtClauseBeginning(
-            # max_order=4,
-            max_order=5,  # default value
+            # max_order=5,  # default value
+            max_order=9,  # TODO: temporary adjustment
         ),
         RuleInfVerbDistance(),
         # --- ambiguity ---

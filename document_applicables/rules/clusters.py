@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Iterable
 import math
 
 from udapi.core.node import Node
@@ -19,6 +19,7 @@ from document_applicables.rules.util.structure_retrieval import (
     get_clause,
     get_phrase_heads,
     get_surrounding_bundles_serialize,
+    remove_punct_sym,
 )
 from document_applicables.rules.util.structure_modif import rules_applied
 
@@ -193,6 +194,7 @@ class RuleTooManyNominalConstructions(ClusterRule):
             fraction value for the clause to not be considered an issue.
         max_allowable_nouns (int): the highest # of nouns in the clause for the rule \
             to remain inhibited.
+        max_dismissable_span_length (int): the highest span length for the rule to remain inhibited.
     """
 
     cz_human_readable_name: str = 'Přemíra podstatných jmen'
@@ -202,39 +204,48 @@ class RuleTooManyNominalConstructions(ClusterRule):
     cz_paricipants: dict[str, str] = {'noun': 'Podstatné jméno'}
     en_paricipants: dict[str, str] = {'noun': 'Noun'}
 
-    # TODO: consider reworking the rule similarly to RuleCaseRepetition. It would help with aligning more with Šváb.
-
     rule_id: Literal['RuleTooManyNominalConstructions'] = 'RuleTooManyNominalConstructions'
-    max_noun_frac: float = 0.5
-    max_allowable_nouns: int = 3
+    max_noun_frac: float = 0.45
+    max_allowable_nouns: int = 5
+    max_dismissable_span_length: int = 15
 
     def process_node(self, node: Node):
         if is_clause_root(node):
             clause = get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
             clause_tmp = clause.copy()
 
-            # separate into subclauses if an embedded clause is present
+            # separate into subclauses (spans) if an embedded clause is present
             subclauses = []
             for i, n in enumerate(clause[:-1]):
+                # if three or more nodes are missing, there was probably an embedded clause
                 if clause[i + 1].ord - n.ord > 3:
                     subclauses.append(clause[clause.index(clause_tmp[0]) : i + 1])
                     clause_tmp = clause[i + 1 :]
             subclauses.append(clause_tmp)
 
             for subclause in subclauses:
-                nouns = [n for n in subclause if n.upos == 'NOUN' and (n.ord == 1 or not is_named_entity(n))]
+                # coordinated nouns are stripped from the measurements
+                # the nouns are still kept for eventual highlighting though
+                if (
+                    scl_len := len(self._strip_of_coordinated_nouns(remove_punct_sym(subclause)))
+                ) > self.max_dismissable_span_length:
+                    nouns = [n for n in subclause if n.upos == 'NOUN' and not is_named_entity(n)]
 
-                if (l := len(nouns)) > self.max_allowable_nouns and (
-                    noun_frac := float(l) / len(subclause)
-                ) > self.max_noun_frac:
+                    if (l := len(self._strip_of_coordinated_nouns(nouns))) > self.max_allowable_nouns and (
+                        noun_frac := float(l) / scl_len
+                    ) > self.max_noun_frac:
 
-                    self.annotate_parameter('max_noun_frac', self.max_noun_frac, *nouns)
-                    self.annotate_measurement('max_noun_frac', noun_frac, *nouns)
-                    self.annotate_parameter('max_allowable_nouns', self.max_allowable_nouns, *nouns)
-                    self.annotate_measurement('max_allowable_nouns', l, *nouns)
+                        self.annotate_parameter('max_noun_frac', self.max_noun_frac, *nouns)
+                        self.annotate_measurement('max_noun_frac', noun_frac, *nouns)
+                        self.annotate_parameter('max_allowable_nouns', self.max_allowable_nouns, *nouns)
+                        self.annotate_measurement('max_allowable_nouns', l, *nouns)
 
-                    self.annotate_node('noun', *nouns)
-                    self.advance_application_id()
+                        self.annotate_node('noun', *nouns)
+                        self.advance_application_id()
+
+    @classmethod
+    def _strip_of_coordinated_nouns(cls, nodes: Iterable[Node]) -> list[Node]:
+        return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
 
 
 class RuleFunctionWordRepetition(ClusterRule):
@@ -323,6 +334,7 @@ class RuleCaseRepetition(ClusterRule):
                     for n in following_nodes
                     if n.upos in self._tracked_pos
                     and n.feats['Case'] == node.feats['Case']
+                    and n.deprel != 'appos'
                     and not ne_reg.is_registered_ne(n)
                 ]
 

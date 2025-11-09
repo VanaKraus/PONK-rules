@@ -279,7 +279,10 @@ class RulePredAtClauseBeginning(StructuralRule):
 
     Attributes:
         max_order (int): how far the predicate can be to not be considered an issue \
-            (predicate right at the beginning of the clause would have order of 1).
+            (predicate right at the beginning of the clause would have the order of 1).
+        max_reverse_order (int): how far from the clause end can the predicate root \
+            be to not be considered an issue (predicate root directly at the end \
+            of the clause considered to have the order of 1).
     """
 
     cz_human_readable_name: str = 'Přísudek daleko ve větě'
@@ -297,6 +300,7 @@ class RulePredAtClauseBeginning(StructuralRule):
 
     rule_id: Literal['RulePredAtClauseBeginning'] = 'RulePredAtClauseBeginning'
     max_order: int = 5
+    max_reverse_order: int = 3
 
     def process_node(self, node):
         # finite verbs or l-participles
@@ -304,6 +308,21 @@ class RulePredAtClauseBeginning(StructuralRule):
             pred_root = node.parent if is_aux(node) else node
 
             clause = get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
+
+            # if all core arguments precede the predicate and it's close to the end of the clause,
+            # it is likely deliberate
+            core_args = [
+                c
+                for c in pred_root.children
+                if c.udeprel in ('nsubj', 'obj', 'iobj', 'xcomp')
+                or c.deprel in ('obl:agent', 'obl:arg')
+                or (c.udeprel in ('csubj', 'ccomp') and not is_clause_root(c))
+            ]
+            # pred_root at the end of the clause and all core_args precede pred_root
+            if (clause[-1].ord - pred_root.ord < self.max_reverse_order) and not [
+                a for a in core_args if pred_root.ord < a.ord
+            ]:
+                return
 
             # tokens forming the predicate, i.e. predicate root and potentially auxiliaries
             predicate_tokens = [pred_root] + [child for child in pred_root.children if is_aux(child)]
