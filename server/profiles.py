@@ -123,20 +123,17 @@ def get_noninstitutional_rules() -> list[Rule]:
         # --- distances ---
         RuleLongSentences(max_length=22),
         RulePredSubjDistance(
-            # max_distance=5,
             max_distance=6,  # default value
         ),
         RulePredObjDistance(
-            # max_distance=4,  # p > .1
             max_distance=6,  # default value
         ),
         RuleMultiPartVerbs(
-            # max_distance=4
             max_distance=5,  # default value
         ),
         RulePredAtClauseBeginning(
-            # max_order=4,
-            max_order=5,  # default value
+            # max_order=5,  # default value
+            max_order=9,  # TODO: temporary adjustment
         ),
         RuleInfVerbDistance(),
         # --- ambiguity ---
