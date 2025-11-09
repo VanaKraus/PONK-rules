@@ -334,6 +334,7 @@ class RuleCaseRepetition(ClusterRule):
                     for n in following_nodes
                     if n.upos in self._tracked_pos
                     and n.feats['Case'] == node.feats['Case']
+                    and n.deprel != 'appos'
                     and not ne_reg.is_registered_ne(n)
                 ]
 
