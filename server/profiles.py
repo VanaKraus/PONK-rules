@@ -105,7 +105,7 @@ def get_noninstitutional_rules() -> list[Rule]:
             max_noun_frac=0.45,  # wouldn't catch anything with 0.728
             max_dismissable_span_length=15,
         ),
-        RuleCaseRepetition(max_repetition_count=3),
+        RuleCaseRepetition(max_repetition_count=4, include_adjectives=False),
         RuleTooManyNegations(
             max_allowable_negations=2,
             max_negation_frac=0.168,  # measurable effect counter-intuitive
