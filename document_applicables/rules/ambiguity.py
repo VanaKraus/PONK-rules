@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Callable
 
 from udapi.core.node import Node
 
@@ -257,7 +257,7 @@ class RuleIncompleteConstruction(AmbiguityRule):
 
     rule_id: Literal['RuleIncompleteConstruction'] = 'RuleIncompleteConstruction'
     max_right_context_length: int = 50
-    max_right_bundles: int = 3
+    max_right_bundles: int = 4
 
     cz_human_readable_name: str = 'Neúplná konstrukce'
     en_human_readable_name: str = 'Incomplete construction'
@@ -271,27 +271,44 @@ class RuleIncompleteConstruction(AmbiguityRule):
         'jednak': 'Spojka „jednak“ vyžaduje i druhé „jednak“',
         'bud': 'Spojku „buď“ má následovat „nebo“ (příp. „anebo“)',
         'zaprve': 'Příslovce „zaprvé“ by mělo následovat „zadruhé“',
+        'sice': 'Spojku „sice“ by mělo následovat „ale“',
+        'na_jedne_strane': '„Na jedné/u straně/u“ by mělo následovat „na druhé/ou straně/u“',
     }
     en_paricipants: dict[str, str] = {
         'jednak': 'The conjunction “jednak” requires its second part (“jednak … jednak”)',
         'bud': 'The conjunction „buď“ should be followed by „nebo“ (or „anebo“)',
         'zaprve': 'The adverb “zaprvé” should be followed by “zadruhé”',
+        'sice': 'The conjunction “sice” should be followed by “ale”',
+        'na_jedne_strane': '“Na jedné/u straně/u” should be followed by “na druhé/ou straně/u”',
     }
 
+    def _get_left_context(self, node: Node):
+        return [
+            c
+            for c in get_surrounding_bundles_serialize(node, self.max_right_bundles, 0, no_punct_sym=True)
+            if c.precedes(node)
+        ][-self.max_right_context_length :]
+
+    def _get_right_context(self, node: Node):
+        return [
+            c
+            for c in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
+            if node.precedes(c)
+        ][: self.max_right_context_length]
+
+    def _trim_ctx_from_right(self, nodes: list[Node], criteria: Callable[[Node], bool]) -> list[Node]:
+        matches_i = [i for i, n in enumerate(nodes) if criteria(n)]
+        return nodes[: matches_i[0]] if matches_i else nodes
+
     def process_node(self, node: Node):
+        def _is_na_jedne_strane(n: Node) -> bool:
+            return n.lemma == 'strana' and [c.lemma for c in n.children] == ['na', 'jeden']
+
         if node.lemma == 'jednak':
-            right_context = [
-                c
-                for c in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
-                if node.precedes(c)
-            ][: self.max_right_context_length]
+            right_context = self._get_right_context(node)
 
             # this is to check if it already is preceded by another "jednak"
-            left_context = [
-                c
-                for c in get_surrounding_bundles_serialize(node, self.max_right_bundles, 0, no_punct_sym=True)
-                if c.precedes(node)
-            ][-self.max_right_context_length :]
+            left_context = self._get_left_context(node)
 
             if not [c for c in left_context + right_context if c.lemma == 'jednak']:
                 self.annotate_node('jednak', node)
@@ -309,19 +326,37 @@ class RuleIncompleteConstruction(AmbiguityRule):
                 self.advance_application_id()
 
         elif node.lemma == 'zaprvé':
-            right_context = [
-                n
-                for n in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles, no_punct_sym=True)
-                if node.precedes(n)
-            ][: self.max_right_context_length]
-
-            if zaprv_i := [i for i, n in enumerate(right_context) if n.lemma == 'zaprvé']:
-                right_context = right_context[: zaprv_i[0]]
+            right_context = self._get_right_context(node)
+            right_context = self._trim_ctx_from_right(right_context, lambda n: n.lemma == 'zaprvé')
 
             if not [t for t in right_context if t.lemma in ('zadruhé', 'zadruhý')]:
                 self.annotate_node('zaprve', node)
                 self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
                 self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
+                self.advance_application_id()
+
+        elif node.lemma == 'sice' and node.deprel == 'cc':
+            right_context = self._get_right_context(node)
+            right_context = self._trim_ctx_from_right(right_context, lambda n: n.lemma == 'sice')
+
+            if not [t for t in right_context if t.lemma in ('ale', 'však', 'avšak', 'zato', 'nicméně')]:
+                self.annotate_node('sice', node)
+                self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
+                self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
+                self.advance_application_id()
+
+        # na jedné/u straně/u — na druhé/ou straně/u
+        elif _is_na_jedne_strane(node):
+            right_context = self._get_right_context(node)
+            right_context = self._trim_ctx_from_right(right_context, _is_na_jedne_strane)
+
+            if not [
+                n for n in right_context if n.lemma == 'strana' and [c.lemma for c in n.children] == ['na', 'druhý']
+            ]:
+                hghlght = node.children + [node]
+                self.annotate_node('na_jedne_strane', *hghlght)
+                self.annotate_parameter('max_right_context_length', self.max_right_context_length, *hghlght)
+                self.annotate_parameter('max_right_bundles', self.max_right_bundles, *hghlght)
                 self.advance_application_id()
 
 
