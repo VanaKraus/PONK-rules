@@ -195,6 +195,10 @@ class RuleRedundantExpressions(PhrasesRule):
 
     rule_id: Literal['RuleRedundantExpressions'] = 'RuleRedundantExpressions'
 
+    # up to how many first words of a sentence should still be considered its beginning
+    # important for some of the cases
+    _sent_beg: int = 10
+
     cz_human_readable_name: str = 'Slovní vata'
     en_human_readable_name: str = 'Redundant expressions'
     cz_doc: str = 'Srov. Šamánková & Kubíková (2022, s. 42–43).'
@@ -203,6 +207,9 @@ class RuleRedundantExpressions(PhrasesRule):
     en_paricipants: dict[str, str] = {'redundant_expression': 'Redundant expression'}
 
     def process_node(self, node):
+        if node.ord > self._sent_beg:
+            return
+
         match node.lemma:
             # je nutné zdůraznit
             case 'nutný':
@@ -268,6 +275,26 @@ class RuleRedundantExpressions(PhrasesRule):
                     self.annotate_node('redundant_expression', node, adp[0], noun[0])
                     self.advance_application_id()
 
+            # v této situaci / za situace když
+            case 'situace':
+                # v této situaci
+                if (adp := [c for c in node.children if c.lemma == 'v']) and (
+                    det := [c for c in node.children if c.udeprel == 'det']
+                ):
+                    self.annotate_node('redundant_expression', node, *adp, *det)
+                    self.advance_application_id()
+
+                # za situace když
+                elif (adp := [c for c in node.children if c.lemma == 'za']) and (
+                    conj := [
+                        c
+                        for c in node.root.descendants(add_self=True)[node.ord + 1 : node.ord + 3]
+                        if c.lemma == 'když'
+                    ]
+                ):
+                    self.annotate_node('redundant_expression', node, *adp, *conj)
+                    self.advance_application_id()
+
 
 class RuleTooLongExpressions(PhrasesRule):
     """Capture expressions that could be shortened.
@@ -276,10 +303,6 @@ class RuleTooLongExpressions(PhrasesRule):
     """
 
     rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
-
-    # up to how many first words of a sentence should still be considered its beginning
-    # important for some of the cases
-    _sent_beg: int = 5
 
     cz_human_readable_name: str = 'Dlouhé výrazy'
     en_human_readable_name: str = 'Long expressions'
@@ -299,8 +322,6 @@ class RuleTooLongExpressions(PhrasesRule):
         'uděluje_vyjadřuje_souhlas': 'Lépe „souhlasí“ (namísto „uděluje/vyjadřuje souhlas“)',
         'ze_strany_banky': 'Lépe 7. pád („někým“) nebo činný rod („někdo dělal něco“); namísto „ze strany někoho“',
         'předmětný_závazek': 'Lépe „tento (závazek)“ (namísto „předmětný (závazek)“)',
-        'v_této_situaci': 'Ověřte, zda souvětí nejde navázat výstižněji',
-        'za_situace_když': 'Ověřte, zda souvětí nejde navázat výstižněji',
     }
     en_paricipants: dict[str, str] = {
         'v_důsledku_toho': 'Better as “proto”',
@@ -327,7 +348,6 @@ class RuleTooLongExpressions(PhrasesRule):
                     and adp.parent
                     and (pron := adp.parent).upos in ('PRON', 'DET')
                     and len(pron.children) == 1  # modified by adp only
-                    and node.ord <= self._sent_beg
                 ):
                     self.annotate_node('v_důsledku_toho', node, adp, pron)
 
@@ -354,7 +374,6 @@ class RuleTooLongExpressions(PhrasesRule):
                     node.parent.parent
                     and (noun := node.parent.parent).lemma == 'případ'
                     and (adp := [c for c in noun.children if c.lemma == 'v'])
-                    and node.ord <= self._sent_beg
                 ):
                     self.annotate_node('v_případě_že', node, noun, *adp)
 
@@ -494,29 +513,6 @@ class RuleTooLongExpressions(PhrasesRule):
             case 'předmětný':
                 if node.deprel == 'amod' and (noun := node.parent).upos == 'NOUN':
                     self.annotate_node('předmětný_závazek', node, noun)
-                    self.advance_application_id()
-
-            # v této situaci / za situace když
-            case 'situace':
-                if node.ord > self._sent_beg:
-                    return
-
-                # v této situaci
-                if (adp := [c for c in node.children if c.lemma == 'v']) and (
-                    det := [c for c in node.children if c.udeprel == 'det']
-                ):
-                    self.annotate_node('v_této_situaci', node, *adp, *det)
-                    self.advance_application_id()
-
-                # za situace když
-                elif (adp := [c for c in node.children if c.lemma == 'za']) and (
-                    conj := [
-                        c
-                        for c in node.root.descendants(add_self=True)[node.ord + 1 : node.ord + 3]
-                        if c.lemma == 'když'
-                    ]
-                ):
-                    self.annotate_node('za_situace_když', node, *adp, *conj)
                     self.advance_application_id()
 
 
