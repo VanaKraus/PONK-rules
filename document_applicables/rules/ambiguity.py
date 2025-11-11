@@ -339,7 +339,7 @@ class RuleIncompleteConstruction(AmbiguityRule):
             right_context = self._get_right_context(node)
             right_context = self._trim_ctx_from_right(right_context, lambda n: n.lemma == 'sice')
 
-            if not [t for t in right_context if t.lemma in ('ale', 'však', 'avšak', 'zato', 'nicméně')]:
+            if not [t for t in right_context if t.lemma in ('ale', 'však', 'avšak', 'zato', 'nicméně', 'ovšem')]:
                 self.annotate_node('sice', node)
                 self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
                 self.annotate_parameter('max_right_bundles', self.max_right_bundles, node)
