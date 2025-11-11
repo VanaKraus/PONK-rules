@@ -9,7 +9,7 @@ from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.grammar_semantics import is_adposition
 from document_applicables.rules.util.structure_info import descendants_include
 from document_applicables.rules.util.structure_modif import get_removing_rules
-from document_applicables.rules.util.structure_retrieval import remove_punct_sym
+from document_applicables.rules.util.structure_retrieval import get_clause
 from document_applicables.rules.util.measurement import distance_from_list
 
 
@@ -293,6 +293,24 @@ class RuleRedundantExpressions(PhrasesRule):
                     ]
                 ):
                     self.annotate_node('redundant_expression', node, *adp, *conj)
+                    self.advance_application_id()
+
+            # e.g. lze konstatovat, je nutné konstatovat, soud musí konstatovat
+            # there are many variations
+            case 'konstatovat':
+                clause = get_clause(node, without_punctuation=True, without_subordinates=True)
+
+                # ... so instead, we take every sentence-initial structure with "konstatovat"
+                # where the verb isn't modified much
+                if (
+                    (not [n for n in clause if n.udeprel in ('obj', 'iobj', 'obl', 'advmod')])
+                    and [n for n in clause if n.udeprel == 'root']
+                    # exclude performative uses ("konstatuji")
+                    and node.feats['Person'] != '1'
+                    # exclude narrative descriptions of performative use (e.g. "(soud) konstatoval")
+                    and node.feats['Tense'] != 'Past'
+                ):
+                    self.annotate_node('redundant_expression', *clause)
                     self.advance_application_id()
 
 
