@@ -313,6 +313,10 @@ class RuleRedundantExpressions(PhrasesRule):
                     self.annotate_node('redundant_expression', *clause)
                     self.advance_application_id()
 
+            case 'ostatně':
+                self.annotate_node('redundant_expression', *clause)
+                self.advance_application_id()
+
 
 class RuleTooLongExpressions(PhrasesRule):
     """Capture expressions that could be shortened.
