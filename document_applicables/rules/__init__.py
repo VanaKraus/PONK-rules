@@ -7,7 +7,6 @@ import re
 from typing import Any, Literal
 import os
 
-# from derinet.lexicon import Lexicon
 from udapi.core.block import Block
 from udapi.core.node import Node
 from udapi.core.document import Document
@@ -19,15 +18,6 @@ from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.structure_modif import get_removing_rules, node_serializable
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
-
-
-# print('rules: loading DeriNet', file=sys.stderr)
-
-# derinet_lexicon = Lexicon()
-# # FIXME: choose a better path
-# derinet_lexicon.load('_local/derinet-2-3.tsv')
-
-# print('rules: DeriNet loaded', file=sys.stderr)
 
 
 class Rule(Documentable):

@@ -22,6 +22,7 @@ from document_applicables.rules.util.structure_retrieval import (
     remove_punct_sym,
 )
 from document_applicables.rules.util.structure_modif import rules_applied
+from document_applicables.rules.util.external_tools import vallex_get_lexeme, get_derinet
 
 
 class ClusterRule(Rule):
@@ -388,6 +389,16 @@ class RulePassive(ClusterRule):
     def process_node(self, node):
         if node.deprel == 'aux:pass':
             parent = node.parent
+
+            # FIXME: this part not finished
+            derinet = get_derinet()
+            deri_parents = [lx.parent.lemma for lx in derinet.get_lexemes(parent.lemma)]
+
+            vallex_lexemes = [vallex_get_lexeme(l) for l in deri_parents]
+
+            # TODO:
+            #   1) check that len(vallex_lexemes) > 0
+            #   2) tie the contents to udapi
 
             # TODO: overt agts. can also be expressed as od+GEN. hook up to Vallex?
             if (not self.overt_agent_only) or (
