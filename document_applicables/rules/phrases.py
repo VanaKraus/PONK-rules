@@ -314,7 +314,7 @@ class RuleRedundantExpressions(PhrasesRule):
                     self.advance_application_id()
 
             case 'ostatně':
-                self.annotate_node('redundant_expression', *clause)
+                self.annotate_node('redundant_expression', node)
                 self.advance_application_id()
 
 
