@@ -57,6 +57,9 @@ def vallex_get_lexeme(lemma: str) -> dict:
 
 
 def get_derinet() -> Lexicon:
+    # FIXME: this is temporary (deployment issues)
+    return None
+
     global _derinet
 
     if not _derinet:
