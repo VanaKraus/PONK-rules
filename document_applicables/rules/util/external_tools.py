@@ -44,7 +44,16 @@ def get_vallex() -> dict:
 def vallex_get_lexeme(lemma: str) -> dict:
     vallex = get_vallex()
 
-    return [lx for lx in vallex['Lexemes'] if lemma in lx['lemma']['data'].values()]
+    return [
+        lx
+        for lx in vallex['Lexemes']
+        if lemma
+        in [
+            l.removesuffix(' (si)').removesuffix(' (se)')
+            for val in lx['lemma']['data'].values()
+            for l in val.split(' / ')
+        ]
+    ]
 
 
 def get_derinet() -> Lexicon:
