@@ -4,6 +4,7 @@ import json
 
 from derinet.lexicon import Lexicon
 from ufal.morphodita import Morpho, TaggedLemmasForms
+from udapi.core.node import Node
 
 _vallex = None
 _morphodita: Morpho = None

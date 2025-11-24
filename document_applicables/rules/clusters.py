@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal, Iterable
+from collections import Counter
 import math
 
 from udapi.core.node import Node
@@ -386,32 +387,60 @@ class RulePassive(ClusterRule):
     cz_paricipants: dict[str, str] = {'aux': 'Pomocné sloveso', 'participle': 'Příčestí trpné'}
     en_paricipants: dict[str, str] = {'aux': 'Auxiliary verb', 'participle': 'Passive participle'}
 
+    def _overt_agent_decision(self, participle, aux) -> bool:
+        act_candidates_ins = [
+            n
+            for n in participle.children
+            if n.deprel == 'obl:arg' and n.feats['Case'] == 'Ins' and not [c for c in n.children if is_adposition(c)]
+        ]
+        act_candidates_od_gen = [
+            n
+            for n in participle.children
+            if n.deprel == 'obl:arg' and n.feats['Case'] == 'Gen' and [c for c in n.children if c.lemma == 'od']
+        ]
+
+        derinet = get_derinet()
+        deri_parents = [lx.parent.lemma for lx in derinet.get_lexemes(participle.lemma)]
+        # FIXME: sometimes lexemes are identified including their auxiliaries
+        # TODO: TEST
+        vallex_lexemes = [vallex_get_lexeme(l) for l in deri_parents]
+
+        # if there's a VALLEX entry
+        if len(vallex_lexemes) > 0:
+            # dict[LU-ID, <given current ACT candidates, there's certainly an overt ACT>]
+            clearly_overt_act: dict[str, bool] = dict()
+
+            for lexeme in vallex_lexemes:
+                for lu in lexeme['lexical_units']:
+                    # if the LU doesn't have a passive alternation, it can be skipped
+                    # since UDPipe assures us that we're dealing with a passive alternation
+                    if not [diat for diat in lu['diat']['data'] if diat['type'] == 'passive']:
+                        continue
+
+                    forms = [form for frame_element in lu['frame']['elements'] for form in frame_element['forms']]
+                    forms_cntr = Counter(forms)
+
+                    clearly_overt_act[
+                        lu['id'],
+                        len(act_candidates_ins) > forms_cntr['7'] or len(act_candidates_od_gen) > forms_cntr['od+2'],
+                    ]
+
+            # if none of the LUs disqualifies the candidates from being interpreted as overt ACTs
+            # and at least one LU with a passive alternation has been found in VALLEX
+            return all(clearly_overt_act.values()) and len(clearly_overt_act) > 0
+
+        else:
+            return (
+                act_candidates_ins
+                # "být shledán/uznán nějakým (např. nedostatečným)"
+                and participle.lemma not in ('shledaný', 'uznaný')
+            ) or act_candidates_od_gen
+
     def process_node(self, node):
         if node.deprel == 'aux:pass':
             parent = node.parent
 
-            # FIXME: this part not finished
-            derinet = get_derinet()
-            deri_parents = [lx.parent.lemma for lx in derinet.get_lexemes(parent.lemma)]
-
-            vallex_lexemes = [vallex_get_lexeme(l) for l in deri_parents]
-
-            # TODO:
-            #   1) check that len(vallex_lexemes) > 0
-            #   2) tie the contents to udapi
-
-            # TODO: overt agts. can also be expressed as od+GEN. hook up to Vallex?
-            if (not self.overt_agent_only) or (
-                [
-                    n
-                    for n in parent.children
-                    if n.deprel == 'obl:arg'
-                    and n.feats['Case'] == 'Ins'
-                    and not [c for c in n.children if is_adposition(c)]
-                ]
-                # "být shledán/uznán nějakým (např. nedostatečným)"
-                and parent.lemma not in ('shledaný', 'uznaný')
-            ):
+            if (not self.overt_agent_only) or self._overt_agent_decision(parent, node):
                 self.annotate_node('aux', node)
                 self.annotate_node('participle', parent)
 
