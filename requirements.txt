@@ -9,3 +9,4 @@ fastapi==0.110.0
 uvicorn==0.29.0
 python-multipart==0.0.9 # TODO: check if required
 pandas==2.2.3
+# DeriNet 2.0 API from https://github.com/vidraj/derinet/tree/master/tools/data-api/derinet2
