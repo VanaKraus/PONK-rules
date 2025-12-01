@@ -137,28 +137,47 @@ class RuleTooManyNegations(ClusterRule):
             if [n for n in context if self.rule_id in rules_applied(n)]:
                 return
 
-            while len(context) > self.max_allowable_negations:
-                positives = [nd for nd in context if self._is_positive(nd)]
-                negatives = [nd for nd in context if self._is_negative(nd)]
+            # save the pos and neg counts for each position in the context
+            # so that they don't need to be recomputed each time
+            pos_cnt = []
+            neg_cnt = []
+            for i, nd in enumerate(context):
+                no_pos = pos_cnt[i - 1] if i > 0 else 0
+                no_neg = neg_cnt[i - 1] if i > 0 else 0
 
-                no_pos, no_neg = len(positives), len(negatives)
+                if self._is_positive(nd):
+                    no_pos += 1
+                elif self._is_negative(nd):
+                    no_neg += 1
+
+                pos_cnt.append(no_pos)
+                neg_cnt.append(no_neg)
+
+            span_length = len(context)
+
+            while span_length > self.max_allowable_negations:
+                no_pos, no_neg = pos_cnt[span_length - 1], neg_cnt[span_length - 1]
 
                 if (
                     no_neg > self.max_allowable_negations
                     and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
                 ):
-                    self.annotate_node('negative', *negatives)
+                    negatives_annotate = [n for n in context[:span_length]]
 
-                    self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives)
-                    self.annotate_measurement('max_allowable_negations', no_neg, *negatives)
-                    self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives)
-                    self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
+                    self.annotate_node('negative', *negatives_annotate)
+
+                    self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives_annotate)
+                    self.annotate_measurement('max_allowable_negations', no_neg, *negatives_annotate)
+                    self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives_annotate)
+                    self.annotate_parameter(
+                        'max_allowable_negations', self.max_allowable_negations, *negatives_annotate
+                    )
 
                     self.advance_application_id()
 
                     break
 
-                context = context[: -self._step]
+                span_length -= self._step
 
     @classmethod
     def _is_positive(cls, node) -> bool:
