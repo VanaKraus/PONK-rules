@@ -401,10 +401,8 @@ class RulePassive(ClusterRule):
         ]
 
         # look up the verb in VALLEX
-        # FIXME: uncomment (deployment issues with DeriNet)
-        # derinet = get_derinet()
-        # deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
-        deri_parents = []
+        derinet = get_derinet()
+        deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
         vallex_lexemes = [l for dp in deri_parents if dp for l in vallex_get_lexeme(dp)]
 
         # if there's a VALLEX entry
