@@ -16,9 +16,6 @@ from server import profiles
 from udapi.block.read.conllu import Conllu as ConlluReader
 from io import TextIOBase, TextIOWrapper
 
-import re
-
-import time  # FIXME: remove
 
 # tmp reimport of everythin
 from document_applicables.rules.acceptability import (
@@ -39,14 +36,14 @@ from document_applicables.rules.ambiguity import (
     RuleReflexivePassWithAnimSubj,
     RuleIncompleteConstruction,
 )
-from document_applicables.rules.clusters import (
+from document_applicables.rules.fluency_orientation import (
     RuleTooFewVerbs,
     RuleTooManyNegations,
     RuleTooManyNominalConstructions,
     RuleCaseRepetition,
     RuleFunctionWordRepetition,
-    RulePassive,
     RuleVerbalNouns,
+    RuleLongSentences,
 )
 from document_applicables.rules.phrases import (
     RuleWeakMeaningWords,
@@ -57,13 +54,13 @@ from document_applicables.rules.phrases import (
     RuleTooLongExpressions,
     RuleAnaphoricReferences,
     RuleLiteraryStyle,
+    RulePassive,
 )
-from document_applicables.rules.structural import (
+from document_applicables.rules.sentence_position import (
     RulePredSubjDistance,
     RulePredObjDistance,
     RuleInfVerbDistance,
     RuleMultiPartVerbs,
-    RuleLongSentences,
     RulePredAtClauseBeginning,
 )
 

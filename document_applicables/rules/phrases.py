@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal
+from collections import Counter
 
 from udapi.core.node import Node
 
@@ -10,7 +11,7 @@ from document_applicables.rules.util.grammar_semantics import is_adposition
 from document_applicables.rules.util.structure_info import descendants_include
 from document_applicables.rules.util.structure_modif import get_removing_rules
 from document_applicables.rules.util.structure_retrieval import get_clause
-from document_applicables.rules.util.measurement import distance_from_list
+from document_applicables.rules.util.external_tools import vallex_get_lexeme, get_derinet
 
 
 class PhrasesRule(Rule):
@@ -744,3 +745,97 @@ class RuleLiteraryStyle(PhrasesRule):
                 self.annotate_action('remove', node)
 
             self.advance_application_id()
+
+
+class RulePassive(PhrasesRule):
+    """Capture be-passives.
+
+    Inspiration: Šamánková & Kubíková (2022, pp. 39-40), Šváb (2021, p. 27).
+
+    Arguments:
+        overt_agent_only (bool): only highlight passives with an overt agent.
+    """
+
+    rule_id: Literal['RulePassive'] = 'RulePassive'
+    overt_agent_only: bool = True
+
+    cz_human_readable_name: str = 'Opisné pasivum'
+    en_human_readable_name: str = 'Participial passive'
+    cz_doc: str = (
+        'Použijte činný rod („nařídíme další opatření“), případně zvratné pasivum („nařídí se další opatření“). '
+        + 'Srov. Šamánková & Kubíková (2022, s. 39–40), Šváb (2021, s. 27).'
+    )
+    en_doc: str = (
+        'Use the active voice (“nařídíme další opatření”) or the reflexive passive (“nařídí se další opatření”). '
+        + 'Cf. Šamánková & Kubíková (2022, pp. 39–40), Šváb (2021, p. 27).'
+    )
+    cz_paricipants: dict[str, str] = {'aux': 'Pomocné sloveso', 'participle': 'Příčestí trpné'}
+    en_paricipants: dict[str, str] = {'aux': 'Auxiliary verb', 'participle': 'Passive participle'}
+
+    def _overt_agent_decision(self, participle, aux) -> bool:
+        # nodes that are potentially overt passive agents
+        act_candidates_ins = [
+            n
+            for n in participle.children
+            if n.deprel == 'obl:arg' and n.feats['Case'] == 'Ins' and not [c for c in n.children if is_adposition(c)]
+        ]
+        act_candidates_od_gen = [
+            n
+            for n in participle.children
+            if n.deprel == 'obl:arg' and n.feats['Case'] == 'Gen' and [c for c in n.children if c.lemma == 'od']
+        ]
+
+        # look up the verb in VALLEX
+        derinet = get_derinet()
+        deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
+        vallex_lexemes = [l for dp in deri_parents if dp for l in vallex_get_lexeme(dp)]
+
+        # if there's a VALLEX entry
+        if len(vallex_lexemes) > 0:
+            # the following is a compromise: formally, UD provide no way of distinguishing
+            # "toalety_PAT nebyly opatřeny záchodovým prkýnkem_EFF"
+            # from "poplatek_PAT byl zaplacen osobou_ACT" (cf. "zaplacen majetkem_EFF");
+            # it's safer to greenlight the annotation only if all frames clearly indicate overt ACT,
+            # but it creates false negatives.
+
+            # dict[LU-ID, <given current ACT candidates, there's certainly an overt ACT>]
+            clearly_overt_act: dict[str, bool] = dict()
+
+            # if the frames of all LUs will suggest that there's too few slots for all the candidates,
+            # the candidates likely contain an overt ACT
+
+            for lexeme in vallex_lexemes:
+                for lu in lexeme['lexical_units']:
+                    # if the LU doesn't have a passive alternation, it can be skipped
+                    # since UDPipe assures us that we're dealing with a passive alternation
+                    if 'diat' in lu and not [diat for diat in lu['diat']['data'] if diat['type'] == 'passive']:
+                        continue
+
+                    forms = [
+                        form.replace('adj-', '')  # let's not care about POS now
+                        for frame_element in lu['frame']['elements']
+                        for form in frame_element['forms']
+                    ]
+                    forms_cntr = Counter(forms)
+
+                    clearly_overt_act[lu['id']] = (
+                        len(act_candidates_ins) > forms_cntr['7'] or len(act_candidates_od_gen) > forms_cntr['od+2']
+                    )
+
+            # if none of the LUs disqualifies the candidates from being interpreted as overt ACTs
+            # and at least one LU with a passive alternation has been found in VALLEX
+            return all(clearly_overt_act.values()) and len(clearly_overt_act) > 0
+
+        # if no VALLEX entry for the verb
+        else:
+            return bool(act_candidates_ins) or bool(act_candidates_od_gen)
+
+    def process_node(self, node):
+        if node.deprel == 'aux:pass':
+            parent = node.parent
+
+            if (not self.overt_agent_only) or self._overt_agent_decision(parent, node):
+                self.annotate_node('aux', node)
+                self.annotate_node('participle', parent)
+
+                self.advance_application_id()
