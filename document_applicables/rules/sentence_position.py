@@ -153,7 +153,7 @@ class RuleInfVerbDistance(SentencePositionRule):
 
             if (
                 max_dst := distance_from_list(
-                    get_phrase_heads(infinitive.root.descendants(), keep=[verb]), verb, infinitive
+                    get_phrase_heads(infinitive.root.descendants(), keep={verb, infinitive}), verb, infinitive
                 )
             ) > self.max_distance:
                 auxiliaries = [a for a in verb.children if a.deprel in ('aux', 'cop')]
