@@ -374,7 +374,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
 
             ctx_size = len(following_nodes)
 
-            while ctx_size >= self.max_repetition_count:
+            while ctx_size >= self.max_repetition_count and ctx_size > 0:
                 if not same_case_nodes[ctx_size - 1]:
                     ctx_size -= 1
                     continue
