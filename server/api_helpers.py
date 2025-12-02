@@ -103,11 +103,7 @@ def compute_metrics(metric_list: list[Metric], doc: Document) -> list[dict[str, 
 
 def apply_rules(rule_list: list[Rule], doc: Document) -> str:
     for rule in rule_list:
-        # FIXME: remove timer
-        tm_start = time.time()
         RuleBlockWrapper(rule).run(doc)
-        tm_end = time.time()
-        print(f'{rule.id()}: {tm_end - tm_start:.6f} s')
     return doc.to_conllu_string()
 
 
