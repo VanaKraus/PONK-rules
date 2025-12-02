@@ -20,14 +20,14 @@ from document_applicables.rules.ambiguity import (
     RuleReflexivePassWithAnimSubj,
     RuleIncompleteConstruction,
 )
-from document_applicables.rules.clusters import (
+from document_applicables.rules.fluency_orientation import (
     RuleTooFewVerbs,
     RuleTooManyNegations,
     RuleTooManyNominalConstructions,
     RuleCaseRepetition,
     RuleFunctionWordRepetition,
-    RulePassive,
     RuleVerbalNouns,
+    RuleLongSentences,
 )
 from document_applicables.rules.phrases import (
     RuleWeakMeaningWords,
@@ -38,13 +38,13 @@ from document_applicables.rules.phrases import (
     RuleTooLongExpressions,
     RuleAnaphoricReferences,
     RuleLiteraryStyle,
+    RulePassive,
 )
-from document_applicables.rules.structural import (
+from document_applicables.rules.sentence_position import (
     RulePredSubjDistance,
     RulePredObjDistance,
     RuleInfVerbDistance,
     RuleMultiPartVerbs,
-    RuleLongSentences,
     RulePredAtClauseBeginning,
 )
 
@@ -110,8 +110,8 @@ def get_noninstitutional_rules() -> list[Rule]:
             max_allowable_negations=2,
             max_negation_frac=0.168,  # measurable effect counter-intuitive
         ),
-        RulePassive(),
-        # --- phrases ---
+        RuleLongSentences(max_length=22),
+        # --- phrases and constructions ---
         RuleAbstractNouns(),
         RuleWeakMeaningWords(),
         RuleRedundantExpressions(),
@@ -120,8 +120,8 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleConfirmationExpressions(),
         RuleAnaphoricReferences(),
         RuleLiteraryStyle(),
-        # --- distances ---
-        RuleLongSentences(max_length=22),
+        RulePassive(),
+        # --- position in a sentence ---
         RulePredSubjDistance(
             max_distance=6,  # default value
         ),

@@ -7,16 +7,16 @@ from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb
 from document_applicables.rules.util.measurement import distance_from_list
 from document_applicables.rules.util.structure_info import is_clause_root
-from document_applicables.rules.util.structure_retrieval import remove_punct_sym, get_phrase_heads, get_clause
+from document_applicables.rules.util.structure_retrieval import get_phrase_heads, get_clause
 from document_applicables.rules.util.structure_modif import rules_applied
 
 
-class StructuralRule(Rule):
+class SentencePositionRule(Rule):
     foreground_color: Color = Color(33, 108, 237)
     rule_id: Literal['structural'] = 'structural'
 
 
-class RulePredSubjDistance(StructuralRule):
+class RulePredSubjDistance(SentencePositionRule):
     """Capture subjects that are too distant from their predicates \
         (or their auxiliaries/copulas when present).
 
@@ -80,7 +80,7 @@ class RulePredSubjDistance(StructuralRule):
                 self.advance_application_id()
 
 
-class RulePredObjDistance(StructuralRule):
+class RulePredObjDistance(SentencePositionRule):
     """Capture objects (both direct and indirect) that are too distant \
         from their parents.
 
@@ -120,7 +120,7 @@ class RulePredObjDistance(StructuralRule):
                 self.advance_application_id()
 
 
-class RuleInfVerbDistance(StructuralRule):
+class RuleInfVerbDistance(SentencePositionRule):
     """Capture infinitives that are too far from a verbal word they complement.
 
     Attributes:
@@ -167,7 +167,7 @@ class RuleInfVerbDistance(StructuralRule):
                 self.advance_application_id()
 
 
-class RuleMultiPartVerbs(StructuralRule):
+class RuleMultiPartVerbs(SentencePositionRule):
     """Capture multi-word verbal forms the parts of which (auxiliaries and clitics) \
         are too far apart from the root (content) token.
 
@@ -227,51 +227,7 @@ class RuleMultiPartVerbs(StructuralRule):
                 self.advance_application_id()
 
 
-class RuleLongSentences(StructuralRule):
-    """Capture sentences that are too long.
-
-    Inspiration: Šamánková & Kubíková (2022, p. 51), Šváb (2021, pp. 17–18).
-
-    Attributes:
-        max_length (int): how long the sentence can be to not be considered an issue.
-        without_punctuation (bool): exclude punctuation from the count.
-    """
-
-    rule_id: Literal['RuleLongSentences'] = 'RuleLongSentences'
-    max_length: int = 50
-    without_punctuation: bool = False
-
-    cz_human_readable_name: str = 'Příliš dlouhé věty'
-    en_human_readable_name: str = 'Too long sentences'
-    cz_doc: str = (
-        'Rozdělte větu/souvětí do více vět/souvětí. Srov. Šamánková & Kubíková (2022, s. 51), Šváb (2021, s. 17–18).'
-    )
-    en_doc: str = (
-        'Split the sentence into multiple sentences. Cf. Šamánková & Kubíková (2022, pp. 51), Šváb (2021, pp. 17–18).'
-    )
-    cz_paricipants: dict[str, str] = {'long_sentence': 'Dlouhá věta / dlouhé souvětí'}
-    en_paricipants: dict[str, str] = {'long_sentence': 'Long sentence'}
-
-    def process_node(self, node):
-        if node.udeprel == 'root':
-            descendants = get_clause(node, without_punctuation=self.without_punctuation, node_is_root=True)
-
-            if not descendants:
-                return
-
-            phrases = get_phrase_heads(descendants)
-
-            if (max_length := len(phrases)) > self.max_length:
-                self.annotate_node('long_sentence', *descendants)
-
-                self.annotate_measurement('max_length', max_length, *descendants)
-                self.annotate_parameter('max_length', self.max_length, *descendants)
-                self.annotate_parameter('without_punctuation', self.without_punctuation, *descendants)
-
-                self.advance_application_id()
-
-
-class RulePredAtClauseBeginning(StructuralRule):
+class RulePredAtClauseBeginning(SentencePositionRule):
     """Capture predicates (their finite tokens for multi-token predicates) \
         that are too far from the beginning of their clause.
 
