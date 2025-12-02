@@ -162,7 +162,7 @@ class RuleTooManyNegations(ClusterRule):
                     no_neg > self.max_allowable_negations
                     and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
                 ):
-                    negatives_annotate = [n for n in context[:span_length]]
+                    negatives_annotate = [n for n in context[:span_length] if self._is_negative(n)]
 
                     self.annotate_node('negative', *negatives_annotate)
 
