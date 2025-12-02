@@ -137,28 +137,47 @@ class RuleTooManyNegations(ClusterRule):
             if [n for n in context if self.rule_id in rules_applied(n)]:
                 return
 
-            while len(context) > self.max_allowable_negations:
-                positives = [nd for nd in context if self._is_positive(nd)]
-                negatives = [nd for nd in context if self._is_negative(nd)]
+            # save the pos and neg counts for each position in the context
+            # so that they don't need to be recomputed each time
+            pos_cnt = []
+            neg_cnt = []
+            for i, nd in enumerate(context):
+                no_pos = pos_cnt[i - 1] if i > 0 else 0
+                no_neg = neg_cnt[i - 1] if i > 0 else 0
 
-                no_pos, no_neg = len(positives), len(negatives)
+                if self._is_positive(nd):
+                    no_pos += 1
+                elif self._is_negative(nd):
+                    no_neg += 1
+
+                pos_cnt.append(no_pos)
+                neg_cnt.append(no_neg)
+
+            span_length = len(context)
+
+            while span_length > self.max_allowable_negations:
+                no_pos, no_neg = pos_cnt[span_length - 1], neg_cnt[span_length - 1]
 
                 if (
                     no_neg > self.max_allowable_negations
                     and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
                 ):
-                    self.annotate_node('negative', *negatives)
+                    negatives_annotate = [n for n in context[:span_length] if self._is_negative(n)]
 
-                    self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives)
-                    self.annotate_measurement('max_allowable_negations', no_neg, *negatives)
-                    self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives)
-                    self.annotate_parameter('max_allowable_negations', self.max_allowable_negations, *negatives)
+                    self.annotate_node('negative', *negatives_annotate)
+
+                    self.annotate_measurement('max_negation_frac', max_neg_frac, *negatives_annotate)
+                    self.annotate_measurement('max_allowable_negations', no_neg, *negatives_annotate)
+                    self.annotate_parameter('max_negation_frac', self.max_negation_frac, *negatives_annotate)
+                    self.annotate_parameter(
+                        'max_allowable_negations', self.max_allowable_negations, *negatives_annotate
+                    )
 
                     self.advance_application_id()
 
                     break
 
-                context = context[: -self._step]
+                span_length -= self._step
 
     @classmethod
     def _is_positive(cls, node) -> bool:
@@ -321,45 +340,67 @@ class RuleCaseRepetition(ClusterRule):
                         if d in following_nodes:
                             following_nodes.remove(d)
 
+            # if a gap greater than 3 nodes is found in following_nodes, keep only the left nodes
             for i, n in enumerate(following_nodes[:-1]):
                 if following_nodes[i + 1].ord - n.ord > 3:
                     following_nodes = following_nodes[: i + 1]
                     break
 
+            # only keep nodes that did not reach into coordinated phrases
             following_nodes = [n for n in following_nodes if n.ord < min_conj_ord]
 
-            while len(following_nodes) >= self.max_repetition_count:
-                ne_reg = NEregister(node)
-
-                same_case_nodes = [
+            ne_reg = NEregister(node)
+            same_case_nodes = [
+                (
                     n
-                    for n in following_nodes
                     if n.upos in self._tracked_pos
                     and n.feats['Case'] == node.feats['Case']
                     and n.deprel != 'appos'
                     and not ne_reg.is_registered_ne(n)
+                    else None
+                )
+                for n in following_nodes
+            ]
+
+            # how many same-case nodes from the same_case_nodes[0] until same_case_nodes[i] (incl.)
+            no_same_case_nodes = []
+            # if all same-case nodes have already been visited by another application of the rule
+            all_scn_already_visited = []
+            for i, scn in enumerate(same_case_nodes):
+                no_same_case_nodes += [(no_same_case_nodes[i - 1] if i > 0 else 0) + (1 if scn else 0)]
+                all_scn_already_visited += [
+                    (all_scn_already_visited[i - 1] if i > 0 else True)
+                    and ((scn is None) or self.__class__.id() in rules_applied(scn))
                 ]
 
-                if len(same_case_nodes) <= self.max_repetition_count:
+            ctx_size = len(following_nodes)
+
+            while ctx_size >= self.max_repetition_count:
+                if not same_case_nodes[ctx_size - 1]:
+                    ctx_size -= 1
+                    continue
+
+                if no_same_case_nodes[ctx_size - 1] <= self.max_repetition_count:
                     break
 
                 # if the rule has already been applied to all nodes in same_case_nodes, there's no point in continuing
-                notes_already_visited = [n for n in same_case_nodes if self.__class__.id() in rules_applied(n)]
-                if len(notes_already_visited) == len(same_case_nodes):
+                if all_scn_already_visited[ctx_size - 1]:
                     break
 
-                if (repetition_frac := len(same_case_nodes) / len(following_nodes)) > self.max_repetition_frac:
-                    self.annotate_parameter('max_repetition_count', self.max_repetition_count, *same_case_nodes)
-                    self.annotate_measurement('max_repetition_count', len(same_case_nodes), *same_case_nodes)
-                    self.annotate_parameter('max_repetition_frac', self.max_repetition_frac, *same_case_nodes)
-                    self.annotate_measurement('max_repetition_frac', repetition_frac, *same_case_nodes)
-                    self.annotate_parameter('include_adjectives', self.include_adjectives, *same_case_nodes)
+                if (repetition_frac := no_same_case_nodes[ctx_size - 1] / ctx_size) > self.max_repetition_frac:
+                    scn_annotate = [n for n in same_case_nodes[:ctx_size] if n]
 
-                    self.annotate_node('case_repetition', *same_case_nodes)
+                    self.annotate_parameter('max_repetition_count', self.max_repetition_count, *scn_annotate)
+                    self.annotate_measurement('max_repetition_count', no_same_case_nodes[ctx_size - 1], *scn_annotate)
+                    self.annotate_parameter('max_repetition_frac', self.max_repetition_frac, *scn_annotate)
+                    self.annotate_measurement('max_repetition_frac', repetition_frac, *scn_annotate)
+                    self.annotate_parameter('include_adjectives', self.include_adjectives, *scn_annotate)
+
+                    self.annotate_node('case_repetition', *scn_annotate)
                     self.advance_application_id()
                     break
 
-                following_nodes.pop()
+                ctx_size -= 1
 
 
 class RulePassive(ClusterRule):

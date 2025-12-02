@@ -18,6 +18,8 @@ from io import TextIOBase, TextIOWrapper
 
 import re
 
+import time  # FIXME: remove
+
 # tmp reimport of everythin
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
