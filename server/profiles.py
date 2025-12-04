@@ -178,7 +178,7 @@ def set_rules_corrective(rules: list[Rule]) -> list[Rule]:
     for rule in rules:
         if isinstance(rule, PostProcessRule):
             rules.remove(rule)
-        elif isinstance(rule, (RuleTooLongExpressions, RuleLiteraryStyle)):
+        elif isinstance(rule, (RuleTooLongExpressions, RuleLiteraryStyle, RuleConfirmationExpressions)):
             rule.detect_only = False
 
     rules += [PostProcessRule()]
