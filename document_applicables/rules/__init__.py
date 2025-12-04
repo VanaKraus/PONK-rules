@@ -327,7 +327,8 @@ class PostProcessRule(Rule):
         if node.udeprel == 'root':
             self._sentence_initial_punctuation(node)
             self._after_coordination_punctuation(node)
-            self._punctuation_spacing(node)
+            # this is now handled by PONK itself
+            # self._punctuation_spacing(node)
             self._capitalization(node)
 
             node.root.text = node.root.compute_text()
