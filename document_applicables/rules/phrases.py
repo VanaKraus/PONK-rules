@@ -184,6 +184,9 @@ class RuleConfirmationExpressions(PhrasesRule):
 
     def process_node(self, node):
         if node.lemma in self._expressions and node.ord < node.parent.ord:
+            if not self.detect_only:
+                self.annotate_action('remove', node)
+
             self.annotate_node('confirmation_expression', node)
             self.advance_application_id()
 
