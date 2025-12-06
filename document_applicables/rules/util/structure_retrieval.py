@@ -94,5 +94,8 @@ def get_phrase_heads(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]
     return [
         n
         for n in remove_punct_sym(nodes, keep=keep)
-        if not (n.deprel in ('amod', 'det', 'case', 'fixed') and n.feats['Case'] == n.parent.feats['Case']) or n in keep
+        if not (
+            n.deprel in ('amod', 'det', 'case', 'fixed', 'mark', 'cc') and n.feats['Case'] == n.parent.feats['Case']
+        )
+        or n in keep
     ]
