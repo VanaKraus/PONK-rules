@@ -135,7 +135,7 @@ def get_noninstitutional_rules() -> list[Rule]:
             # max_order=5,  # default value
             max_order=9,  # TODO: temporary adjustment
         ),
-        RuleInfVerbDistance(),
+        RuleInfVerbDistance(max_distance=5),
         # --- ambiguity ---
         RuleDoubleAdpos(),  # counter-intuitive measurable effect
         RuleIncompleteConstruction(),
