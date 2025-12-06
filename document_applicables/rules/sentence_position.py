@@ -195,7 +195,7 @@ class RuleMultiPartVerbs(SentencePositionRule):
         if (
             is_aux(node, grammatical_only=True)
             and not is_clitic(node)  # word order is very binding for clitics
-            and not {k: v for k, v in node.misc.items() if k.split(':')[0] == self.rule_id and v == 'aux'}
+            and self.id() not in rules_applied(node)
         ):
             parent = node.parent
             if 'VerbForm' not in parent.feats:
