@@ -110,7 +110,7 @@ def get_noninstitutional_rules() -> list[Rule]:
             max_allowable_negations=3,
             max_negation_frac=0.25,  # TODO: temporary adjustment to new measurement criteria
         ),
-        RuleLongSentences(max_length=22),
+        RuleLongSentences(max_length=22, without_punctuation=True),
         # --- phrases and constructions ---
         RuleAbstractNouns(),
         RuleWeakMeaningWords(),
