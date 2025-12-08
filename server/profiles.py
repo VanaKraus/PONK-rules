@@ -45,7 +45,7 @@ from document_applicables.rules.sentence_position import (
     RulePredObjDistance,
     RuleInfVerbDistance,
     RuleMultiPartVerbs,
-    RulePredAtClauseBeginning,
+    PredTooFarInClause,
 )
 
 
@@ -59,7 +59,7 @@ def get_minimal_rules() -> list[Rule]:
             RuleInfVerbDistance(max_distance=0),
             RuleMultiPartVerbs(max_distance=0),
             RuleLongSentences(max_length=0),
-            RulePredAtClauseBeginning(max_order=0),
+            PredTooFarInClause(max_order=0),
             RuleVerbalNouns(),
             RuleTooFewVerbs(min_verb_frac=1),
             RuleTooManyNegations(max_allowable_negations=0, max_negation_frac=0),
@@ -131,7 +131,7 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleMultiPartVerbs(
             max_distance=5,  # default value
         ),
-        RulePredAtClauseBeginning(
+        PredTooFarInClause(
             # max_order=5,  # default value
             max_order=9,  # TODO: temporary adjustment
         ),
