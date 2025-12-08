@@ -227,7 +227,7 @@ class RuleMultiPartVerbs(SentencePositionRule):
                 self.advance_application_id()
 
 
-class PredTooFarInClause(SentencePositionRule):
+class RulePredTooFarInClause(SentencePositionRule):
     """Capture predicates (their finite tokens for multi-token predicates) \
         that are too far from the beginning of their clause.
 

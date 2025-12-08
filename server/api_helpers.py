@@ -61,7 +61,7 @@ from document_applicables.rules.sentence_position import (
     RulePredObjDistance,
     RuleInfVerbDistance,
     RuleMultiPartVerbs,
-    PredTooFarInClause,
+    RulePredTooFarInClause,
 )
 
 
