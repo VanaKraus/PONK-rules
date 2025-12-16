@@ -16,6 +16,7 @@ from pydantic import Field
 from document_applicables import Documentable
 from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.structure_modif import get_removing_rules, node_serializable
+from document_applicables.rules.util.grammar_semantics import is_punct_sym
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 
@@ -299,7 +300,7 @@ class PostProcessRule(Rule):
                 # determine the first node in the sentence structure the rule application would have kept
                 first = 0
                 for d in node.descendants():
-                    if [m for m in d.misc if m == f'{RULE_ANNOTATION_PREFIX}:{rule}:{application}:remove']:
+                    if f'{RULE_ANNOTATION_PREFIX}:{rule}:{application}:remove' in d.misc or is_punct_sym(d):
                         first += 1
                     else:
                         break

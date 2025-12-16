@@ -4,6 +4,10 @@ from udapi.core.node import Node
 import document_applicables.rules.util.external_tools as utilet
 
 
+def is_punct_sym(node: Node) -> bool:
+    return node.upos in ('PUNCT', 'SYM')
+
+
 def is_aux(node: Node, grammatical_only: bool = False) -> bool:
     if grammatical_only:
         return node.udeprel in ('aux', 'cop') or node.deprel == 'expl:pass'
