@@ -10,7 +10,7 @@ from udapi.core.dualdict import DualDict
 
 from document_applicables.rules.util.structure_modif import get_removing_rules, rules_applied
 
-from . import Rule, RULE_ANNOTATION_PREFIX
+from document_applicables.rules import Rule, RULE_ANNOTATION_PREFIX
 
 
 class HelperRule(Rule):

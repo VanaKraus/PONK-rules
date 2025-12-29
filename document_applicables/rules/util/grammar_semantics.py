@@ -3,7 +3,6 @@
 from udapi.core.node import Node
 import document_applicables.rules.util.external_tools as utilet
 import document_applicables.rules.util.structure_modif as utilsm
-import document_applicables.rules.helpers as rulehelpers
 
 
 def is_punct_sym(node: Node) -> bool:
@@ -42,7 +41,7 @@ def is_named_entity(node: Node) -> bool:
 
 
 def is_citation(node: Node) -> bool:
-    return rulehelpers.CitDetectRule.rule_id in utilsm.rules_applied(node)
+    return '_CitDetectRule' in utilsm.rules_applied(node)
 
 
 class NEregister:
