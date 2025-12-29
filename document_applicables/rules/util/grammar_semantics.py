@@ -2,6 +2,8 @@
 
 from udapi.core.node import Node
 import document_applicables.rules.util.external_tools as utilet
+import document_applicables.rules.util.structure_modif as utilsm
+import document_applicables.rules.helpers as rulehelpers
 
 
 def is_punct_sym(node: Node) -> bool:
@@ -37,6 +39,10 @@ def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
 
 def is_named_entity(node: Node) -> bool:
     return 'NE' in node.misc
+
+
+def is_citation(node: Node) -> bool:
+    return rulehelpers.CitDetectRule.rule_id in utilsm.rules_applied(node)
 
 
 class NEregister:
