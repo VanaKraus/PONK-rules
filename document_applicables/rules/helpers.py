@@ -209,6 +209,8 @@ class CitDetectRule(HelperRule):
                 if self.regex_end.findall(following[i].form) and following[i] != node:
                     break
 
+            self.advance_application_id()
+
 
 class HelperCleanupRule(HelperRule):
     rule_id: ClassVar[str] = '_HelperCleanupRule'
