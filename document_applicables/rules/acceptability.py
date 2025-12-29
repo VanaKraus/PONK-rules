@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import ClassVar
 
 from udapi.core.node import Node
 
@@ -10,7 +10,7 @@ from document_applicables.rules.util.communication import Color
 
 class AcceptabilityRule(Rule):
     foreground_color: Color = Color(255, 15, 50)
-    rule_id: Literal['acceptability'] = 'acceptability'
+    rule_id: ClassVar[str] = 'acceptability'
 
 
 class RuleDoubleComparison(AcceptabilityRule):
@@ -19,7 +19,7 @@ class RuleDoubleComparison(AcceptabilityRule):
     Inspiration: Sgall & Panevová (2014, p. 67).
     """
 
-    rule_id: Literal['RuleDoubleComparison'] = 'RuleDoubleComparison'
+    rule_id: ClassVar[str] = 'RuleDoubleComparison'
     cz_human_readable_name: str = 'Dvojí stupňování'
     en_human_readable_name: str = 'Double comparison'
     cz_doc: str = (
@@ -66,7 +66,7 @@ class RuleWrongValencyCase(AcceptabilityRule):
     Inspiration: Sgall & Panevová (2014, p. 85).
     """
 
-    rule_id: Literal['RuleWrongValencyCase'] = 'RuleWrongValencyCase'
+    rule_id: ClassVar[str] = 'RuleWrongValencyCase'
     cz_human_readable_name: str = 'Vazba se špatným pádem'
     en_human_readable_name: str = 'Wrong case usage'
     cz_doc: str = 'Srov. Sgall & Panevová (2014, s. 85).'
@@ -184,7 +184,7 @@ class RuleWrongVerbonominalCase(AcceptabilityRule):
     Inspiration: Sgall & Panevová (2014, p. 42).
     """
 
-    rule_id: Literal['RuleWrongVerbonominalCase'] = 'RuleWrongVerbonominalCase'
+    rule_id: ClassVar[str] = 'RuleWrongVerbonominalCase'
     cz_human_readable_name: str = 'Špatný pád v přísudku'
     en_human_readable_name: str = 'Wrong case in the predicate'
     cz_doc: str = 'Srov. Sgall & Panevová (2014, s. 42).'
@@ -209,7 +209,7 @@ class RuleWrongVerbonominalCase(AcceptabilityRule):
 #     Inspiration: Sgall & Panevová (2014, p. 91).
 #     """
 #
-#     rule_id: Literal['RulePossessiveGenitive'] = 'RulePossessiveGenitive'
+#     rule_id: ClassVar[str] = 'RulePossessiveGenitive'
 #     cz_human_readable_name: str = 'Nevhodný genitiv přivlastňovací'
 #     en_human_readable_name: str = 'Inappropriate possessive genitive'
 #     cz_doc: str = (

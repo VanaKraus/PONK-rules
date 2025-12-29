@@ -4,7 +4,7 @@ from numbers import Number
 import json
 import re
 
-from typing import Any, Literal
+from typing import Any, Literal, ClassVar
 import os
 
 from udapi.core.block import Block
@@ -187,7 +187,7 @@ class Rule(Documentable):
 
 
 class PostProcessRule(Rule):
-    rule_id: Literal['_PostProcessRule'] = '_PostProcessRule'
+    rule_id: ClassVar[str] = '_PostProcessRule'
     cz_doc: str = 'Dokument upraven'
     en_doc: str = 'Document amended'
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Iterable
+from typing import ClassVar, Iterable
 from collections import Counter
 import math
 
@@ -27,7 +27,7 @@ from document_applicables.rules.util.structure_modif import rules_applied
 
 class FluencyOrientationRule(Rule):
     foreground_color: Color = Color(245, 171, 0)
-    rule_id: Literal['cluster'] = 'cluster'
+    rule_id: ClassVar[str] = 'cluster'
 
 
 class RuleTooFewVerbs(FluencyOrientationRule):
@@ -41,7 +41,7 @@ class RuleTooFewVerbs(FluencyOrientationRule):
         finite_only (bool): count only finite verbs.
     """
 
-    rule_id: Literal['RuleTooFewVerbs'] = 'RuleTooFewVerbs'
+    rule_id: ClassVar[str] = 'RuleTooFewVerbs'
     min_verb_frac: float = 0.06
     finite_only: bool = False
 
@@ -104,7 +104,7 @@ class RuleTooManyNegations(FluencyOrientationRule):
             to remain inhibited. This is to allow for double negation in Czech.
     """
 
-    rule_id: Literal['RuleTooManyNegations'] = 'RuleTooManyNegations'
+    rule_id: ClassVar[str] = 'RuleTooManyNegations'
     max_negation_frac: float = 0.25
     max_allowable_negations: int = 3
     max_right_context_size: int = 40
@@ -224,7 +224,7 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
     cz_paricipants: dict[str, str] = {'noun': 'Podstatné jméno'}
     en_paricipants: dict[str, str] = {'noun': 'Noun'}
 
-    rule_id: Literal['RuleTooManyNominalConstructions'] = 'RuleTooManyNominalConstructions'
+    rule_id: ClassVar[str] = 'RuleTooManyNominalConstructions'
     max_noun_frac: float = 0.45
     max_allowable_nouns: int = 5
     max_dismissable_span_length: int = 15
@@ -274,7 +274,7 @@ class RuleFunctionWordRepetition(FluencyOrientationRule):
     Inspiration: Sgall & Panevová (2014, p. 88).
     """
 
-    rule_id: Literal['RuleFunctionWordRepetition'] = 'RuleFunctionWordRepetition'
+    rule_id: ClassVar[str] = 'RuleFunctionWordRepetition'
 
     cz_human_readable_name: str = 'Opakování gramatických slov'
     en_human_readable_name: str = 'Function word repetition'
@@ -303,7 +303,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
         max_repetition_frac (int): max (# of one case occurences / length of the span) to not be considered an issue.
     """
 
-    rule_id: Literal['RuleCaseRepetition'] = 'RuleCaseRepetition'
+    rule_id: ClassVar[str] = 'RuleCaseRepetition'
     include_adjectives: bool = True
     max_repetition_count: int = 4
     max_repetition_frac: float = 0.8
@@ -408,7 +408,7 @@ class RuleVerbalNouns(FluencyOrientationRule):
     Inspiration: Šamánková & Kubíková (2022, pp. 38–39), Šváb (2021, p. 30).
     """
 
-    rule_id: Literal['RuleVerbalNouns'] = 'RuleVerbalNouns'
+    rule_id: ClassVar[str] = 'RuleVerbalNouns'
 
     cz_human_readable_name: str = 'Podstatná jména slovesná'
     en_human_readable_name: str = 'Verbal nouns'
@@ -443,7 +443,7 @@ class RuleLongSentences(FluencyOrientationRule):
         without_punctuation (bool): exclude punctuation from the count.
     """
 
-    rule_id: Literal['RuleLongSentences'] = 'RuleLongSentences'
+    rule_id: ClassVar[str] = 'RuleLongSentences'
     max_length: int = 50
     without_punctuation: bool = False
 
