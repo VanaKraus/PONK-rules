@@ -47,7 +47,7 @@ class Rule(Documentable):
 
     @classmethod
     def id(cls):
-        return cls.__name__
+        return cls.rule_id
 
     def rule_application_key(self) -> str:
         return f'{self.__class__.id()}:{self.process_id}'
