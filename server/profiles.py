@@ -1,7 +1,9 @@
 import math
 
-from document_applicables.rules import Rule, PostProcessRule
+from document_applicables.rules import Rule
+from document_applicables.rules.helpers import PostProcessRule
 from document_applicables.metrics import Metric, MetricActivity, MetricARI, MetricVerbDistance, MetricMovingAverageTTR
+from document_applicables.rules.helpers import CitDetectRule, HelperCleanupRule
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
@@ -186,33 +188,41 @@ def set_rules_corrective(rules: list[Rule]) -> list[Rule]:
     return rules
 
 
+def wrap_helpers(rules: list[Rule]) -> list[Rule]:
+    return (
+        [CitDetectRule()]
+        + rules  # +
+        # [HelperCleanupRule()] # FIXME: implement and uncomment
+    )
+
+
 def get(profile: str) -> tuple[list[Metric], list[Rule]]:
     match profile:
         case 'default_corrective':
             return (
                 None,
-                set_rules_corrective([rule() for rule in Rule.get_final_children()]),
+                wrap_helpers(set_rules_corrective([rule() for rule in Rule.get_final_children()])),
             )
         case 'noninstitutional':
             return (
                 get_noninstitutional_metrics(),
-                get_noninstitutional_rules(),
+                wrap_helpers(get_noninstitutional_rules()),
             )
         case 'noninstitutional_corrective':
             return (
                 get_noninstitutional_metrics(),
-                set_rules_corrective(get_noninstitutional_rules()),
+                wrap_helpers(set_rules_corrective(get_noninstitutional_rules())),
             )
         case 'minimal':
             return (
                 None,  # default metrics
-                get_minimal_rules(),
+                wrap_helpers(get_minimal_rules()),
             )
         case 'minimal_verbose':
             return (
                 None,  # default metrics
-                set_rules_verbose(get_minimal_rules()),
+                wrap_helpers(set_rules_verbose(get_minimal_rules())),
             )
         case _:
-            print(f'Profile {profile} doesn\'t exist.')
+            print(f'Profile "{profile}" doesn\'t exist.')
             return (None, None)
