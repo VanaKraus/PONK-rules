@@ -189,11 +189,7 @@ def set_rules_corrective(rules: list[Rule]) -> list[Rule]:
 
 
 def wrap_helpers(rules: list[Rule]) -> list[Rule]:
-    return (
-        [CitDetectRule()]
-        + rules  # +
-        # [HelperCleanupRule()] # FIXME: implement and uncomment
-    )
+    return [CitDetectRule()] + rules + [HelperCleanupRule()]
 
 
 def get(profile: str) -> tuple[list[Metric], list[Rule]]:

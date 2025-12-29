@@ -13,7 +13,24 @@ from document_applicables.rules.util.structure_modif import get_removing_rules, 
 from . import Rule, RULE_ANNOTATION_PREFIX
 
 
-class PostProcessRule(Rule):
+class HelperRule(Rule):
+    rule_id: ClassVar[str] = 'helper'
+
+    def remove_rule_application(self, *node: Node, rule_id: str, application: str | None = None):
+        prefix = f'{RULE_ANNOTATION_PREFIX}:{rule_id}'
+        if application:
+            prefix += f':{application}'
+
+        for n in node:
+            to_remove = []
+            for k in n.misc:
+                if k.startswith(prefix):
+                    to_remove += [k]
+            for rm in to_remove:
+                del n.misc[rm]
+
+
+class PostProcessRule(HelperRule):
     rule_id: ClassVar[str] = '_PostProcessRule'
     cz_doc: str = 'Dokument upraven'
     en_doc: str = 'Document amended'
@@ -164,7 +181,7 @@ class PostProcessRule(Rule):
             self._sort_global_comment(node)
 
 
-class CitDetectRule(Rule):
+class CitDetectRule(HelperRule):
     rule_id: ClassVar[str] = '_CitDetectRule'
 
     _regex_beg: re.Pattern = None
@@ -193,14 +210,10 @@ class CitDetectRule(Rule):
                     break
 
 
-class HelperCleanupRule(Rule):
+class HelperCleanupRule(HelperRule):
     rule_id: ClassVar[str] = '_HelperCleanupRule'
 
     def process_node(self, node):
-        raise NotImplementedError('waiting for proper application removal capabilities')
-
-        # because this needs to loop through RULES, not MISC KEYS
-        # the desired misc keys here are of the form PonkApp1:<rule>:<application>
-        for k in node.misc:
-            if k.startswith('_'):
-                del node.misc[k]
+        for r in rules_applied(node):
+            if r.startswith('_'):
+                self.remove_rule_application(node, rule_id=r)
