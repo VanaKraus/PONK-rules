@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import ClassVar
 from collections import Counter
 
 from udapi.core.node import Node
@@ -16,7 +16,7 @@ from document_applicables.rules.util.external_tools import vallex_get_lexeme, ge
 
 class PhrasesRule(Rule):
     foreground_color: Color = Color(230, 35, 203)
-    rule_id: Literal['phrases'] = 'phrases'
+    rule_id: ClassVar[str] = 'phrases'
 
 
 class RuleWeakMeaningWords(PhrasesRule):
@@ -25,7 +25,7 @@ class RuleWeakMeaningWords(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, pp. 37-38 and p. 39), Sgall & Panevová (2014, p. 86), Šváb (2021, p. 32).
     """
 
-    rule_id: Literal['RuleWeakMeaningWords'] = 'RuleWeakMeaningWords'
+    rule_id: ClassVar[str] = 'RuleWeakMeaningWords'
 
     cz_human_readable_name: str = 'Vyprázdněná slova'
     en_human_readable_name: str = 'Weak-meaning words'
@@ -67,7 +67,7 @@ class RuleAbstractNouns(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 41).
     """
 
-    rule_id: Literal['RuleAbstractNouns'] = 'RuleAbstractNouns'
+    rule_id: ClassVar[str] = 'RuleAbstractNouns'
 
     cz_human_readable_name: str = 'Vyprázdněná abstraktní jména'
     en_human_readable_name: str = 'Weak-meaning abstract nouns'
@@ -131,7 +131,7 @@ class RuleRelativisticExpressions(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
 
-    rule_id: Literal['RuleRelativisticExpressions'] = 'RuleRelativisticExpressions'
+    rule_id: ClassVar[str] = 'RuleRelativisticExpressions'
 
     cz_human_readable_name: str = 'Relativizující výrazy'
     en_human_readable_name: str = 'Relativising expressions'
@@ -171,7 +171,7 @@ class RuleConfirmationExpressions(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
 
-    rule_id: Literal['RuleConfirmationExpressions'] = 'RuleConfirmationExpressions'
+    rule_id: ClassVar[str] = 'RuleConfirmationExpressions'
 
     cz_human_readable_name: str = 'Utvrzující výrazy'
     en_human_readable_name: str = 'Confirmation expressions'
@@ -197,7 +197,7 @@ class RuleRedundantExpressions(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, pp. 42-43).
     """
 
-    rule_id: Literal['RuleRedundantExpressions'] = 'RuleRedundantExpressions'
+    rule_id: ClassVar[str] = 'RuleRedundantExpressions'
 
     # up to how many first words of a sentence should still be considered its beginning
     # important for some of the cases
@@ -328,7 +328,7 @@ class RuleTooLongExpressions(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 44), Šváb (2021, p. 118).
     """
 
-    rule_id: Literal['RuleTooLongExpressions'] = 'RuleTooLongExpressions'
+    rule_id: ClassVar[str] = 'RuleTooLongExpressions'
 
     cz_human_readable_name: str = 'Dlouhé výrazy'
     en_human_readable_name: str = 'Long expressions'
@@ -548,7 +548,7 @@ class RuleAnaphoricReferences(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
 
-    rule_id: Literal['RuleAnaphoricReferences'] = 'RuleAnaphoricReferences'
+    rule_id: ClassVar[str] = 'RuleAnaphoricReferences'
 
     cz_human_readable_name: str = 'Odkazovací výrazy'
     en_human_readable_name: str = 'Anaphoric references'
@@ -600,7 +600,7 @@ class RuleLiteraryStyle(PhrasesRule):
     Inspiration: Sgall & Panevová (2014, pp. 42, 66–69, 79–82).
     """
 
-    rule_id: Literal['RuleLiteraryStyle'] = 'RuleLiteraryStyle'
+    rule_id: ClassVar[str] = 'RuleLiteraryStyle'
 
     cz_human_readable_name: str = 'Knižní styl'
     en_human_readable_name: str = 'Literary style'
@@ -759,7 +759,7 @@ class RulePassive(PhrasesRule):
         overt_agent_only (bool): only highlight passives with an overt agent.
     """
 
-    rule_id: Literal['RulePassive'] = 'RulePassive'
+    rule_id: ClassVar[str] = 'RulePassive'
     overt_agent_only: bool = True
 
     cz_human_readable_name: str = 'Opisné pasivum'

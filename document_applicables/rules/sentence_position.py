@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import ClassVar
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
@@ -13,7 +13,7 @@ from document_applicables.rules.util.structure_modif import rules_applied
 
 class SentencePositionRule(Rule):
     foreground_color: Color = Color(33, 108, 237)
-    rule_id: Literal['structural'] = 'structural'
+    rule_id: ClassVar[str] = 'structural'
 
 
 class RulePredSubjDistance(SentencePositionRule):
@@ -30,7 +30,7 @@ class RulePredSubjDistance(SentencePositionRule):
             from the clause closest to the predicate is considered for the distance measurement.
     """
 
-    rule_id: Literal['RulePredSubjDistance'] = 'RulePredSubjDistance'
+    rule_id: ClassVar[str] = 'RulePredSubjDistance'
     max_distance: int = 6
     include_clausal_subjects: bool = False
 
@@ -92,7 +92,7 @@ class RulePredObjDistance(SentencePositionRule):
             right next to each other would have distance of 1).
     """
 
-    rule_id: Literal['RulePredObjDistance'] = 'RulePredObjDistance'
+    rule_id: ClassVar[str] = 'RulePredObjDistance'
     max_distance: int = 6
 
     cz_human_readable_name: str = 'Vzdálenost předmětu od řídícího členu'
@@ -129,7 +129,7 @@ class RuleInfVerbDistance(SentencePositionRule):
             right next to each other would have distance of 1).
     """
 
-    rule_id: Literal['RuleInfVerbDistance'] = 'RuleInfVerbDistance'
+    rule_id: ClassVar[str] = 'RuleInfVerbDistance'
     max_distance: int = 5
 
     # TODO: terminology
@@ -179,7 +179,7 @@ class RuleMultiPartVerbs(SentencePositionRule):
             right next to each other would have distance of 1).
     """
 
-    rule_id: Literal['RuleMultiPartVerbs'] = 'RuleMultiPartVerbs'
+    rule_id: ClassVar[str] = 'RuleMultiPartVerbs'
     max_distance: int = 5
 
     # TODO: terminology
@@ -254,7 +254,7 @@ class RulePredTooFarInClause(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'predicate': 'Přísudek'}
     en_paricipants: dict[str, str] = {'predicate': 'Predicate'}
 
-    rule_id: Literal['RulePredAtClauseBeginning'] = 'RulePredAtClauseBeginning'
+    rule_id: ClassVar[str] = 'RulePredAtClauseBeginning'
     max_order: int = 5
     max_reverse_order: int = 3
 

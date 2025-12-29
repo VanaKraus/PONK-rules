@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Callable
+from typing import ClassVar, Callable
 
 from udapi.core.node import Node
 
@@ -26,7 +26,7 @@ from document_applicables.rules.util.external_tools import morphodita_generate
 
 class AmbiguityRule(Rule):
     foreground_color: Color = Color(36, 194, 181)
-    rule_id: Literal['ambiguity'] = 'ambiguity'
+    rule_id: ClassVar[str] = 'ambiguity'
 
 
 class RuleDoubleAdpos(AmbiguityRule):
@@ -43,7 +43,7 @@ class RuleDoubleAdpos(AmbiguityRule):
             have distance of 2).
     """
 
-    rule_id: Literal['RuleDoubleAdpos'] = 'RuleDoubleAdpos'
+    rule_id: ClassVar[str] = 'RuleDoubleAdpos'
     max_allowable_distance: int = 4
 
     cz_human_readable_name: str = 'Předložky v souřadných spojeních'
@@ -149,7 +149,7 @@ class RuleAmbiguousRegards(AmbiguityRule):
     Inspiration: Sgall & Panevová (2014, pp. 77-78), Šamánková & Kubíková (2022, p. 41).
     """
 
-    rule_id: Literal['RuleAmbiguousRegards'] = 'RuleAmbiguousRegards'
+    rule_id: ClassVar[str] = 'RuleAmbiguousRegards'
 
     cz_human_readable_name: str = 'Nejednoznačný zřetel'
     en_human_readable_name: str = 'Ambiguous regard'
@@ -210,7 +210,7 @@ class RuleReflexivePassWithAnimSubj(AmbiguityRule):
     Inspiration: Sgall & Panevová (2014, pp. 71-72).
     """
 
-    rule_id: Literal['RuleReflexivePassWithAnimSubj'] = 'RuleReflexivePassWithAnimSubj'
+    rule_id: ClassVar[str] = 'RuleReflexivePassWithAnimSubj'
 
     cz_human_readable_name: str = 'Zvratné pasivum s životným podmětem'
     en_human_readable_name: str = 'Reflexive passive with an animate subject'
@@ -255,7 +255,7 @@ class RuleIncompleteConstruction(AmbiguityRule):
             is looked for.
     """
 
-    rule_id: Literal['RuleIncompleteConstruction'] = 'RuleIncompleteConstruction'
+    rule_id: ClassVar[str] = 'RuleIncompleteConstruction'
     max_right_context_length: int = 50
     max_right_bundles: int = 4
 
@@ -368,7 +368,7 @@ class RuleGPcoordovs(AmbiguityRule):
 
     # Milada ztratila šálu a čepici ochotně věnovala vnučce.
 
-    rule_id: Literal['RuleGPcoordovs'] = 'RuleGPcoordovs'
+    rule_id: ClassVar[str] = 'RuleGPcoordovs'
 
     cz_human_readable_name: str = 'Zavádějící spojení vět'
     en_human_readable_name: str = 'Misleading clause coordination'
@@ -425,7 +425,7 @@ class RuleGPdeverbaddr(AmbiguityRule):
     cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
     en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
 
-    rule_id: Literal['RuleGPdeverbaddr'] = 'RuleGPdeverbaddr'
+    rule_id: ClassVar[str] = 'RuleGPdeverbaddr'
 
     def process_node(self, node: Node):
         if (
@@ -488,7 +488,7 @@ class RuleGPpatinstr(AmbiguityRule):
         'potential_obj': 'Potential accusative object',
     }
 
-    rule_id: Literal['RuleGPpatinstr'] = 'RuleGPpatinstr'
+    rule_id: ClassVar[str] = 'RuleGPpatinstr'
 
     def process_node(self, node: Node):
         if (
@@ -562,7 +562,7 @@ class RuleGPdeverbsubj(AmbiguityRule):
     cz_paricipants: dict[str, str] = {'sync': 'Nejednoznačně navázané slovo', 'possible_bind': 'Možný řídící člen'}
     en_paricipants: dict[str, str] = {'sync': 'Ambiguously connected word', 'possible_bind': 'Potential governing word'}
 
-    rule_id: Literal['RuleGPdeverbsubj'] = 'RuleGPdeverbsubj'
+    rule_id: ClassVar[str] = 'RuleGPdeverbsubj'
 
     def process_node(self, node: Node):
         if (
@@ -636,7 +636,7 @@ class RuleGPadjective(AmbiguityRule):
         'possible_bind': 'Potential governing word',
     }
 
-    rule_id: Literal['RuleGPadjective'] = 'RuleGPadjective'
+    rule_id: ClassVar[str] = 'RuleGPadjective'
 
     @staticmethod
     def _scope_beginning(node: Node) -> bool:
@@ -729,7 +729,7 @@ class RuleGPpatbenperson(AmbiguityRule):
         'potential_obj': 'Potential accusative object',
     }
 
-    rule_id: Literal['RuleGPpatbenperson'] = 'RuleGPpatbenperson'
+    rule_id: ClassVar[str] = 'RuleGPpatbenperson'
 
     def process_node(self, node: Node):
         if (
@@ -814,7 +814,7 @@ class RuleGPwordorder(AmbiguityRule):
     cz_paricipants: dict[str, str] = {'obj': 'Nejednoznačný předmět', 'nsubj': 'Podmět', 'fin_verb': 'Určité sloveso'}
     en_paricipants: dict[str, str] = {'obj': 'Ambiguous object', 'nsubj': 'Subject', 'fin_verb': 'Finite verb'}
 
-    rule_id: Literal['RuleGPwordorder'] = 'RuleGPwordorder'
+    rule_id: ClassVar[str] = 'RuleGPwordorder'
 
     def process_node(self, node: Node):
         if (

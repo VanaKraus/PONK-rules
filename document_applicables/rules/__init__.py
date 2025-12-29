@@ -4,7 +4,7 @@ from numbers import Number
 import json
 import re
 
-from typing import Any, Literal
+from typing import Any, Literal, ClassVar
 import os
 
 from udapi.core.block import Block
@@ -15,6 +15,7 @@ from pydantic import Field
 from document_applicables import Documentable
 from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.structure_modif import get_removing_rules, node_serializable
+from document_applicables.rules.util.grammar_semantics import is_punct_sym
 
 RULE_ANNOTATION_PREFIX = 'PonkApp1'
 

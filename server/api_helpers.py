@@ -85,7 +85,7 @@ def unwrap_metric_list(metric_wrapper_list: list[MetricsWrapper] | None) -> list
 
 
 class RuleAPIWrapper(BaseModel):
-    rule: Union[*Rule.get_final_children()] = Field(..., discriminator='rule_id')  # type: ignore
+    rule: Union[*Rule.get_final_children()] = Field(...)  # type: ignore
 
 
 def unwrap_rule_list(rule_wrapper_list: list[RuleAPIWrapper] | None) -> list[Rule]:

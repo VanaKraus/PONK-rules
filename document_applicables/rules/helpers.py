@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 
-from typing import Literal
+from typing import ClassVar
 
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
@@ -14,7 +14,7 @@ from . import Rule, RULE_ANNOTATION_PREFIX
 
 
 class PostProcessRule(Rule):
-    rule_id: Literal['_PostProcessRule'] = '_PostProcessRule'
+    rule_id: ClassVar[str] = '_PostProcessRule'
     cz_doc: str = 'Dokument upraven'
     en_doc: str = 'Document amended'
 
@@ -165,7 +165,7 @@ class PostProcessRule(Rule):
 
 
 class CitDetectRule(Rule):
-    rule_id: Literal['_CitDetectRule'] = '_CitDetectRule'
+    rule_id: ClassVar[str] = '_CitDetectRule'
 
     _regex_beg: re.Pattern = None
     _regex_end: re.Pattern = None
@@ -194,7 +194,7 @@ class CitDetectRule(Rule):
 
 
 class HelperCleanupRule(Rule):
-    rule_id: Literal['_HelperCleanupRule'] = '_HelperCleanupRule'
+    rule_id: ClassVar[str] = '_HelperCleanupRule'
 
     def process_node(self, node):
         raise NotImplementedError('waiting for proper application removal capabilities')

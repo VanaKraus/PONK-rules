@@ -6,6 +6,7 @@ from udapi.core.bundle import Bundle
 from udapi.core.node import Node
 
 import document_applicables.rules.util.structure_info as utilsi
+import document_applicables.rules.util.grammar_semantics as utilgs
 
 
 def get_clause_root(node: Node) -> Node:
@@ -85,7 +86,7 @@ def get_surrounding_bundles_serialize(
 
 
 def remove_punct_sym(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]:
-    return [n for n in nodes if n.upos not in ('PUNCT', 'SYM') or n in keep]
+    return [n for n in nodes if not utilgs.is_punct_sym(n) or n in keep]
 
 
 def get_phrase_heads(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]:
