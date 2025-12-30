@@ -579,11 +579,14 @@ class RuleAnaphoricReferences(PhrasesRule):
     en_paricipants: dict[str, str] = {'anaphoric_reference': 'Anaphoric reference'}
 
     def process_node(self, node):
+        if is_citation(node):
+            return
+
         match node.lemma:
             # co se týče výše uvedeného
             # ze shora uvedeného důvodu
             # z právě uvedeného je zřejmé
-            case 'uvedený':
+            case 'uvedený' | 'popsaný' | 'vyjmenovaný':
                 if adv := [c for c in node.children if c.lemma in ('vysoko', 'shora', 'právě')]:
                     self.annotate_node('anaphoric_reference', node, *adv)
                     self.advance_application_id()
@@ -600,11 +603,13 @@ class RuleAnaphoricReferences(PhrasesRule):
 
             # z logiky věci vyplývá
             case 'logika':
-                if (noun := [c for c in node.children if c.lemma == 'věc']) and (
-                    adp := [c for c in node.children if c.lemma == 'z']
+                if (
+                    (noun := [c for c in node.children if c.lemma == 'věc'])
+                    and (adp := [c for c in node.children if c.lemma == 'z'])
+                    and (vrb := node.parent).lemma in ('vyplývat', 'vyplynout', 'plynout')
                 ):
                     self.annotate_node(
-                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants()]
+                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants()], vrb
                     )
                     self.advance_application_id()
 
