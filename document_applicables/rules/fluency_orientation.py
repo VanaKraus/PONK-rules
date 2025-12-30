@@ -387,7 +387,15 @@ class RuleCaseRepetition(FluencyOrientationRule):
                     break
 
                 if (repetition_frac := no_same_case_nodes[ctx_size - 1] / ctx_size) > self.max_repetition_frac:
-                    scn_annotate = [n for n in same_case_nodes[:ctx_size] if n]
+                    scn_annotate, NEs = [], set()
+                    for i, n in enumerate(following_nodes):
+                        NEs_n = set(n.misc['NE'].split('-'))
+                        # ... so that all belonging NEs are highlighted
+                        if (i < ctx_size and same_case_nodes[i]) or (
+                            NEs.intersection(NEs_n) and n.feats['Case'] == node.feats['Case']
+                        ):
+                            scn_annotate += [n]
+                            NEs |= NEs_n
 
                     self.annotate_parameter('max_repetition_count', self.max_repetition_count, *scn_annotate)
                     self.annotate_measurement('max_repetition_count', no_same_case_nodes[ctx_size - 1], *scn_annotate)
