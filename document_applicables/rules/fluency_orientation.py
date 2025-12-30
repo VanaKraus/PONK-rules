@@ -13,7 +13,7 @@ from document_applicables.rules.util.grammar_semantics import (
     is_aux,
     is_named_entity,
     NEregister,
-    is_adposition,
+    is_citation,
 )
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import (
@@ -356,6 +356,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
                     and n.feats['Case'] == node.feats['Case']
                     and n.deprel != 'appos'
                     and not ne_reg.is_registered_ne(n)
+                    and not is_citation(n)
                     else None
                 )
                 for n in following_nodes
