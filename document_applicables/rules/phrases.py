@@ -195,10 +195,15 @@ class RuleConfirmationExpressions(PhrasesRule):
     cz_paricipants: dict[str, str] = {'confirmation_expression': 'Utvrzující výraz'}
     en_paricipants: dict[str, str] = {'confirmation_expression': 'Confirmation expression'}
 
-    _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
+    _expressions: list[str] = ['jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
-        if node.lemma in self._expressions and node.ord < node.parent.ord:
+        if (
+            node.lemma in self._expressions
+            and node.ord < node.parent.ord
+            and ('Degree' not in node.feats or node.feats['Degree'] == 'Pos')
+            and not is_citation(node)
+        ):
             if not self.detect_only:
                 self.annotate_action('remove', node)
 
