@@ -13,6 +13,7 @@ from document_applicables.rules.util.grammar_semantics import (
     n_syncretic,
     n_syncretic_with,
     feat_overlap,
+    is_citation,
 )
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import (
@@ -304,6 +305,9 @@ class RuleIncompleteConstruction(AmbiguityRule):
         def _is_na_jedne_strane(n: Node) -> bool:
             return n.lemma == 'strana' and [c.lemma for c in n.children] == ['na', 'jeden']
 
+        if is_citation(node):
+            return
+
         if node.lemma == 'jednak':
             right_context = self._get_right_context(node)
 
@@ -317,8 +321,15 @@ class RuleIncompleteConstruction(AmbiguityRule):
                 self.advance_application_id()
 
         elif node.lemma in ('buď', 'buďto') and node.upos == 'CCONJ':
+            ptr, predecessors = node.parent, set()
+            while ptr.parent:
+                predecessors |= {ptr}
+                ptr = ptr.parent
+
             if not [
-                c for s in node.parent.children if s.ord > node.ord for c in s.children if c.lemma in ('nebo', 'anebo')
+                n
+                for n in node.root.descendants()
+                if n.lemma in ('nebo', 'anebo') and n.parent and n.parent.parent in predecessors
             ]:
                 self.annotate_node('bud', node)
                 self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
