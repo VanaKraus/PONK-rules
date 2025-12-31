@@ -197,10 +197,15 @@ class RuleMultiPartVerbs(SentencePositionRule):
         if (
             is_aux(node, grammatical_only=True)
             and not is_clitic(node)  # word order is very binding for clitics
+            and not is_citation(node)
             and self.id() not in rules_applied(node)
         ):
             parent = node.parent
-            if 'VerbForm' not in parent.feats:
+            if (
+                'VerbForm' not in parent.feats
+                or (parent.upos != 'VERB' and parent.feats['Case'] != 'Nom' and node.deprel != 'aux:pass')
+                or is_citation(parent)
+            ):
                 return
 
             # find remaining auxiliaries
