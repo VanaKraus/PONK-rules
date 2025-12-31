@@ -37,27 +37,52 @@ class RuleWeakMeaningWords(PhrasesRule):
         'Avoid weak-meaning words. Cf. Sgall & Panevová (2014, p. 86), '
         + 'Šamánková & Kubíková (2022, pp. 37–38 and p. 39), Šváb (2021, p. 32).'
     )
-    cz_paricipants: dict[str, str] = {'weak_meaning_word': 'Vyprázdněné slovo'}
-    en_paricipants: dict[str, str] = {'weak_meaning_word': 'Weak-meaning word'}
+    cz_paricipants: dict[str, str] = {
+        'weak_meaning_word': 'Vyprázdněné slovo',
+        'potentially_weak_meaning_word': 'Slovo se často používá jako vyprázdněné',
+    }
+    en_paricipants: dict[str, str] = {
+        'weak_meaning_word': 'Weak-meaning word',
+        'potentially_weak_meaning_word': 'The word is often used in a weak meaning',
+    }
 
-    _weak_meaning_words: list[str] = [
+    _weak_meaning_words: set[str] = {
         'dopadat',
         'zaměřit',
         'poukázat',
         'poukazovat',
         'ovlivnit',
         'ovlivňovat',
-        'provádět',
-        'provést',
-        'obdobně',
         'velmi',
         'uskutečnit',
         'uskutečňovat',
-    ]
+    }
+
+    _potentially_weak_meaning_words: set[str] = {'provádět', 'provést'}
+
+    def model_post_init(self, __context):
+        self._all_words = self._weak_meaning_words | self._potentially_weak_meaning_words
+        return super().model_post_init(__context)
+
+    @staticmethod
+    def _exception(node: Node) -> bool:
+        match node.lemma:
+            case 'uskutečnit' | 'uskutečňovat':
+                return bool([n for n in node.children if n.form.lower() == 'se'])
+            case 'provést' | 'provádět':
+                return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
+        return False
 
     def process_node(self, node):
-        if node.lemma in self._weak_meaning_words:
-            self.annotate_node('weak_meaning_word', node)
+        if node.lemma in self._all_words and not self._exception(node) and not is_citation(node):
+            self.annotate_node(
+                (
+                    'potentially_weak_meaning_word'
+                    if node.lemma in self._potentially_weak_meaning_words
+                    else 'weak_meaning_word'
+                ),
+                node,
+            )
             self.advance_application_id()
 
 
@@ -76,7 +101,7 @@ class RuleAbstractNouns(PhrasesRule):
     cz_paricipants: dict[str, str] = {'abstract_noun': 'Vyprázdněné abstraktní substantivum'}
     en_paricipants: dict[str, str] = {'abstract_noun': 'Weak-meaning abstract noun'}
 
-    _abstract_nouns: list[str] = [
+    _abstract_nouns: set[str] = {
         'základ',
         'úvaha',
         'charakter',
@@ -88,7 +113,7 @@ class RuleAbstractNouns(PhrasesRule):
         'činnost',
         'postup',
         'podstata',
-    ]
+    }
 
     @staticmethod
     def _is_terminology(node: Node) -> bool:
@@ -157,7 +182,7 @@ class RuleRelativisticExpressions(PhrasesRule):
 
     # lemmas; when space-separated, nodes next-to-each-other with corresponding lemmas are looked for
     _expressions: list[list[str]] = [
-        expr.split(' ') for expr in ['poněkud', 'jevit', 'patrně', 'do jistý míra', 'snad', 'jaksi']
+        expr.split(' ') for expr in ['poněkud', 'jevit', 'patrně', 'do jistý míra', 'snad', 'jaksi', 'obdobně']
     ]
 
     def process_node(self, node):
