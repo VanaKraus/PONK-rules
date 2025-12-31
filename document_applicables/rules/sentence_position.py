@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb
+from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb, is_citation
 from document_applicables.rules.util.measurement import distance_from_list
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import get_phrase_heads, get_clause
@@ -149,6 +149,8 @@ class RuleInfVerbDistance(SentencePositionRule):
             and infinitive.upos != 'AUX'
             # it mainly attributes the za+ACC argument to the ACC argument, behaving as an "epistemic copula" of sorts
             and verb.lemma != 'považovat'
+            and not is_citation(infinitive)
+            and not is_citation(verb)
         ):
 
             if (
