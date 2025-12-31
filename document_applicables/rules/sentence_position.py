@@ -261,7 +261,7 @@ class RulePredTooFarInClause(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'predicate': 'Přísudek'}
     en_paricipants: dict[str, str] = {'predicate': 'Predicate'}
 
-    rule_id: ClassVar[str] = 'RulePredAtClauseBeginning'
+    rule_id: ClassVar[str] = 'RulePredTooFarInClause'
     max_order: int = 5
     max_reverse_order: int = 3
 
@@ -269,6 +269,9 @@ class RulePredTooFarInClause(SentencePositionRule):
         # finite verbs or l-participles
         if is_finite_verb(node) and (self.rule_id not in rules_applied(node)):
             pred_root = node.parent if is_aux(node) else node
+
+            if is_citation(pred_root) or is_citation(node):
+                return
 
             clause = get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
 
