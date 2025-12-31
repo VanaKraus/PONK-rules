@@ -229,9 +229,20 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
     max_allowable_nouns: int = 5
     max_dismissable_span_length: int = 15
 
+    @classmethod
+    def _strip_of_coordinated_nouns(cls, nodes: Iterable[Node]) -> list[Node]:
+        return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
+
+    @classmethod
+    def _filter(cls, nodes: Iterable[Node]) -> list[Node]:
+        nodes = cls._strip_of_coordinated_nouns(nodes)
+        nodes = [n for n in nodes if n.feats['Abbr'] != 'Yes']
+        return nodes
+
     def process_node(self, node: Node):
         if is_clause_root(node):
             clause = get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+            clause = [n for n in clause if not is_citation(n)]
             clause_tmp = clause.copy()
 
             # separate into subclauses (spans) if an embedded clause is present
@@ -246,12 +257,10 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
             for subclause in subclauses:
                 # coordinated nouns are stripped from the measurements
                 # the nouns are still kept for eventual highlighting though
-                if (
-                    scl_len := len(self._strip_of_coordinated_nouns(remove_punct_sym(subclause)))
-                ) > self.max_dismissable_span_length:
+                if (scl_len := len(self._filter(remove_punct_sym(subclause)))) > self.max_dismissable_span_length:
                     nouns = [n for n in subclause if n.upos == 'NOUN' and not is_named_entity(n)]
 
-                    if (l := len(self._strip_of_coordinated_nouns(nouns))) > self.max_allowable_nouns and (
+                    if (l := len(self._filter(nouns))) > self.max_allowable_nouns and (
                         noun_frac := float(l) / scl_len
                     ) > self.max_noun_frac:
 
@@ -262,10 +271,6 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
 
                         self.annotate_node('noun', *nouns)
                         self.advance_application_id()
-
-    @classmethod
-    def _strip_of_coordinated_nouns(cls, nodes: Iterable[Node]) -> list[Node]:
-        return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
 
 
 class RuleFunctionWordRepetition(FluencyOrientationRule):
