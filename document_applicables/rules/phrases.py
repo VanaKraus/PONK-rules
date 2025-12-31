@@ -8,7 +8,7 @@ from udapi.core.node import Node
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.grammar_semantics import is_adposition, is_citation
-from document_applicables.rules.util.structure_info import descendants_include
+from document_applicables.rules.util.structure_info import descendants_include, is_clause_root
 from document_applicables.rules.util.structure_modif import get_removing_rules
 from document_applicables.rules.util.structure_retrieval import get_clause
 from document_applicables.rules.util.external_tools import vallex_get_lexeme, get_derinet
@@ -411,6 +411,9 @@ class RuleTooLongExpressions(PhrasesRule):
     }
 
     def process_node(self, node):
+        if is_citation(node):
+            return
+
         match node.lemma:
             # v důsledku toho
             case 'důsledek':
@@ -487,7 +490,7 @@ class RuleTooLongExpressions(PhrasesRule):
 
             # za účelem
             case 'účel':
-                if (adp := node.parent).lemma == 'za':
+                if (adp := node.parent).lemma == 'za' and adp.parent.lemma != 'ochrana':
                     self.annotate_node('za_účelem', node, adp)
 
                     # if not self.detect_only:
@@ -504,7 +507,7 @@ class RuleTooLongExpressions(PhrasesRule):
 
             # jste oprávněn
             case 'oprávněný':
-                if aux := [c for c in node.children if c.upos == 'AUX']:
+                if aux := [c for c in node.children if c.upos == 'AUX' and not is_clause_root(c)]:
                     self.annotate_node('jste_oprávněn', node, *aux)
                     self.advance_application_id()
 
