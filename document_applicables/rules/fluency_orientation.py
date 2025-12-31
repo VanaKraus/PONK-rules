@@ -475,8 +475,9 @@ class RuleLongSentences(FluencyOrientationRule):
                 return
 
             phrases = get_phrase_heads(descendants)
+            nocit_phrases = [n for n in phrases if not is_citation(n)]
 
-            if (max_length := len(phrases)) > self.max_length:
+            if (max_length := len(nocit_phrases)) > self.max_length:
                 self.annotate_node('long_sentence', *descendants)
 
                 self.annotate_measurement('max_length', max_length, *descendants)
