@@ -29,6 +29,14 @@ def is_adposition(node: Node) -> bool:
     return node.deprel in ('case', 'fixed')
 
 
+def get_adpositions(node: Node) -> list[Node]:
+    return [nd for nd in node.children if is_adposition(nd)]
+
+
+def has_adposition(node: Node) -> bool:
+    return bool(get_adpositions(node))
+
+
 def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     n1_values = set(n1.feats[feat_id].split(','))
     n2_values = set(n2.feats[feat_id].split(','))

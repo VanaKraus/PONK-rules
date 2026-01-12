@@ -4,7 +4,13 @@ from typing import ClassVar
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb, is_citation
+from document_applicables.rules.util.grammar_semantics import (
+    is_aux,
+    is_clitic,
+    is_finite_verb,
+    is_citation,
+    has_adposition,
+)
 from document_applicables.rules.util.measurement import distance_from_list
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import get_phrase_heads, get_clause
@@ -102,9 +108,23 @@ class RulePredObjDistance(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'object': 'Předmět', 'parent': 'Řídící člen'}
     en_paricipants: dict[str, str] = {'object': 'Object', 'parent': 'Governing word'}
 
+    @staticmethod
+    def _exception_pred(node):
+        return node.form.lower() == 'viz'
+
+    @staticmethod
+    def _exception_obj(node):
+        return node.lemma in ('třeba', 'potřeba') or has_adposition(node)
+
     def process_node(self, node):
-        if node.deprel in ('obj', 'iobj'):
+        if node.deprel in ('obj', 'iobj') and not self._exception_obj(node):
             parent = node.parent
+
+            if self._exception_pred(parent):
+                return
+
+            if is_citation(node) or is_citation(parent):
+                return
 
             if (
                 max_dst := distance_from_list(

@@ -14,6 +14,8 @@ from document_applicables.rules.util.grammar_semantics import (
     n_syncretic_with,
     feat_overlap,
     is_citation,
+    get_adpositions,
+    has_adposition,
 )
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import (
@@ -74,23 +76,15 @@ class RuleDoubleAdpos(AmbiguityRule):
         'coord_el': 'Coordination element',
     }
 
-    @classmethod
-    def _adpositions(cls, node: Node) -> list[Node]:
-        return [nd for nd in node.children if nd.udeprel == "case" and nd.upos == "ADP"]
-
-    @classmethod
-    def _has_adposition(cls, node: Node) -> bool:
-        return bool(cls._adpositions(node))
-
     def process_node(self, node: Node):
-        if self._has_adposition(node) and not is_citation(node):
+        if has_adposition(node) and not is_citation(node):
             # get all tokens the node is coordinated with (i.e. the whole coordination)
             coordinations = [c for c in node.children if c.deprel == 'conj' and c.feats['Case'] == node.feats['Case']]
 
             phrase_heads = get_phrase_heads(node.root.descendants, keep=[node] + coordinations)
 
             # these will point to last element with an adposition throughout iterating
-            ref_el, ref_adp = node, self._adpositions(node)[-1]
+            ref_el, ref_adp = node, get_adpositions(node)[-1]
 
             # reference element and no-adposition elements following it
             coord_chain = [ref_el]
@@ -129,7 +123,7 @@ class RuleDoubleAdpos(AmbiguityRule):
 
             for coord in coordinations:
                 # token has an adposition
-                if adps := self._adpositions(coord):
+                if adps := get_adpositions(coord):
                     attempt_coord_chain_annotation()
 
                     # reset
