@@ -119,7 +119,7 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleRelativisticExpressions(),
         RuleConfirmationExpressions(),
         RuleAnaphoricReferences(),
-        RuleLiteraryStyle(),
+        # RuleLiteraryStyle(), # partially out of the project's scope
         RulePassive(),
         # --- position in a sentence ---
         RulePredSubjDistance(
