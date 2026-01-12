@@ -37,6 +37,14 @@ def has_adposition(node: Node) -> bool:
     return bool(get_adpositions(node))
 
 
+def get_nummods(node: Node, governing_only: bool = False) -> list[Node]:
+    return (
+        [n for n in node.children if n.deprel in ('nummod:gov', 'det:numgov')]
+        if governing_only
+        else [n for n in node.children if n.deprel in ('nummod', 'nummod:gov', 'det:nummod', 'det:numgov')]
+    )
+
+
 def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     n1_values = set(n1.feats[feat_id].split(','))
     n2_values = set(n2.feats[feat_id].split(','))
