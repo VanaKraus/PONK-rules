@@ -810,10 +810,12 @@ class RulePassive(PhrasesRule):
 
     Arguments:
         overt_agent_only (bool): only highlight passives with an overt agent.
+        use_vallex (bool): use Vallex and DeriNet to lookup valency frames.
     """
 
     rule_id: ClassVar[str] = 'RulePassive'
     overt_agent_only: bool = True
+    use_vallex: bool = False
 
     cz_human_readable_name: str = 'Opisné pasivum'
     en_human_readable_name: str = 'Participial passive'
@@ -841,13 +843,15 @@ class RulePassive(PhrasesRule):
             if n.deprel == 'obl:arg' and n.feats['Case'] == 'Gen' and [c for c in n.children if c.lemma == 'od']
         ]
 
-        # look up the verb in VALLEX
-        derinet = get_derinet()
-        deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
-        vallex_lexemes = [l for dp in deri_parents if dp for l in vallex_get_lexeme(dp)]
+        vallex_lexemes = []
+        if self.use_vallex:
+            # look up the verb in VALLEX
+            derinet = get_derinet()
+            deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
+            vallex_lexemes = [l for dp in deri_parents if dp for l in vallex_get_lexeme(dp)]
 
         # if there's a VALLEX entry
-        if len(vallex_lexemes) > 0:
+        if self.use_vallex and len(vallex_lexemes) > 0:
             # the following is a compromise: formally, UD provide no way of distinguishing
             # "toalety_PAT nebyly opatřeny záchodovým prkýnkem_EFF"
             # from "poplatek_PAT byl zaplacen osobou_ACT" (cf. "zaplacen majetkem_EFF");
