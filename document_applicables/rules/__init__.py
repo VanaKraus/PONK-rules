@@ -64,9 +64,9 @@ class Rule(Documentable):
         self, rule_application: str, action: Literal['remove', 'rebind'], *node: Node, value: str = '_'
     ):
         if action not in ['remove', 'rebind']:
-            raise ValueError(f'action required to be "remove" or "add"; "{action}" supplied')
+            raise ValueError(f'action required to be "remove" or "rebind"; "{action}" supplied')
 
-        ruleapplmatch = re.search(r'^([A-Za-z]+):([0-9a-z]{8})$', rule_application)
+        ruleapplmatch = re.search(r'^([_A-Za-z]+):([0-9a-f]{8})$', rule_application)
         if not ruleapplmatch:
             raise ValueError(f'invalid {rule_application=}')
 

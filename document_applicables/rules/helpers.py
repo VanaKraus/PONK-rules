@@ -8,7 +8,8 @@ from typing import ClassVar
 from udapi.core.node import Node
 from udapi.core.dualdict import DualDict
 
-from document_applicables.rules.util.structure_modif import get_removing_rules, rules_applied
+from document_applicables.rules.util.structure_modif import get_removing_rules, rules_applied, get_rule_annotations
+from document_applicables.rules.util.structure_retrieval import get_surrounding_bundles_serialize
 
 from document_applicables.rules import Rule, RULE_ANNOTATION_PREFIX
 
@@ -199,15 +200,36 @@ class CitDetectRule(HelperRule):
             self._regex_end = re.compile(r'["“”]')
         return self._regex_end
 
+    @classmethod
+    def _previous_bundle_open(cls, node) -> bool:
+        prev_nodes = get_surrounding_bundles_serialize(node, 1, 0, exclude_self=True)
+        if not prev_nodes:
+            return False
+
+        return cls.id() in rules_applied(prev_nodes[-1]) and 'cit_close' not in get_rule_annotations(
+            prev_nodes[-1], cls.id()
+        )
+
+    def _opening(self, node) -> bool:
+        return node.upos == 'PUNCT' and self.regex_beg.match(node.form) and self.id() not in rules_applied(node)
+
+    def _closing(self, node) -> bool:
+        return self.regex_end.findall(node.form)
+
     def process_node(self, node):
-        if node.upos == 'PUNCT' and self.regex_beg.match(node.form) and self.__class__.id() not in rules_applied(node):
+        open = self._opening(node)
+        print(f'{node=} {open=}')
+
+        if open or (node.ord == 1 and self._previous_bundle_open(node)):
             following = node.root.descendants
+            print(f'{following=}')
 
-            for i in range(node.ord - 1, len(following)):
-                self.annotate_node('cit', following[i])
-
-                if self.regex_end.findall(following[i].form) and following[i] != node:
+            for o, n in enumerate(following[node.ord - 1 :]):
+                if n != node and self._closing(n):
+                    self.annotate_node('cit_close', n)
                     break
+
+                self.annotate_node('cit_open' if open and o == 0 else 'cit', n)
 
             self.advance_application_id()
 
