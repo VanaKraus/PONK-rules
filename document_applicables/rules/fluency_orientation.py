@@ -306,7 +306,7 @@ class RuleFunctionWordRepetition(FluencyOrientationRule):
 
     def process_node(self, node: Node):
         if node.upos in ('ADP', 'SCONJ', 'CCONJ') and (
-            following_node := [n for n in node.root.descendants() if n.ord == node.ord + 1 and n.lemma == node.lemma]
+            following_node := [n for n in node.root.descendants if n.ord == node.ord + 1 and n.lemma == node.lemma]
         ):
             self.annotate_node('repetition', node, *following_node)
             self.advance_application_id()

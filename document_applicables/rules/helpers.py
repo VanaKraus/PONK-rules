@@ -36,7 +36,7 @@ class PostProcessRule(HelperRule):
     en_doc: str = 'Document amended'
 
     def _get_after_correction_mockup(self, node, rule_application: str) -> list[Node | None]:
-        nodes = node.root.descendants()
+        nodes = node.root.descendants
         mockup = [nd for nd in nodes if f'{RULE_ANNOTATION_PREFIX}:{rule_application}:remove' not in nd.misc]
         ids = [str(n.ord) for n in mockup]
 
@@ -143,7 +143,7 @@ class PostProcessRule(HelperRule):
 
                 # determine the first node in the sentence structure the rule application would have kept
                 first = 0
-                for d in node.descendants():
+                for d in node.descendants:
                     if [m for m in d.misc if m == f'{RULE_ANNOTATION_PREFIX}:{rule}:{application}:remove']:
                         first += 1
                     else:
@@ -201,7 +201,7 @@ class CitDetectRule(HelperRule):
 
     def process_node(self, node):
         if node.upos == 'PUNCT' and self.regex_beg.match(node.form) and self.__class__.id() not in rules_applied(node):
-            following = node.root.descendants()
+            following = node.root.descendants
 
             for i in range(node.ord - 1, len(following)):
                 self.annotate_node('cit', following[i])

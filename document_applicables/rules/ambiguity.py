@@ -327,7 +327,7 @@ class RuleIncompleteConstruction(AmbiguityRule):
 
             if not [
                 n
-                for n in node.root.descendants()
+                for n in node.root.descendants
                 if n.lemma in ('nebo', 'anebo') and n.parent and n.parent.parent in predecessors
             ]:
                 self.annotate_node('bud', node)
@@ -391,7 +391,7 @@ class RuleGPcoordovs(AmbiguityRule):
 
     def process_node(self, node: Node):
         if (node.deprel in ('punct', 'cc')) and node.parent.deprel == 'conj' and is_clause_root(node.parent):
-            sentence = node.root.descendants()
+            sentence = node.root.descendants
 
             if (
                 node.ord > 1

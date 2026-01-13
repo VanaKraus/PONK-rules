@@ -630,7 +630,7 @@ class RuleAnaphoricReferences(PhrasesRule):
                     adp := [c for c in node.children if c.udeprel == 'case']
                 ):
                     self.annotate_node(
-                        'anaphoric_reference', node, *det, *adp, *[desc for a in adp for desc in a.descendants()]
+                        'anaphoric_reference', node, *det, *adp, *[desc for a in adp for desc in a.descendants]
                     )
                     self.advance_application_id()
 
@@ -642,7 +642,7 @@ class RuleAnaphoricReferences(PhrasesRule):
                     and (vrb := node.parent).lemma in ('vyplývat', 'vyplynout', 'plynout')
                 ):
                     self.annotate_node(
-                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants()], vrb
+                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants], vrb
                     )
                     self.advance_application_id()
 

@@ -47,7 +47,7 @@ def get_clause(
 
 
 def get_coord_element_phrase(node: Node) -> list[Node]:
-    res = node.descendants()
+    res = node.descendants
     to_remove = []
 
     if len(res) > 0 and res[0].upos == 'PUNCT':

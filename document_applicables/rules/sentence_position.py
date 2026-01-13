@@ -97,7 +97,7 @@ class RulePredSubjDistance(SentencePositionRule):
                     subj = clause[0]
 
             if (
-                max_dst := distance_from_list(get_phrase_heads(node.root.descendants(), keep=(subj, pred)), subj, pred)
+                max_dst := distance_from_list(get_phrase_heads(node.root.descendants, keep=(subj, pred)), subj, pred)
             ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
@@ -154,7 +154,7 @@ class RulePredObjDistance(SentencePositionRule):
                 obj = nummods[0]
 
             if (
-                max_dst := distance_from_list(get_phrase_heads(obj.root.descendants(), keep=(obj, parent)), obj, parent)
+                max_dst := distance_from_list(get_phrase_heads(obj.root.descendants, keep=(obj, parent)), obj, parent)
             ) > self.max_distance:
                 self.annotate_node('object', obj)
                 self.annotate_node('parent', parent)
@@ -200,7 +200,7 @@ class RuleInfVerbDistance(SentencePositionRule):
 
             if (
                 max_dst := distance_from_list(
-                    get_phrase_heads(infinitive.root.descendants(), keep={verb, infinitive}), verb, infinitive
+                    get_phrase_heads(infinitive.root.descendants, keep={verb, infinitive}), verb, infinitive
                 )
             ) > self.max_distance:
                 auxiliaries = [a for a in verb.children if a.deprel in ('aux', 'cop')]
@@ -260,7 +260,7 @@ class RuleMultiPartVerbs(SentencePositionRule):
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
-            sentence_wo_punct_sym = get_phrase_heads(node.root.descendants(), keep=(parent, *auxiliaries))
+            sentence_wo_punct_sym = get_phrase_heads(node.root.descendants, keep=(parent, *auxiliaries))
 
             too_far_apart = False
             max_dst = 0
@@ -341,7 +341,7 @@ class RulePredTooFarInClause(SentencePositionRule):
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
-            phrases = get_phrase_heads(node.root.descendants(), keep=[first_predicate_token])
+            phrases = get_phrase_heads(node.root.descendants, keep=[first_predicate_token])
 
             clause_filter_intersect = [n for n in clause if n in phrases]
             if not clause_filter_intersect:
