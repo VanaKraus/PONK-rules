@@ -8,7 +8,7 @@ from udapi.core.node import Node
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
 from document_applicables.rules.util.grammar_semantics import is_adposition, is_citation
-from document_applicables.rules.util.structure_info import descendants_include, is_clause_root
+from document_applicables.rules.util.structure_info import children_include, is_clause_root
 from document_applicables.rules.util.structure_modif import get_removing_rules
 from document_applicables.rules.util.structure_retrieval import get_clause
 from document_applicables.rules.util.external_tools import vallex_get_lexeme, get_derinet
@@ -121,13 +121,13 @@ class RuleAbstractNouns(PhrasesRule):
             case 'stupeň':
                 # modifiers listed to exclude various elementary school grades.
                 # might be useful to discriminate court instances, which would however require more sophistication
-                return node.parent.lemma == 'soud' or descendants_include(node, {'první', 'druhý', '1', '2', 'I', 'II'})
+                return node.parent.lemma == 'soud' or children_include(node, {'první', 'druhý', '1', '2', 'I', 'II'})
             case 'činnost':
-                return descendants_include(node, {'trestný', 'pracovní', 'výdělečný', 'rozhodovací', 'závislý'})
+                return children_include(node, {'trestný', 'pracovní', 'výdělečný', 'rozhodovací', 'závislý'})
             case 'základ':
-                return descendants_include(node, {'mzda', 'stavba'})
+                return children_include(node, {'mzda', 'stavba'})
             case 'postup':
-                return descendants_include(node, {'úřední', 'zákonný', 'pracovní'}) or [
+                return children_include(node, {'úřední', 'zákonný', 'pracovní'}) or [
                     n
                     for n in node.children
                     if n.deprel == 'nmod'
@@ -135,9 +135,9 @@ class RuleAbstractNouns(PhrasesRule):
                     and not [a for a in n.children if a.deprel == 'case']
                 ]
             case 'podstata':
-                return descendants_include(node, {'skutkový'})
+                return children_include(node, {'skutkový'})
             case 'událost':
-                return descendants_include(node, {'mimořádný', 'pojistný'})
+                return children_include(node, {'mimořádný', 'pojistný'})
 
         return False
 
@@ -145,9 +145,9 @@ class RuleAbstractNouns(PhrasesRule):
     def _lexicalized(node: Node) -> bool:
         match node.lemma:
             case 'základ':
-                return descendants_include(node, {'na'}) and descendants_include(node, {'jehož'})
+                return children_include(node, {'na'}) and children_include(node, {'jehož'})
             case 'úvaha':
-                return node.feats['Case'] == 'Acc' and descendants_include(node, {'v'})
+                return node.feats['Case'] == 'Acc' and children_include(node, {'v'})
 
         return False
 

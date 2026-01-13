@@ -15,7 +15,7 @@ from document_applicables.rules.util.grammar_semantics import (
     NEregister,
     is_citation,
 )
-from document_applicables.rules.util.structure_info import is_clause_root
+from document_applicables.rules.util.structure_info import is_clause_root, children_include
 from document_applicables.rules.util.structure_retrieval import (
     get_clause,
     get_phrase_heads,
@@ -205,9 +205,19 @@ class RuleTooManyNegations(FluencyOrientationRule):
     def _overrride_polarity(cls, node) -> bool:
         """Whether the node is morphologically a negative one but should not be considered such,
         e.g. because it expresses a term or because it doesn't usually occur in its positive variant."""
-        return node.lemma in ('zletilý', 'stranný', 'zákonný', 'zákonně', 'vinný', 'zbytný') or (
-            node.lemma == 'zaopatřený' and node.parent.lemma == 'dítě'
-        )
+        match node.lemma:
+            case 'zletilý' | 'stranný' | 'zákonný' | 'zákonně' | 'vinný' | 'zbytný':
+                return True
+            case 'zaopatřený':
+                return node.parent.lemma == 'dítě'
+            case 'přímý':
+                return node.parent.lemma == 'diskriminace'
+            case 'závislý':
+                return node.parent.lemma == 'odborník' or (
+                    node.parent.lemma == 'odborný' and node.parent.parent.lemma == 'komise'
+                )
+
+        return False
 
 
 class RuleTooManyNominalConstructions(FluencyOrientationRule):
