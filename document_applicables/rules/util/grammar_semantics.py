@@ -2,6 +2,7 @@
 
 from udapi.core.node import Node
 import document_applicables.rules.util.external_tools as utilet
+import document_applicables.rules.util.structure_modif as utilsm
 
 
 def is_punct_sym(node: Node) -> bool:
@@ -28,6 +29,22 @@ def is_adposition(node: Node) -> bool:
     return node.deprel in ('case', 'fixed')
 
 
+def get_adpositions(node: Node) -> list[Node]:
+    return [nd for nd in node.children if is_adposition(nd)]
+
+
+def has_adposition(node: Node) -> bool:
+    return bool(get_adpositions(node))
+
+
+def get_nummods(node: Node, governing_only: bool = False) -> list[Node]:
+    return (
+        [n for n in node.children if n.deprel in ('nummod:gov', 'det:numgov')]
+        if governing_only
+        else [n for n in node.children if n.deprel in ('nummod', 'nummod:gov', 'det:nummod', 'det:numgov')]
+    )
+
+
 def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     n1_values = set(n1.feats[feat_id].split(','))
     n2_values = set(n2.feats[feat_id].split(','))
@@ -37,6 +54,10 @@ def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
 
 def is_named_entity(node: Node) -> bool:
     return 'NE' in node.misc
+
+
+def is_citation(node: Node) -> bool:
+    return '_CitDetectRule' in utilsm.rules_applied(node)
 
 
 class NEregister:

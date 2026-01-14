@@ -13,6 +13,9 @@ from document_applicables.rules.util.grammar_semantics import (
     n_syncretic,
     n_syncretic_with,
     feat_overlap,
+    is_citation,
+    get_adpositions,
+    has_adposition,
 )
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import (
@@ -20,7 +23,9 @@ from document_applicables.rules.util.structure_retrieval import (
     get_clause,
     get_clause_root,
     get_surrounding_bundles_serialize,
+    get_phrase_heads,
 )
+from document_applicables.rules.util.measurement import distance_from_list
 from document_applicables.rules.util.external_tools import morphodita_generate
 
 
@@ -71,21 +76,15 @@ class RuleDoubleAdpos(AmbiguityRule):
         'coord_el': 'Coordination element',
     }
 
-    @classmethod
-    def _adpositions(cls, node: Node) -> list[Node]:
-        return [nd for nd in node.children if nd.udeprel == "case" and nd.upos == "ADP"]
-
-    @classmethod
-    def _has_adposition(cls, node: Node) -> bool:
-        return bool(cls._adpositions(node))
-
     def process_node(self, node: Node):
-        if self._has_adposition(node):
+        if has_adposition(node) and not is_citation(node):
             # get all tokens the node is coordinated with (i.e. the whole coordination)
             coordinations = [c for c in node.children if c.deprel == 'conj' and c.feats['Case'] == node.feats['Case']]
 
+            phrase_heads = get_phrase_heads(node.root.descendants, keep=[node] + coordinations)
+
             # these will point to last element with an adposition throughout iterating
-            ref_el, ref_adp = node, self._adpositions(node)[-1]
+            ref_el, ref_adp = node, get_adpositions(node)[-1]
 
             # reference element and no-adposition elements following it
             coord_chain = [ref_el]
@@ -95,14 +94,11 @@ class RuleDoubleAdpos(AmbiguityRule):
                 # if tokens without an adposition visited previously
                 if len(coord_chain) > 1:
                     adp_highlight = ref_adp.descendants(add_self=True)
-                    element_phrases = [
-                        nd
-                        for el in coord_chain
-                        for nd in get_coord_element_phrase(el)
-                        if nd not in adp_highlight and not (nd.lemma == '.' and nd.parent.deprel == 'root')
-                    ]
-                    cconj_highlight = [nd for nd in element_phrases if nd.deprel == 'cc']
-                    el_highlight = [nd for nd in element_phrases if nd not in cconj_highlight]
+
+                    # so that all elements of the coordination are highlighted,
+                    # although the rule may only have been triggered by the last one
+                    el_highlight = [c for c in [node] + coordinations if c >= coord_chain[0] and c <= coord_chain[-1]]
+                    cconj_highlight = [nd for c in el_highlight for nd in c.children if nd.deprel == 'cc']
 
                     self.annotate_node('orig_adpos', *adp_highlight)
                     self.annotate_node('coord_el', *el_highlight)
@@ -127,15 +123,19 @@ class RuleDoubleAdpos(AmbiguityRule):
 
             for coord in coordinations:
                 # token has an adposition
-                if adps := self._adpositions(coord):
+                if adps := get_adpositions(coord):
                     attempt_coord_chain_annotation()
 
                     # reset
                     ref_el, ref_adp = coord, adps[-1]
                     coord_chain = [ref_el]
 
-                # token has no adposition and is too far from the reference element
-                elif coord.ord - ref_el.ord > self.max_allowable_distance:
+                # token has no adposition and is too far from the reference element and isn't a citation
+                elif (
+                    distance_from_list(phrase_heads, ref_el, coord) > self.max_allowable_distance
+                    and not is_citation(coord)
+                    and ref_adp.lemma not in {'mezi', 'in'}  # exceptions
+                ):
                     coord_chain += [coord]
 
             attempt_coord_chain_annotation()
@@ -304,6 +304,9 @@ class RuleIncompleteConstruction(AmbiguityRule):
         def _is_na_jedne_strane(n: Node) -> bool:
             return n.lemma == 'strana' and [c.lemma for c in n.children] == ['na', 'jeden']
 
+        if is_citation(node):
+            return
+
         if node.lemma == 'jednak':
             right_context = self._get_right_context(node)
 
@@ -317,8 +320,15 @@ class RuleIncompleteConstruction(AmbiguityRule):
                 self.advance_application_id()
 
         elif node.lemma in ('buď', 'buďto') and node.upos == 'CCONJ':
+            ptr, predecessors = node.parent, set()
+            while ptr.parent:
+                predecessors |= {ptr}
+                ptr = ptr.parent
+
             if not [
-                c for s in node.parent.children if s.ord > node.ord for c in s.children if c.lemma in ('nebo', 'anebo')
+                n
+                for n in node.root.descendants
+                if n.lemma in ('nebo', 'anebo') and n.parent and n.parent.parent in predecessors
             ]:
                 self.annotate_node('bud', node)
                 self.annotate_parameter('max_right_context_length', self.max_right_context_length, node)
@@ -381,7 +391,7 @@ class RuleGPcoordovs(AmbiguityRule):
 
     def process_node(self, node: Node):
         if (node.deprel in ('punct', 'cc')) and node.parent.deprel == 'conj' and is_clause_root(node.parent):
-            sentence = node.root.descendants()
+            sentence = node.root.descendants
 
             if (
                 node.ord > 1

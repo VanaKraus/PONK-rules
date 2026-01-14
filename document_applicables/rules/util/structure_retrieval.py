@@ -47,7 +47,7 @@ def get_clause(
 
 
 def get_coord_element_phrase(node: Node) -> list[Node]:
-    res = node.descendants()
+    res = node.descendants
     to_remove = []
 
     if len(res) > 0 and res[0].upos == 'PUNCT':
@@ -90,8 +90,9 @@ def remove_punct_sym(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]
 
 
 def get_phrase_heads(nodes: list[Node], keep: Iterable[Node] = []) -> list[Node]:
-    """Retrieve only such nodes that would be considered phrase heads. \
-         So far, this simply removes adjectival modifiers and adpositions from the list."""
+    """Retrieve only such nodes that would be considered phrase heads.
+    So far, this simply removes adjectival modifiers and adpositions from the list
+    and counts only tokens passing the `remove_punct_sym` filter."""
     return [
         n
         for n in remove_punct_sym(nodes, keep=keep)

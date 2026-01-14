@@ -7,8 +7,8 @@ from udapi.core.node import Node
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.grammar_semantics import is_adposition
-from document_applicables.rules.util.structure_info import descendants_include
+from document_applicables.rules.util.grammar_semantics import is_adposition, is_citation
+from document_applicables.rules.util.structure_info import children_include, is_clause_root
 from document_applicables.rules.util.structure_modif import get_removing_rules
 from document_applicables.rules.util.structure_retrieval import get_clause
 from document_applicables.rules.util.external_tools import vallex_get_lexeme, get_derinet
@@ -37,27 +37,52 @@ class RuleWeakMeaningWords(PhrasesRule):
         'Avoid weak-meaning words. Cf. Sgall & Panevová (2014, p. 86), '
         + 'Šamánková & Kubíková (2022, pp. 37–38 and p. 39), Šváb (2021, p. 32).'
     )
-    cz_paricipants: dict[str, str] = {'weak_meaning_word': 'Vyprázdněné slovo'}
-    en_paricipants: dict[str, str] = {'weak_meaning_word': 'Weak-meaning word'}
+    cz_paricipants: dict[str, str] = {
+        'weak_meaning_word': 'Vyprázdněné slovo',
+        'potentially_weak_meaning_word': 'Slovo se často používá jako vyprázdněné',
+    }
+    en_paricipants: dict[str, str] = {
+        'weak_meaning_word': 'Weak-meaning word',
+        'potentially_weak_meaning_word': 'The word is often used in a weak meaning',
+    }
 
-    _weak_meaning_words: list[str] = [
+    _weak_meaning_words: set[str] = {
         'dopadat',
         'zaměřit',
         'poukázat',
         'poukazovat',
         'ovlivnit',
         'ovlivňovat',
-        'provádět',
-        'provést',
-        'obdobně',
         'velmi',
         'uskutečnit',
         'uskutečňovat',
-    ]
+    }
+
+    _potentially_weak_meaning_words: set[str] = {'provádět', 'provést'}
+
+    def model_post_init(self, __context):
+        self._all_words = self._weak_meaning_words | self._potentially_weak_meaning_words
+        return super().model_post_init(__context)
+
+    @staticmethod
+    def _exception(node: Node) -> bool:
+        match node.lemma:
+            case 'uskutečnit' | 'uskutečňovat':
+                return bool([n for n in node.children if n.form.lower() == 'se'])
+            case 'provést' | 'provádět':
+                return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
+        return False
 
     def process_node(self, node):
-        if node.lemma in self._weak_meaning_words:
-            self.annotate_node('weak_meaning_word', node)
+        if node.lemma in self._all_words and not self._exception(node) and not is_citation(node):
+            self.annotate_node(
+                (
+                    'potentially_weak_meaning_word'
+                    if node.lemma in self._potentially_weak_meaning_words
+                    else 'weak_meaning_word'
+                ),
+                node,
+            )
             self.advance_application_id()
 
 
@@ -76,7 +101,7 @@ class RuleAbstractNouns(PhrasesRule):
     cz_paricipants: dict[str, str] = {'abstract_noun': 'Vyprázdněné abstraktní substantivum'}
     en_paricipants: dict[str, str] = {'abstract_noun': 'Weak-meaning abstract noun'}
 
-    _abstract_nouns: list[str] = [
+    _abstract_nouns: set[str] = {
         'základ',
         'úvaha',
         'charakter',
@@ -88,28 +113,41 @@ class RuleAbstractNouns(PhrasesRule):
         'činnost',
         'postup',
         'podstata',
-        'kritérium',
-    ]
+    }
 
     @staticmethod
     def _is_terminology(node: Node) -> bool:
-        match (node.lemma):
+        match node.lemma:
             case 'stupeň':
                 # modifiers listed to exclude various elementary school grades.
                 # might be useful to discriminate court instances, which would however require more sophistication
-                return node.parent.lemma == 'soud' or descendants_include(node, {'první', 'druhý', '1', '2', 'I', 'II'})
+                return node.parent.lemma == 'soud' or children_include(node, {'první', 'druhý', '1', '2', 'I', 'II'})
             case 'činnost':
-                return descendants_include(node, {'trestný', 'pracovní', 'výdělečný'})
+                return children_include(node, {'trestný', 'pracovní', 'výdělečný', 'rozhodovací', 'závislý'})
             case 'základ':
-                return descendants_include(node, {'mzda', 'stavba'})
+                return children_include(node, {'mzda', 'stavba'})
             case 'postup':
-                return descendants_include(node, {'úřední', 'zákonný'}) or [
+                return children_include(node, {'úřední', 'zákonný', 'pracovní'}) or [
                     n
                     for n in node.children
                     if n.deprel == 'nmod'
                     and (n.feats['Case'] == 'Gen' or n.feats['Abbr'] == 'Yes')
                     and not [a for a in n.children if a.deprel == 'case']
                 ]
+            case 'podstata':
+                return children_include(node, {'skutkový'})
+            case 'událost':
+                return children_include(node, {'mimořádný', 'pojistný'})
+
+        return False
+
+    @staticmethod
+    def _lexicalized(node: Node) -> bool:
+        match node.lemma:
+            case 'základ':
+                return children_include(node, {'na'}) and children_include(node, {'jehož'})
+            case 'úvaha':
+                return node.feats['Case'] == 'Acc' and children_include(node, {'v'})
 
         return False
 
@@ -118,8 +156,10 @@ class RuleAbstractNouns(PhrasesRule):
             node.lemma in self._abstract_nouns
             and not is_adposition(node)
             and not self._is_terminology(node)
+            and not self._lexicalized(node)
             and node.feats['Polarity'] != 'Neg'
             and node.feats['Abbr'] != 'Yes'
+            and not is_citation(node)
         ):
             self.annotate_node('abstract_noun', node)
             self.advance_application_id()
@@ -142,7 +182,7 @@ class RuleRelativisticExpressions(PhrasesRule):
 
     # lemmas; when space-separated, nodes next-to-each-other with corresponding lemmas are looked for
     _expressions: list[list[str]] = [
-        expr.split(' ') for expr in ['poněkud', 'jevit', 'patrně', 'do jistý míra', 'snad', 'jaksi']
+        expr.split(' ') for expr in ['poněkud', 'jevit', 'patrně', 'do jistý míra', 'snad', 'jaksi', 'obdobně']
     ]
 
     def process_node(self, node):
@@ -180,10 +220,15 @@ class RuleConfirmationExpressions(PhrasesRule):
     cz_paricipants: dict[str, str] = {'confirmation_expression': 'Utvrzující výraz'}
     en_paricipants: dict[str, str] = {'confirmation_expression': 'Confirmation expression'}
 
-    _expressions: list[str] = ['jednoznačně', 'jasně', 'nepochybně', 'naprosto', 'rozhodně']
+    _expressions: list[str] = ['jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
-        if node.lemma in self._expressions and node.ord < node.parent.ord:
+        if (
+            node.lemma in self._expressions
+            and node.ord < node.parent.ord
+            and ('Degree' not in node.feats or node.feats['Degree'] == 'Pos')
+            and not is_citation(node)
+        ):
             if not self.detect_only:
                 self.annotate_action('remove', node)
 
@@ -366,6 +411,9 @@ class RuleTooLongExpressions(PhrasesRule):
     }
 
     def process_node(self, node):
+        if is_citation(node):
+            return
+
         match node.lemma:
             # v důsledku toho
             case 'důsledek':
@@ -442,7 +490,7 @@ class RuleTooLongExpressions(PhrasesRule):
 
             # za účelem
             case 'účel':
-                if (adp := node.parent).lemma == 'za':
+                if (adp := node.parent).lemma == 'za' and adp.parent.lemma != 'ochrana':
                     self.annotate_node('za_účelem', node, adp)
 
                     # if not self.detect_only:
@@ -459,7 +507,7 @@ class RuleTooLongExpressions(PhrasesRule):
 
             # jste oprávněn
             case 'oprávněný':
-                if aux := [c for c in node.children if c.upos == 'AUX']:
+                if aux := [c for c in node.children if c.upos == 'AUX' and not is_clause_root(c)]:
                     self.annotate_node('jste_oprávněn', node, *aux)
                     self.advance_application_id()
 
@@ -564,11 +612,14 @@ class RuleAnaphoricReferences(PhrasesRule):
     en_paricipants: dict[str, str] = {'anaphoric_reference': 'Anaphoric reference'}
 
     def process_node(self, node):
+        if is_citation(node):
+            return
+
         match node.lemma:
             # co se týče výše uvedeného
             # ze shora uvedeného důvodu
             # z právě uvedeného je zřejmé
-            case 'uvedený':
+            case 'uvedený' | 'popsaný' | 'vyjmenovaný':
                 if adv := [c for c in node.children if c.lemma in ('vysoko', 'shora', 'právě')]:
                     self.annotate_node('anaphoric_reference', node, *adv)
                     self.advance_application_id()
@@ -579,17 +630,19 @@ class RuleAnaphoricReferences(PhrasesRule):
                     adp := [c for c in node.children if c.udeprel == 'case']
                 ):
                     self.annotate_node(
-                        'anaphoric_reference', node, *det, *adp, *[desc for a in adp for desc in a.descendants()]
+                        'anaphoric_reference', node, *det, *adp, *[desc for a in adp for desc in a.descendants]
                     )
                     self.advance_application_id()
 
             # z logiky věci vyplývá
             case 'logika':
-                if (noun := [c for c in node.children if c.lemma == 'věc']) and (
-                    adp := [c for c in node.children if c.lemma == 'z']
+                if (
+                    (noun := [c for c in node.children if c.lemma == 'věc'])
+                    and (adp := [c for c in node.children if c.lemma == 'z'])
+                    and (vrb := node.parent).lemma in ('vyplývat', 'vyplynout', 'plynout')
                 ):
                     self.annotate_node(
-                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants()]
+                        'anaphoric_reference', node, *noun, *adp, *[desc for a in adp for desc in a.descendants], vrb
                     )
                     self.advance_application_id()
 
@@ -757,10 +810,12 @@ class RulePassive(PhrasesRule):
 
     Arguments:
         overt_agent_only (bool): only highlight passives with an overt agent.
+        use_vallex (bool): use Vallex and DeriNet to lookup valency frames.
     """
 
     rule_id: ClassVar[str] = 'RulePassive'
     overt_agent_only: bool = True
+    use_vallex: bool = False
 
     cz_human_readable_name: str = 'Opisné pasivum'
     en_human_readable_name: str = 'Participial passive'
@@ -788,13 +843,15 @@ class RulePassive(PhrasesRule):
             if n.deprel == 'obl:arg' and n.feats['Case'] == 'Gen' and [c for c in n.children if c.lemma == 'od']
         ]
 
-        # look up the verb in VALLEX
-        derinet = get_derinet()
-        deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
-        vallex_lexemes = [l for dp in deri_parents if dp for l in vallex_get_lexeme(dp)]
+        vallex_lexemes = []
+        if self.use_vallex:
+            # look up the verb in VALLEX
+            derinet = get_derinet()
+            deri_parents = [lx.parent.lemma if lx.parent else None for lx in derinet.get_lexemes(participle.lemma)]
+            vallex_lexemes = [l for dp in deri_parents if dp for l in vallex_get_lexeme(dp)]
 
         # if there's a VALLEX entry
-        if len(vallex_lexemes) > 0:
+        if self.use_vallex and len(vallex_lexemes) > 0:
             # the following is a compromise: formally, UD provide no way of distinguishing
             # "toalety_PAT nebyly opatřeny záchodovým prkýnkem_EFF"
             # from "poplatek_PAT byl zaplacen osobou_ACT" (cf. "zaplacen majetkem_EFF");

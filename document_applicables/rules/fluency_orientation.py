@@ -13,9 +13,9 @@ from document_applicables.rules.util.grammar_semantics import (
     is_aux,
     is_named_entity,
     NEregister,
-    is_adposition,
+    is_citation,
 )
-from document_applicables.rules.util.structure_info import is_clause_root
+from document_applicables.rules.util.structure_info import is_clause_root, children_include
 from document_applicables.rules.util.structure_retrieval import (
     get_clause,
     get_phrase_heads,
@@ -53,9 +53,9 @@ class RuleTooFewVerbs(FluencyOrientationRule):
     en_paricipants: dict[str, str] = {'verb': 'Verb'}
 
     def is_verb(self, node):
-        return (is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')) and not (
-            node.form.lower() == 'srov' and node.feats['Abbr'] == 'Yes'
-        )
+        return (
+            is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
+        ) and node.form.lower() not in ('srov', 'viz')
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -72,17 +72,23 @@ class RuleTooFewVerbs(FluencyOrientationRule):
                 and not (
                     is_aux(nd, grammatical_only=True)
                     and (
+                        # parent already counted
                         self.is_verb(nd.parent)
+                        # or the parent has more auxiliaries, in which case only the first should be counted
                         or [
                             preceding_nd
-                            for preceding_nd in nd.parent.descendants(preceding_only=True)
-                            if preceding_nd != nd and is_aux(preceding_nd, grammatical_only=True)
+                            for preceding_nd in nd.parent.children
+                            if preceding_nd < nd and is_aux(preceding_nd, grammatical_only=True)
                         ]
                     )
                 )
             ]
 
-            if (min_frac := len(verbs) / max(len(get_phrase_heads(sentence)), 1)) < self.min_verb_frac:
+            # language included in citations cannot be dealt with easily
+            # but verbs occurring in citations should still be counted as verbs
+            sentence_ref = [n for n in sentence if not is_citation(n)]
+
+            if (min_frac := len(verbs) / max(len(get_phrase_heads(sentence_ref, keep=verbs)), 1)) < self.min_verb_frac:
                 self.annotate_node('verb', *verbs)
 
                 self.annotate_measurement('min_verb_frac', min_frac, *verbs)
@@ -199,9 +205,19 @@ class RuleTooManyNegations(FluencyOrientationRule):
     def _overrride_polarity(cls, node) -> bool:
         """Whether the node is morphologically a negative one but should not be considered such,
         e.g. because it expresses a term or because it doesn't usually occur in its positive variant."""
-        return node.lemma in ('zletilý', 'stranný', 'zákonný', 'zákonně', 'vinný', 'zbytný') or (
-            node.lemma == 'zaopatřený' and node.parent.lemma == 'dítě'
-        )
+        match node.lemma:
+            case 'zletilý' | 'stranný' | 'zákonný' | 'zákonně' | 'vinný' | 'zbytný':
+                return True
+            case 'zaopatřený':
+                return node.parent.lemma == 'dítě'
+            case 'přímý':
+                return node.parent.lemma == 'diskriminace'
+            case 'závislý':
+                return node.parent.lemma == 'odborník' or (
+                    node.parent.lemma == 'odborný' and node.parent.parent.lemma == 'komise'
+                )
+
+        return False
 
 
 class RuleTooManyNominalConstructions(FluencyOrientationRule):
@@ -229,9 +245,20 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
     max_allowable_nouns: int = 5
     max_dismissable_span_length: int = 15
 
+    @classmethod
+    def _strip_of_coordinated_nouns(cls, nodes: Iterable[Node]) -> list[Node]:
+        return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
+
+    @classmethod
+    def _filter(cls, nodes: Iterable[Node]) -> list[Node]:
+        nodes = cls._strip_of_coordinated_nouns(nodes)
+        nodes = [n for n in nodes if n.feats['Abbr'] != 'Yes']
+        return nodes
+
     def process_node(self, node: Node):
         if is_clause_root(node):
             clause = get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+            clause = [n for n in clause if not is_citation(n)]
             clause_tmp = clause.copy()
 
             # separate into subclauses (spans) if an embedded clause is present
@@ -246,12 +273,10 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
             for subclause in subclauses:
                 # coordinated nouns are stripped from the measurements
                 # the nouns are still kept for eventual highlighting though
-                if (
-                    scl_len := len(self._strip_of_coordinated_nouns(remove_punct_sym(subclause)))
-                ) > self.max_dismissable_span_length:
+                if (scl_len := len(self._filter(remove_punct_sym(subclause)))) > self.max_dismissable_span_length:
                     nouns = [n for n in subclause if n.upos == 'NOUN' and not is_named_entity(n)]
 
-                    if (l := len(self._strip_of_coordinated_nouns(nouns))) > self.max_allowable_nouns and (
+                    if (l := len(self._filter(nouns))) > self.max_allowable_nouns and (
                         noun_frac := float(l) / scl_len
                     ) > self.max_noun_frac:
 
@@ -262,10 +287,6 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
 
                         self.annotate_node('noun', *nouns)
                         self.advance_application_id()
-
-    @classmethod
-    def _strip_of_coordinated_nouns(cls, nodes: Iterable[Node]) -> list[Node]:
-        return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
 
 
 class RuleFunctionWordRepetition(FluencyOrientationRule):
@@ -285,7 +306,7 @@ class RuleFunctionWordRepetition(FluencyOrientationRule):
 
     def process_node(self, node: Node):
         if node.upos in ('ADP', 'SCONJ', 'CCONJ') and (
-            following_node := [n for n in node.root.descendants() if n.ord == node.ord + 1 and n.lemma == node.lemma]
+            following_node := [n for n in node.root.descendants if n.ord == node.ord + 1 and n.lemma == node.lemma]
         ):
             self.annotate_node('repetition', node, *following_node)
             self.advance_application_id()
@@ -356,6 +377,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
                     and n.feats['Case'] == node.feats['Case']
                     and n.deprel != 'appos'
                     and not ne_reg.is_registered_ne(n)
+                    and not is_citation(n)
                     else None
                 )
                 for n in following_nodes
@@ -387,7 +409,15 @@ class RuleCaseRepetition(FluencyOrientationRule):
                     break
 
                 if (repetition_frac := no_same_case_nodes[ctx_size - 1] / ctx_size) > self.max_repetition_frac:
-                    scn_annotate = [n for n in same_case_nodes[:ctx_size] if n]
+                    scn_annotate, NEs = [], set()
+                    for i, n in enumerate(following_nodes):
+                        NEs_n = set(n.misc['NE'].split('-'))
+                        # ... so that all belonging NEs are highlighted
+                        if (i < ctx_size and same_case_nodes[i]) or (
+                            NEs.intersection(NEs_n) and n.feats['Case'] == node.feats['Case']
+                        ):
+                            scn_annotate += [n]
+                            NEs |= NEs_n
 
                     self.annotate_parameter('max_repetition_count', self.max_repetition_count, *scn_annotate)
                     self.annotate_measurement('max_repetition_count', no_same_case_nodes[ctx_size - 1], *scn_annotate)
@@ -466,8 +496,9 @@ class RuleLongSentences(FluencyOrientationRule):
                 return
 
             phrases = get_phrase_heads(descendants)
+            nocit_phrases = [n for n in phrases if not is_citation(n)]
 
-            if (max_length := len(phrases)) > self.max_length:
+            if (max_length := len(nocit_phrases)) > self.max_length:
                 self.annotate_node('long_sentence', *descendants)
 
                 self.annotate_measurement('max_length', max_length, *descendants)

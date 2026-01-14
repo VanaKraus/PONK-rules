@@ -4,7 +4,14 @@ from typing import ClassVar
 
 from document_applicables.rules import Rule
 from document_applicables.rules.util.communication import Color
-from document_applicables.rules.util.grammar_semantics import is_aux, is_clitic, is_finite_verb
+from document_applicables.rules.util.grammar_semantics import (
+    is_aux,
+    is_clitic,
+    is_finite_verb,
+    is_citation,
+    has_adposition,
+    get_nummods,
+)
 from document_applicables.rules.util.measurement import distance_from_list
 from document_applicables.rules.util.structure_info import is_clause_root
 from document_applicables.rules.util.structure_retrieval import get_phrase_heads, get_clause
@@ -46,19 +53,41 @@ class RulePredSubjDistance(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'predicate_grammar': 'Přísudek (funkční část)', 'subject': 'Podmět'}
     en_paricipants: dict[str, str] = {'predicate_grammar': 'Predicate (grammatical component)', 'subject': 'Subject'}
 
+    @staticmethod
+    def _exception_governing_word(node) -> bool:
+        return node.lemma in ('třeba', 'potřeba')
+
     def process_node(self, node):
         if node.udeprel == 'nsubj' or (self.include_clausal_subjects and node.udeprel == 'csubj'):
+            if self._exception_governing_word(node.parent):
+                return
+
             # locate predicate
             pred = node.parent
 
+            # in modal-verb constructions, the subject's parent still isn't finite (because the top-most modal verb is)
+            while pred.deprel == 'ccomp' and not is_clause_root(pred):
+                pred = pred.parent
+
             # if the predicate is analytic, select the (non-conditional) auxiliary or the copula
-            if finite_verbs := [
-                nd for nd in pred.children if nd.udeprel == 'cop' or (nd.udeprel == 'aux' and nd.feats['Mood'] != 'Cnd')
-            ]:
+            if (not is_finite_verb(pred)) and (
+                finite_verbs := [
+                    nd
+                    for nd in pred.children
+                    if nd.udeprel == 'cop' or (nd.udeprel == 'aux' and nd.feats['Mood'] != 'Cnd')
+                ]
+            ):
                 pred = finite_verbs[0]
+
+            if is_citation(node) or is_citation(pred):
+                return
 
             # locate subject
             subj = node
+
+            if nummods := get_nummods(subj, governing_only=True):
+                subj = nummods[0]
+
             if node.udeprel == 'csubj':
                 raise NotImplementedError('Revise')
                 clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
@@ -68,7 +97,7 @@ class RulePredSubjDistance(SentencePositionRule):
                     subj = clause[0]
 
             if (
-                max_dst := distance_from_list(get_phrase_heads(node.root.descendants(), keep=(subj, pred)), subj, pred)
+                max_dst := distance_from_list(get_phrase_heads(node.root.descendants, keep=(subj, pred)), subj, pred)
             ) > self.max_distance:
                 self.annotate_node('predicate_grammar', pred)
                 self.annotate_node('subject', subj)
@@ -102,20 +131,36 @@ class RulePredObjDistance(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'object': 'Předmět', 'parent': 'Řídící člen'}
     en_paricipants: dict[str, str] = {'object': 'Object', 'parent': 'Governing word'}
 
+    @staticmethod
+    def _exception_pred(node):
+        return node.form.lower() == 'viz'
+
+    @staticmethod
+    def _exception_obj(node):
+        return node.lemma in ('třeba', 'potřeba') or has_adposition(node)
+
     def process_node(self, node):
-        if node.deprel in ('obj', 'iobj'):
+        if node.deprel in ('obj', 'iobj') and not self._exception_obj(node):
             parent = node.parent
 
+            if self._exception_pred(parent):
+                return
+
+            if is_citation(node) or is_citation(parent):
+                return
+
+            obj = node
+            if nummods := get_nummods(obj, governing_only=True):
+                obj = nummods[0]
+
             if (
-                max_dst := distance_from_list(
-                    get_phrase_heads(node.root.descendants(), keep=(node, parent)), node, parent
-                )
+                max_dst := distance_from_list(get_phrase_heads(obj.root.descendants, keep=(obj, parent)), obj, parent)
             ) > self.max_distance:
-                self.annotate_node('object', node)
+                self.annotate_node('object', obj)
                 self.annotate_node('parent', parent)
 
-                self.annotate_measurement('max_distance', max_dst, node, parent)
-                self.annotate_parameter('max_distance', self.max_distance, node, parent)
+                self.annotate_measurement('max_distance', max_dst, obj, parent)
+                self.annotate_parameter('max_distance', self.max_distance, obj, parent)
 
                 self.advance_application_id()
 
@@ -149,11 +194,13 @@ class RuleInfVerbDistance(SentencePositionRule):
             and infinitive.upos != 'AUX'
             # it mainly attributes the za+ACC argument to the ACC argument, behaving as an "epistemic copula" of sorts
             and verb.lemma != 'považovat'
+            and not is_citation(infinitive)
+            and not is_citation(verb)
         ):
 
             if (
                 max_dst := distance_from_list(
-                    get_phrase_heads(infinitive.root.descendants(), keep={verb, infinitive}), verb, infinitive
+                    get_phrase_heads(infinitive.root.descendants, keep={verb, infinitive}), verb, infinitive
                 )
             ) > self.max_distance:
                 auxiliaries = [a for a in verb.children if a.deprel in ('aux', 'cop')]
@@ -195,10 +242,15 @@ class RuleMultiPartVerbs(SentencePositionRule):
         if (
             is_aux(node, grammatical_only=True)
             and not is_clitic(node)  # word order is very binding for clitics
+            and not is_citation(node)
             and self.id() not in rules_applied(node)
         ):
             parent = node.parent
-            if 'VerbForm' not in parent.feats:
+            if (
+                'VerbForm' not in parent.feats
+                or (parent.upos != 'VERB' and parent.feats['Case'] != 'Nom' and node.deprel != 'aux:pass')
+                or is_citation(parent)
+            ):
                 return
 
             # find remaining auxiliaries
@@ -208,7 +260,7 @@ class RuleMultiPartVerbs(SentencePositionRule):
                     auxiliaries.add(child)
 
             # find if the verb is too spread out
-            sentence_wo_punct_sym = get_phrase_heads(node.root.descendants(), keep=(parent, *auxiliaries))
+            sentence_wo_punct_sym = get_phrase_heads(node.root.descendants, keep=(parent, *auxiliaries))
 
             too_far_apart = False
             max_dst = 0
@@ -254,7 +306,7 @@ class RulePredTooFarInClause(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'predicate': 'Přísudek'}
     en_paricipants: dict[str, str] = {'predicate': 'Predicate'}
 
-    rule_id: ClassVar[str] = 'RulePredAtClauseBeginning'
+    rule_id: ClassVar[str] = 'RulePredTooFarInClause'
     max_order: int = 5
     max_reverse_order: int = 3
 
@@ -262,6 +314,9 @@ class RulePredTooFarInClause(SentencePositionRule):
         # finite verbs or l-participles
         if is_finite_verb(node) and (self.rule_id not in rules_applied(node)):
             pred_root = node.parent if is_aux(node) else node
+
+            if is_citation(pred_root) or is_citation(node):
+                return
 
             clause = get_clause(pred_root, without_subordinates=True, without_punctuation=True, node_is_root=True)
 
@@ -286,7 +341,7 @@ class RulePredTooFarInClause(SentencePositionRule):
             predicate_tokens.sort(key=lambda a: a.ord)
             first_predicate_token = predicate_tokens[0]
 
-            phrases = get_phrase_heads(node.root.descendants(), keep=[first_predicate_token])
+            phrases = get_phrase_heads(node.root.descendants, keep=[first_predicate_token])
 
             clause_filter_intersect = [n for n in clause if n in phrases]
             if not clause_filter_intersect:

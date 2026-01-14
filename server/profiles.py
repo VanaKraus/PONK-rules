@@ -1,7 +1,9 @@
 import math
 
-from document_applicables.rules import Rule, PostProcessRule
+from document_applicables.rules import Rule
+from document_applicables.rules.helpers import PostProcessRule
 from document_applicables.metrics import Metric, MetricActivity, MetricARI, MetricVerbDistance, MetricMovingAverageTTR
+from document_applicables.rules.helpers import CitDetectRule, HelperCleanupRule
 from document_applicables.rules.acceptability import (
     RuleDoubleComparison,
     RuleWrongValencyCase,
@@ -53,7 +55,7 @@ def get_minimal_rules() -> list[Rule]:
     return sorted(
         [
             RuleDoubleAdpos(max_allowable_distance=0),
-            RulePassive(),
+            RulePassive(use_vallex=True),
             RulePredSubjDistance(max_distance=0),
             RulePredObjDistance(max_distance=0),
             RuleInfVerbDistance(max_distance=0),
@@ -105,7 +107,7 @@ def get_noninstitutional_rules() -> list[Rule]:
             max_noun_frac=0.45,  # wouldn't catch anything with 0.728
             max_dismissable_span_length=15,
         ),
-        RuleCaseRepetition(max_repetition_count=4, include_adjectives=False),
+        RuleCaseRepetition(max_repetition_count=4, max_repetition_frac=0.6, include_adjectives=False),
         RuleTooManyNegations(
             max_allowable_negations=3,
             max_negation_frac=0.25,  # TODO: temporary adjustment to new measurement criteria
@@ -119,8 +121,8 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleRelativisticExpressions(),
         RuleConfirmationExpressions(),
         RuleAnaphoricReferences(),
+        RulePassive(use_vallex=True),
         # RuleLiteraryStyle(), # partially out of the project's scope
-        RulePassive(),
         # --- position in a sentence ---
         RulePredSubjDistance(
             max_distance=6,  # default value
@@ -186,33 +188,37 @@ def set_rules_corrective(rules: list[Rule]) -> list[Rule]:
     return rules
 
 
+def wrap_helpers(rules: list[Rule]) -> list[Rule]:
+    return [CitDetectRule()] + rules + [HelperCleanupRule()]
+
+
 def get(profile: str) -> tuple[list[Metric], list[Rule]]:
     match profile:
         case 'default_corrective':
             return (
                 None,
-                set_rules_corrective([rule() for rule in Rule.get_final_children()]),
+                wrap_helpers(set_rules_corrective([rule() for rule in Rule.get_final_children()])),
             )
         case 'noninstitutional':
             return (
                 get_noninstitutional_metrics(),
-                get_noninstitutional_rules(),
+                wrap_helpers(get_noninstitutional_rules()),
             )
         case 'noninstitutional_corrective':
             return (
                 get_noninstitutional_metrics(),
-                set_rules_corrective(get_noninstitutional_rules()),
+                wrap_helpers(set_rules_corrective(get_noninstitutional_rules())),
             )
         case 'minimal':
             return (
                 None,  # default metrics
-                get_minimal_rules(),
+                wrap_helpers(get_minimal_rules()),
             )
         case 'minimal_verbose':
             return (
                 None,  # default metrics
-                set_rules_verbose(get_minimal_rules()),
+                wrap_helpers(set_rules_verbose(get_minimal_rules())),
             )
         case _:
-            print(f'Profile {profile} doesn\'t exist.')
+            print(f'Profile "{profile}" doesn\'t exist.')
             return (None, None)
