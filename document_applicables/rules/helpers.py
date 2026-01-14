@@ -218,11 +218,9 @@ class CitDetectRule(HelperRule):
 
     def process_node(self, node):
         open = self._opening(node)
-        print(f'{node=} {open=}')
 
         if open or (node.ord == 1 and self._previous_bundle_open(node)):
             following = node.root.descendants
-            print(f'{following=}')
 
             for o, n in enumerate(following[node.ord - 1 :]):
                 if n != node and self._closing(n):
