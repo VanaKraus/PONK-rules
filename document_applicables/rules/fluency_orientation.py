@@ -64,6 +64,8 @@ class RuleTooFewVerbs(FluencyOrientationRule):
             if not sentence:
                 return
 
+            # TODO: modal verbs
+
             # count each lexeme only once
             verbs = [
                 nd
@@ -130,6 +132,8 @@ class RuleTooManyNegations(FluencyOrientationRule):
     )
     cz_paricipants: dict[str, str] = {'negative': 'Negativní výraz'}
     en_paricipants: dict[str, str] = {'negative': 'Negative expression'}
+
+    # TODO: do not highlight negations that are the only ones in their sentence
 
     def process_node(self, node):
         if self.rule_id not in rules_applied(node) and (self._is_positive(node) or self._is_negative(node)):
@@ -253,6 +257,7 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
     def _filter(cls, nodes: Iterable[Node]) -> list[Node]:
         nodes = cls._strip_of_coordinated_nouns(nodes)
         nodes = [n for n in nodes if n.feats['Abbr'] != 'Yes']
+        # TODO: upper-case abbreviations not directly preceded or followed by a number should be counted though
         return nodes
 
     def process_node(self, node: Node):
@@ -346,6 +351,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
             descendants = get_clause(node, without_punctuation=True, without_subordinates=True)
 
+            # FIXME: capturing adjectives even with !self.include_adjectives ??
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
             ]
@@ -353,7 +359,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
             # do not consider coordinations
             min_conj_ord = math.inf
             for n in following_nodes:
-                if n != node and n.deprel == 'conj':
+                if n != node and n.deprel == 'conj':  # TODO: but only if the conj is in the same case as node
                     min_conj_ord = min(min_conj_ord, n.ord)
 
                     for d in node.descendants(add_self=True):

@@ -237,6 +237,8 @@ class RuleMultiPartVerbs(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'head': 'Hlavní část', 'aux': 'Pomocné slovo'}
     en_paricipants: dict[str, str] = {'head': 'Main part', 'aux': 'Auxiliary word'}
 
+    # TODO: je třeba (see VerbObjDistance)
+
     def process_node(self, node):
         # if node is an auxiliary and hasn't been marked as such yet
         if (
