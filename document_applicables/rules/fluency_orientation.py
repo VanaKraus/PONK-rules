@@ -14,6 +14,7 @@ from document_applicables.rules.util.grammar_semantics import (
     is_named_entity,
     NEregister,
     is_citation,
+    is_modal_verb,
 )
 from document_applicables.rules.util.structure_info import is_clause_root, children_include
 from document_applicables.rules.util.structure_retrieval import (
@@ -52,10 +53,27 @@ class RuleTooFewVerbs(FluencyOrientationRule):
     cz_paricipants: dict[str, str] = {'verb': 'Sloveso'}
     en_paricipants: dict[str, str] = {'verb': 'Verb'}
 
-    def is_verb(self, node):
+    def considered_as_verb(self, node):
         return (
             is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
         ) and node.form.lower() not in ('srov', 'viz')
+
+    def _verb_should_be_counted(self, node):
+        return not (not is_clause_root(node) and is_modal_verb(node.parent)) and not (
+            is_aux(node, grammatical_only=True)
+            and (
+                # parent already counted
+                self.considered_as_verb(node.parent)
+                # parent of the governing word (VERB or a participle) is a modal verb
+                or (not is_clause_root(node.parent) and is_modal_verb(node.parent.parent))
+                # or the parent has more auxiliaries, in which case only the first should be counted
+                or [
+                    preceding_nd
+                    for preceding_nd in node.parent.children
+                    if preceding_nd < node and is_aux(preceding_nd, grammatical_only=True)
+                ]
+            )
+        )
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -65,28 +83,13 @@ class RuleTooFewVerbs(FluencyOrientationRule):
                 return
 
             # count each lexeme only once
-            verbs = [
-                nd
-                for nd in sentence
-                if self.is_verb(nd)
-                and not (
-                    is_aux(nd, grammatical_only=True)
-                    and (
-                        # parent already counted
-                        self.is_verb(nd.parent)
-                        # or the parent has more auxiliaries, in which case only the first should be counted
-                        or [
-                            preceding_nd
-                            for preceding_nd in nd.parent.children
-                            if preceding_nd < nd and is_aux(preceding_nd, grammatical_only=True)
-                        ]
-                    )
-                )
-            ]
+            verb_candidates = [nd for nd in sentence if self.considered_as_verb(nd)]
+            verbs = {nd for nd in verb_candidates if self._verb_should_be_counted(nd)}
+            dismissed_verbs = {nd for nd in verb_candidates if nd not in verbs}
 
             # language included in citations cannot be dealt with easily
             # but verbs occurring in citations should still be counted as verbs
-            sentence_ref = [n for n in sentence if not is_citation(n)]
+            sentence_ref = [n for n in sentence if not is_citation(n) and n not in dismissed_verbs]
 
             if (min_frac := len(verbs) / max(len(get_phrase_heads(sentence_ref, keep=verbs)), 1)) < self.min_verb_frac:
                 self.annotate_node('verb', *verbs)
@@ -132,7 +135,7 @@ class RuleTooManyNegations(FluencyOrientationRule):
     en_paricipants: dict[str, str] = {'negative': 'Negative expression'}
 
     def process_node(self, node):
-        if self.rule_id not in rules_applied(node) and (self._is_positive(node) or self._is_negative(node)):
+        if self.rule_id not in rules_applied(node) and self._is_negative(node):
             context = [
                 n
                 for n in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles_count, no_punct_sym=True)
@@ -146,25 +149,42 @@ class RuleTooManyNegations(FluencyOrientationRule):
             # so that they don't need to be recomputed each time
             pos_cnt = []
             neg_cnt = []
+            # counting from the start of its respective sentence (bundle), this is the k-th negation
+            neg_cnt_in_sentence = []
+
             for i, nd in enumerate(context):
                 no_pos = pos_cnt[i - 1] if i > 0 else 0
                 no_neg = neg_cnt[i - 1] if i > 0 else 0
+                no_neg_in_sentence = neg_cnt_in_sentence[i - 1] if i > 0 and context[i - 1].root == nd.root else 0
 
                 if self._is_positive(nd):
                     no_pos += 1
                 elif self._is_negative(nd):
                     no_neg += 1
+                    no_neg_in_sentence += 1
 
                 pos_cnt.append(no_pos)
                 neg_cnt.append(no_neg)
+                neg_cnt_in_sentence.append(no_neg_in_sentence)
+
+            # check that the left-most sentence doesn't contain only one negation given the current context
+            for no_neg_in_sentence in neg_cnt_in_sentence:
+                # contains more negations, things are fine
+                if no_neg_in_sentence > 1:
+                    break
+                # sentence boundary reached and there was only one negation (otherwise we would've broken the loop)
+                if no_neg_in_sentence == 0:
+                    return
 
             span_length = len(context)
 
             while span_length > self.max_allowable_negations:
                 no_pos, no_neg = pos_cnt[span_length - 1], neg_cnt[span_length - 1]
+                no_neg_in_last_sentence = neg_cnt_in_sentence[span_length - 1]
 
                 if (
-                    no_neg > self.max_allowable_negations
+                    no_neg_in_last_sentence > 1
+                    and no_neg > self.max_allowable_negations
                     and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
                 ):
                     negatives_annotate = [n for n in context[:span_length] if self._is_negative(n)]
@@ -253,6 +273,7 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
     def _filter(cls, nodes: Iterable[Node]) -> list[Node]:
         nodes = cls._strip_of_coordinated_nouns(nodes)
         nodes = [n for n in nodes if n.feats['Abbr'] != 'Yes']
+        # TODO: upper-case abbreviations not directly preceded or followed by a number should be counted though
         return nodes
 
     def process_node(self, node: Node):
@@ -346,6 +367,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
             descendants = get_clause(node, without_punctuation=True, without_subordinates=True)
 
+            # FIXME: capturing adjectives even with !self.include_adjectives ??
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
             ]
@@ -353,7 +375,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
             # do not consider coordinations
             min_conj_ord = math.inf
             for n in following_nodes:
-                if n != node and n.deprel == 'conj':
+                if n != node and n.deprel == 'conj':  # TODO: but only if the conj is in the same case as node
                     min_conj_ord = min(min_conj_ord, n.ord)
 
                     for d in node.descendants(add_self=True):

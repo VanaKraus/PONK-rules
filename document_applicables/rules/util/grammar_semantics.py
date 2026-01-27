@@ -25,6 +25,10 @@ def is_finite_verb(node: Node) -> bool:
     return (node.feats['VerbForm'] == 'Fin') or node.xpos[0:2] == 'Vp'
 
 
+def is_modal_verb(node: Node) -> bool:
+    return node.lemma in {'mít', 'moci', 'muset', 'smět', 'chtít'}
+
+
 def is_adposition(node: Node) -> bool:
     return node.deprel in ('case', 'fixed')
 
@@ -52,12 +56,12 @@ def feat_overlap(n1: Node, n2: Node, feat_id: str) -> bool:
     return bool(n1_values.intersection(n2_values))
 
 
-def is_named_entity(node: Node) -> bool:
-    return 'NE' in node.misc
-
-
 def is_citation(node: Node) -> bool:
     return '_CitDetectRule' in utilsm.rules_applied(node)
+
+
+def is_named_entity(node: Node) -> bool:
+    return 'NE' in node.misc
 
 
 class NEregister:

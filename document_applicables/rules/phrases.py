@@ -58,7 +58,7 @@ class RuleWeakMeaningWords(PhrasesRule):
         'uskutečňovat',
     }
 
-    _potentially_weak_meaning_words: set[str] = {'provádět', 'provést'}
+    _potentially_weak_meaning_words: set[str] = {'provádět', 'provést'}  # TODO: not easily replaceable in most cases
 
     def model_post_init(self, __context):
         self._all_words = self._weak_meaning_words | self._potentially_weak_meaning_words
@@ -170,6 +170,8 @@ class RuleRelativisticExpressions(PhrasesRule):
 
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
+
+    # TODO: better documentation
 
     rule_id: ClassVar[str] = 'RuleRelativisticExpressions'
 
@@ -533,6 +535,7 @@ class RuleTooLongExpressions(PhrasesRule):
                     self.annotate_node('prostřednictvím_kterého', node, det)
                     self.advance_application_id()
 
+            # TODO: often used in argumentation, where such replacement isn't feasible
             # jsou uvedeny v příloze
             case 'uvedený':
                 if (aux := [c for c in node.children if c.upos == 'AUX']) and (
