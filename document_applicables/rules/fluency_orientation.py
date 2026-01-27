@@ -270,10 +270,30 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
         return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
 
     @classmethod
+    def _autosemantic_abbreviation(cls, node: Node) -> bool:
+        """Returns True if `node` is an abbreviation"""
+        if node.feats['Abbr'] != 'Yes' or node.form.upper() != node.form or len(node.form) <= 1:
+            return False
+
+        descendants = node.root.descendants
+        directly_preceded_by_a_number = (
+            node.ord > 1
+            and descendants[node.ord - 2].feats['SpaceAfter'] == 'No'
+            and descendants[node.ord - 2].feats['NumForm'] == 'Digit'
+        )
+        directly_followed_by_a_number = (
+            node.ord < len(descendants)
+            and node.feats['SpaceAfter'] == 'No'
+            and descendants[node.ord].feats['NumForm'] == 'Digit'
+        )
+
+        return (not directly_preceded_by_a_number) and (not directly_followed_by_a_number)
+
+    @classmethod
     def _filter(cls, nodes: Iterable[Node]) -> list[Node]:
         nodes = cls._strip_of_coordinated_nouns(nodes)
-        nodes = [n for n in nodes if n.feats['Abbr'] != 'Yes']
-        # TODO: upper-case abbreviations not directly preceded or followed by a number should be counted though
+        nodes = [n for n in nodes if (n.feats['Abbr'] != 'Yes' or cls._autosemantic_abbreviation(n))]
+
         return nodes
 
     def process_node(self, node: Node):
@@ -292,7 +312,7 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
             subclauses.append(clause_tmp)
 
             for subclause in subclauses:
-                # coordinated nouns are stripped from the measurements
+                # coordinated nouns and most abbreviations are stripped from the measurements
                 # the nouns are still kept for eventual highlighting though
                 if (scl_len := len(self._filter(remove_punct_sym(subclause)))) > self.max_dismissable_span_length:
                     nouns = [n for n in subclause if n.upos == 'NOUN' and not is_named_entity(n)]
