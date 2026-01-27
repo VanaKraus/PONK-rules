@@ -535,18 +535,18 @@ class RuleTooLongExpressions(PhrasesRule):
                     self.annotate_node('prostřednictvím_kterého', node, det)
                     self.advance_application_id()
 
-            # TODO: often used in argumentation, where such replacement isn't feasible
-            # jsou uvedeny v příloze
-            case 'uvedený':
-                if (aux := [c for c in node.children if c.upos == 'AUX']) and (
-                    nouns := [
-                        c for c in node.children if c.upos == 'NOUN' and c.feats['Case'] == 'Loc' and c.deprel == 'obl'
-                    ]
-                ):
-                    for noun in nouns:
-                        if adp := [c for c in noun.children if c.lemma == 'v']:
-                            self.annotate_node('jsou_uvedeny_v_příloze', node, *aux, noun, *adp)
-                            self.advance_application_id()
+            # # jsou uvedeny v příloze
+            # # often used in argumentation, where the recommended replacement isn't felicitous
+            # case 'uvedený':
+            #     if (aux := [c for c in node.children if c.upos == 'AUX']) and (
+            #         nouns := [
+            #             c for c in node.children if c.upos == 'NOUN' and c.feats['Case'] == 'Loc' and c.deprel == 'obl'
+            #         ]
+            #     ):
+            #         for noun in nouns:
+            #             if adp := [c for c in noun.children if c.lemma == 'v']:
+            #                 self.annotate_node('jsou_uvedeny_v_příloze', node, *aux, noun, *adp)
+            #                 self.advance_application_id()
 
             # za podmínek uvedených ve smlouvě
             case 'podmínka':
