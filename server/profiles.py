@@ -109,7 +109,7 @@ def get_noninstitutional_rules() -> list[Rule]:
         ),
         RuleCaseRepetition(max_repetition_count=4, max_repetition_frac=0.65, include_adjectives=False),
         RuleTooManyNegations(
-            max_allowable_negations=3,
+            max_allowable_negations=2,
             max_negation_frac=0.25,  # TODO: temporary adjustment to new measurement criteria
         ),
         RuleLongSentences(max_length=22, without_punctuation=True),
@@ -122,7 +122,8 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleConfirmationExpressions(),
         RuleAnaphoricReferences(),
         RuleLiteraryStyle(),
-        RulePassive(use_vallex=True),
+        # RulePassive(use_vallex=True),
+        RulePassive(use_vallex=False),
         # --- position in a sentence ---
         RulePredSubjDistance(
             max_distance=6,  # default value

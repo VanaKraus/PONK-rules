@@ -134,10 +134,8 @@ class RuleTooManyNegations(FluencyOrientationRule):
     cz_paricipants: dict[str, str] = {'negative': 'Negativní výraz'}
     en_paricipants: dict[str, str] = {'negative': 'Negative expression'}
 
-    # TODO: do not highlight negations that are the only ones in their sentence
-
     def process_node(self, node):
-        if self.rule_id not in rules_applied(node) and (self._is_positive(node) or self._is_negative(node)):
+        if self.rule_id not in rules_applied(node) and self._is_negative(node):
             context = [
                 n
                 for n in get_surrounding_bundles_serialize(node, 0, self.max_right_bundles_count, no_punct_sym=True)
@@ -151,25 +149,42 @@ class RuleTooManyNegations(FluencyOrientationRule):
             # so that they don't need to be recomputed each time
             pos_cnt = []
             neg_cnt = []
+            # counting from the start of its respective sentence (bundle), this is the k-th negation
+            neg_cnt_in_sentence = []
+
             for i, nd in enumerate(context):
                 no_pos = pos_cnt[i - 1] if i > 0 else 0
                 no_neg = neg_cnt[i - 1] if i > 0 else 0
+                no_neg_in_sentence = neg_cnt_in_sentence[i - 1] if i > 0 and context[i - 1].root == nd.root else 0
 
                 if self._is_positive(nd):
                     no_pos += 1
                 elif self._is_negative(nd):
                     no_neg += 1
+                    no_neg_in_sentence += 1
 
                 pos_cnt.append(no_pos)
                 neg_cnt.append(no_neg)
+                neg_cnt_in_sentence.append(no_neg_in_sentence)
+
+            # check that the left-most sentence doesn't contain only one negation given the current context
+            for no_neg_in_sentence in neg_cnt_in_sentence:
+                # contains more negations, things are fine
+                if no_neg_in_sentence > 1:
+                    break
+                # sentence boundary reached and there was only one negation (otherwise we would've broken the loop)
+                if no_neg_in_sentence == 0:
+                    return
 
             span_length = len(context)
 
             while span_length > self.max_allowable_negations:
                 no_pos, no_neg = pos_cnt[span_length - 1], neg_cnt[span_length - 1]
+                no_neg_in_last_sentence = neg_cnt_in_sentence[span_length - 1]
 
                 if (
-                    no_neg > self.max_allowable_negations
+                    no_neg_in_last_sentence > 1
+                    and no_neg > self.max_allowable_negations
                     and (max_neg_frac := no_neg / (no_pos + no_neg)) > self.max_negation_frac
                 ):
                     negatives_annotate = [n for n in context[:span_length] if self._is_negative(n)]
