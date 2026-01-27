@@ -55,7 +55,7 @@ def get_minimal_rules() -> list[Rule]:
     return sorted(
         [
             RuleDoubleAdpos(max_allowable_distance=0),
-            RulePassive(use_vallex=True),
+            RulePassive(use_vallex=False),
             RulePredSubjDistance(max_distance=0),
             RulePredObjDistance(max_distance=0),
             RuleInfVerbDistance(max_distance=0),
@@ -121,7 +121,7 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleRelativisticExpressions(),
         RuleConfirmationExpressions(),
         RuleAnaphoricReferences(),
-        RulePassive(use_vallex=True),
+        RulePassive(use_vallex=False),
         # RuleLiteraryStyle(), # partially out of the project's scope
         # --- position in a sentence ---
         RulePredSubjDistance(
