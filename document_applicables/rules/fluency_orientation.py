@@ -14,6 +14,7 @@ from document_applicables.rules.util.grammar_semantics import (
     is_named_entity,
     NEregister,
     is_citation,
+    is_modal_verb,
 )
 from document_applicables.rules.util.structure_info import is_clause_root, children_include
 from document_applicables.rules.util.structure_retrieval import (
@@ -52,10 +53,27 @@ class RuleTooFewVerbs(FluencyOrientationRule):
     cz_paricipants: dict[str, str] = {'verb': 'Sloveso'}
     en_paricipants: dict[str, str] = {'verb': 'Verb'}
 
-    def is_verb(self, node):
+    def considered_as_verb(self, node):
         return (
             is_finite_verb(node) if self.finite_only else node.upos in ('VERB', 'AUX')
         ) and node.form.lower() not in ('srov', 'viz')
+
+    def _verb_should_be_counted(self, node):
+        return not (not is_clause_root(node) and is_modal_verb(node.parent)) and not (
+            is_aux(node, grammatical_only=True)
+            and (
+                # parent already counted
+                self.considered_as_verb(node.parent)
+                # parent of the governing word (VERB or a participle) is a modal verb
+                or (not is_clause_root(node.parent) and is_modal_verb(node.parent.parent))
+                # or the parent has more auxiliaries, in which case only the first should be counted
+                or [
+                    preceding_nd
+                    for preceding_nd in node.parent.children
+                    if preceding_nd < node and is_aux(preceding_nd, grammatical_only=True)
+                ]
+            )
+        )
 
     def process_node(self, node):
         if node.udeprel == 'root':
@@ -64,31 +82,14 @@ class RuleTooFewVerbs(FluencyOrientationRule):
             if not sentence:
                 return
 
-            # TODO: modal verbs
-
             # count each lexeme only once
-            verbs = [
-                nd
-                for nd in sentence
-                if self.is_verb(nd)
-                and not (
-                    is_aux(nd, grammatical_only=True)
-                    and (
-                        # parent already counted
-                        self.is_verb(nd.parent)
-                        # or the parent has more auxiliaries, in which case only the first should be counted
-                        or [
-                            preceding_nd
-                            for preceding_nd in nd.parent.children
-                            if preceding_nd < nd and is_aux(preceding_nd, grammatical_only=True)
-                        ]
-                    )
-                )
-            ]
+            verb_candidates = [nd for nd in sentence if self.considered_as_verb(nd)]
+            verbs = {nd for nd in verb_candidates if self._verb_should_be_counted(nd)}
+            dismissed_verbs = {nd for nd in verb_candidates if nd not in verbs}
 
             # language included in citations cannot be dealt with easily
             # but verbs occurring in citations should still be counted as verbs
-            sentence_ref = [n for n in sentence if not is_citation(n)]
+            sentence_ref = [n for n in sentence if not is_citation(n) and n not in dismissed_verbs]
 
             if (min_frac := len(verbs) / max(len(get_phrase_heads(sentence_ref, keep=verbs)), 1)) < self.min_verb_frac:
                 self.annotate_node('verb', *verbs)
