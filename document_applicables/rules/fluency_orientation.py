@@ -270,10 +270,30 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
         return [n for n in nodes if not (n.upos == 'NOUN' and n.deprel == 'conj')]
 
     @classmethod
+    def _autosemantic_abbreviation(cls, node: Node) -> bool:
+        """Returns True if `node` is an abbreviation"""
+        if node.feats['Abbr'] != 'Yes' or node.form.upper() != node.form or len(node.form) <= 1:
+            return False
+
+        descendants = node.root.descendants
+        directly_preceded_by_a_number = (
+            node.ord > 1
+            and descendants[node.ord - 2].feats['SpaceAfter'] == 'No'
+            and descendants[node.ord - 2].feats['NumForm'] == 'Digit'
+        )
+        directly_followed_by_a_number = (
+            node.ord < len(descendants)
+            and node.feats['SpaceAfter'] == 'No'
+            and descendants[node.ord].feats['NumForm'] == 'Digit'
+        )
+
+        return (not directly_preceded_by_a_number) and (not directly_followed_by_a_number)
+
+    @classmethod
     def _filter(cls, nodes: Iterable[Node]) -> list[Node]:
         nodes = cls._strip_of_coordinated_nouns(nodes)
-        nodes = [n for n in nodes if n.feats['Abbr'] != 'Yes']
-        # TODO: upper-case abbreviations not directly preceded or followed by a number should be counted though
+        nodes = [n for n in nodes if (n.feats['Abbr'] != 'Yes' or cls._autosemantic_abbreviation(n))]
+
         return nodes
 
     def process_node(self, node: Node):
@@ -292,7 +312,7 @@ class RuleTooManyNominalConstructions(FluencyOrientationRule):
             subclauses.append(clause_tmp)
 
             for subclause in subclauses:
-                # coordinated nouns are stripped from the measurements
+                # coordinated nouns and most abbreviations are stripped from the measurements
                 # the nouns are still kept for eventual highlighting though
                 if (scl_len := len(self._filter(remove_punct_sym(subclause)))) > self.max_dismissable_span_length:
                     nouns = [n for n in subclause if n.upos == 'NOUN' and not is_named_entity(n)]
@@ -367,7 +387,6 @@ class RuleCaseRepetition(FluencyOrientationRule):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
             descendants = get_clause(node, without_punctuation=True, without_subordinates=True)
 
-            # FIXME: capturing adjectives even with !self.include_adjectives ??
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
             ]
@@ -375,10 +394,10 @@ class RuleCaseRepetition(FluencyOrientationRule):
             # do not consider coordinations
             min_conj_ord = math.inf
             for n in following_nodes:
-                if n != node and n.deprel == 'conj':  # TODO: but only if the conj is in the same case as node
+                if n != node and n.deprel == 'conj' and n.feats['Case'] == node.feats['Case']:
                     min_conj_ord = min(min_conj_ord, n.ord)
 
-                    for d in node.descendants(add_self=True):
+                    for d in n.descendants(add_self=True, following_only=True):
                         if d in following_nodes:
                             following_nodes.remove(d)
 
@@ -433,7 +452,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
                 if (repetition_frac := no_same_case_nodes[ctx_size - 1] / ctx_size) > self.max_repetition_frac:
                     scn_annotate, NEs = [], set()
                     for i, n in enumerate(following_nodes):
-                        NEs_n = set(n.misc['NE'].split('-'))
+                        NEs_n = set(el for el in n.misc['NE'].split('-') if len(el) > 0)
                         # ... so that all belonging NEs are highlighted
                         if (i < ctx_size and same_case_nodes[i]) or (
                             NEs.intersection(NEs_n) and n.feats['Case'] == node.feats['Case']
@@ -449,6 +468,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
 
                     self.annotate_node('case_repetition', *scn_annotate)
                     self.advance_application_id()
+
                     break
 
                 ctx_size -= 1
