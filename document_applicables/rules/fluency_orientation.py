@@ -387,7 +387,6 @@ class RuleCaseRepetition(FluencyOrientationRule):
         if node.upos in self._tracked_pos and 'Case' in node.feats:
             descendants = get_clause(node, without_punctuation=True, without_subordinates=True)
 
-            # FIXME: capturing adjectives even with !self.include_adjectives ??
             following_nodes = [node] + [
                 d for d in descendants if d.ord > node.ord and d.upos not in ('PUNCT', 'ADP', 'CCONJ', 'SCONJ')
             ]
@@ -453,7 +452,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
                 if (repetition_frac := no_same_case_nodes[ctx_size - 1] / ctx_size) > self.max_repetition_frac:
                     scn_annotate, NEs = [], set()
                     for i, n in enumerate(following_nodes):
-                        NEs_n = set(n.misc['NE'].split('-'))
+                        NEs_n = set(el for el in n.misc['NE'].split('-') if len(el) > 0)
                         # ... so that all belonging NEs are highlighted
                         if (i < ctx_size and same_case_nodes[i]) or (
                             NEs.intersection(NEs_n) and n.feats['Case'] == node.feats['Case']
@@ -469,6 +468,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
 
                     self.annotate_node('case_repetition', *scn_annotate)
                     self.advance_application_id()
+
                     break
 
                 ctx_size -= 1
