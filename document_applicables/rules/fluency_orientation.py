@@ -394,7 +394,7 @@ class RuleCaseRepetition(FluencyOrientationRule):
             # do not consider coordinations
             min_conj_ord = math.inf
             for n in following_nodes:
-                if n != node and n.deprel == 'conj':
+                if n != node and n.deprel == 'conj' and n.feats['Case'] == node.feats['Case']:
                     min_conj_ord = min(min_conj_ord, n.ord)
 
                     for d in n.descendants(add_self=True, following_only=True):
