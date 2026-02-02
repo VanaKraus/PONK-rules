@@ -58,10 +58,8 @@ class RuleWeakMeaningWords(PhrasesRule):
         'uskutečňovat',
     }
 
-    _potentially_weak_meaning_words: set[str] = {'provádět', 'provést'}  # TODO: not easily replaceable in most cases
-
     def model_post_init(self, __context):
-        self._all_words = self._weak_meaning_words | self._potentially_weak_meaning_words
+        self._all_words = self._weak_meaning_words
         return super().model_post_init(__context)
 
     @staticmethod
@@ -69,8 +67,9 @@ class RuleWeakMeaningWords(PhrasesRule):
         match node.lemma:
             case 'uskutečnit' | 'uskutečňovat':
                 return bool([n for n in node.children if n.form.lower() == 'se'])
-            case 'provést' | 'provádět':
-                return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
+            # the rule no longer captures these
+            # case 'provést' | 'provádět':
+            #     return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
         return False
 
     def process_node(self, node):
