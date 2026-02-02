@@ -171,14 +171,20 @@ class RuleRelativisticExpressions(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
 
-    # TODO: better documentation
-
     rule_id: ClassVar[str] = 'RuleRelativisticExpressions'
 
     cz_human_readable_name: str = 'Relativizující výrazy'
     en_human_readable_name: str = 'Relativising expressions'
-    cz_doc: str = 'Vyvarujte se relativizujících výrazů. Srov. Šamánková & Kubíková (2022, s. 42).'
-    en_doc: str = 'Avoid relativistic expressions. Cf. Šamánková & Kubíková (2022, p. 42).'
+    cz_doc: str = (
+        'Relativizujícími výrazy svá sdělení záměrně zpochybňujeme. '
+        'Jakkoli jsou občas na místě, často se nadužívají. '
+        'Srov. Šamánková & Kubíková (2022, s. 42).'
+    )
+    en_doc: str = (
+        'Relativistic expressions are used to undermine confidence in one\'s own message. '
+        'Although sometimes justified, they are often overused. '
+        'Cf. Šamánková & Kubíková (2022, p. 42).'
+    )
     cz_paricipants: dict[str, str] = {'relativistic_expression': 'Relativizující výraz'}
     en_paricipants: dict[str, str] = {'relativistic_expression': 'Relativistic expression'}
 
