@@ -58,10 +58,8 @@ class RuleWeakMeaningWords(PhrasesRule):
         'uskutečňovat',
     }
 
-    _potentially_weak_meaning_words: set[str] = {'provádět', 'provést'}  # TODO: not easily replaceable in most cases
-
     def model_post_init(self, __context):
-        self._all_words = self._weak_meaning_words | self._potentially_weak_meaning_words
+        self._all_words = self._weak_meaning_words
         return super().model_post_init(__context)
 
     @staticmethod
@@ -69,8 +67,9 @@ class RuleWeakMeaningWords(PhrasesRule):
         match node.lemma:
             case 'uskutečnit' | 'uskutečňovat':
                 return bool([n for n in node.children if n.form.lower() == 'se'])
-            case 'provést' | 'provádět':
-                return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
+            # the rule no longer captures these
+            # case 'provést' | 'provádět':
+            #     return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
         return False
 
     def process_node(self, node):
@@ -171,14 +170,20 @@ class RuleRelativisticExpressions(PhrasesRule):
     Inspiration: Šamánková & Kubíková (2022, p. 42).
     """
 
-    # TODO: better documentation
-
     rule_id: ClassVar[str] = 'RuleRelativisticExpressions'
 
     cz_human_readable_name: str = 'Relativizující výrazy'
     en_human_readable_name: str = 'Relativising expressions'
-    cz_doc: str = 'Vyvarujte se relativizujících výrazů. Srov. Šamánková & Kubíková (2022, s. 42).'
-    en_doc: str = 'Avoid relativistic expressions. Cf. Šamánková & Kubíková (2022, p. 42).'
+    cz_doc: str = (
+        'Relativizujícími výrazy svá sdělení záměrně zpochybňujeme. '
+        'Jakkoli jsou občas na místě, často se nadužívají. '
+        'Srov. Šamánková & Kubíková (2022, s. 42).'
+    )
+    en_doc: str = (
+        'Relativistic expressions are used to undermine confidence in one\'s own message. '
+        'Although sometimes justified, they are often overused. '
+        'Cf. Šamánková & Kubíková (2022, p. 42).'
+    )
     cz_paricipants: dict[str, str] = {'relativistic_expression': 'Relativizující výraz'}
     en_paricipants: dict[str, str] = {'relativistic_expression': 'Relativistic expression'}
 
