@@ -227,6 +227,7 @@ class RuleConfirmationExpressions(PhrasesRule):
     cz_paricipants: dict[str, str] = {'confirmation_expression': 'Utvrzující výraz'}
     en_paricipants: dict[str, str] = {'confirmation_expression': 'Confirmation expression'}
 
+    # TODO: remove jasně
     _expressions: list[str] = ['jasně', 'nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
@@ -333,6 +334,7 @@ class RuleRedundantExpressions(PhrasesRule):
 
             # v této situaci / za situace když
             case 'situace':
+                # TODO: this seems to behave more as a contextual anchor than as an empty expression
                 # v této situaci
                 if (adp := [c for c in node.children if c.lemma == 'v']) and (
                     det := [c for c in node.children if c.udeprel == 'det']
