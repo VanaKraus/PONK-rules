@@ -37,14 +37,8 @@ class RuleWeakMeaningWords(PhrasesRule):
         'Avoid weak-meaning words. Cf. Sgall & Panevová (2014, p. 86), '
         + 'Šamánková & Kubíková (2022, pp. 37–38 and p. 39), Šváb (2021, p. 32).'
     )
-    cz_paricipants: dict[str, str] = {
-        'weak_meaning_word': 'Vyprázdněné slovo',
-        'potentially_weak_meaning_word': 'Slovo se často používá jako vyprázdněné',
-    }
-    en_paricipants: dict[str, str] = {
-        'weak_meaning_word': 'Weak-meaning word',
-        'potentially_weak_meaning_word': 'The word is often used in a weak meaning',
-    }
+    cz_paricipants: dict[str, str] = {'weak_meaning_word': 'Vyprázdněné slovo'}
+    en_paricipants: dict[str, str] = {'weak_meaning_word': 'Weak-meaning word'}
 
     _weak_meaning_words: set[str] = {
         'dopadat',
@@ -67,21 +61,11 @@ class RuleWeakMeaningWords(PhrasesRule):
         match node.lemma:
             case 'uskutečnit' | 'uskutečňovat':
                 return bool([n for n in node.children if n.form.lower() == 'se'])
-            # the rule no longer captures these
-            # case 'provést' | 'provádět':
-            #     return bool([n for n in node.children if n.udeprel == 'obj' and n.upos == 'DET'])
         return False
 
     def process_node(self, node):
         if node.lemma in self._all_words and not self._exception(node) and not is_citation(node):
-            self.annotate_node(
-                (
-                    'potentially_weak_meaning_word'
-                    if node.lemma in self._potentially_weak_meaning_words
-                    else 'weak_meaning_word'
-                ),
-                node,
-            )
+            self.annotate_node('weak_meaning_word', node)
             self.advance_application_id()
 
 
