@@ -185,6 +185,9 @@ class RuleInfVerbDistance(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'infinitive': 'Infinitiv', 'verb': 'Řídící člen'}
     en_paricipants: dict[str, str] = {'infinitive': 'Infinitive', 'verb': 'Governing word'}
 
+    # TODO: it's called InfVERBDistance; the governing tokens should therefore be verbs, not nouns
+    # TODO: handle parataxis (and maybe other bracket-related phenomena)
+
     def process_node(self, node):
         if (
             (infinitive := node).feats['VerbForm'] == 'Inf'
