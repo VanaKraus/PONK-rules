@@ -99,18 +99,16 @@ def get_minimal_rules() -> list[Rule]:
 def get_noninstitutional_rules() -> list[Rule]:
     return [
         # --- fluency ----
-        # RuleTooFewVerbs(min_verb_frac=0.169), # value counter-intuitive; replaced below
-        # RuleTooFewVerbs(min_verb_frac=0.06),  # default value
-        RuleTooFewVerbs(min_verb_frac=0.1),  # TODO: temporary adjustment to new measurement criteria
+        RuleTooFewVerbs(min_verb_frac=0.1),
         RuleTooManyNominalConstructions(
             max_allowable_nouns=5,
-            max_noun_frac=0.45,  # wouldn't catch anything with 0.728
+            max_noun_frac=0.45,
             max_dismissable_span_length=15,
         ),
         RuleCaseRepetition(max_repetition_count=4, max_repetition_frac=0.65, include_adjectives=False),
         RuleTooManyNegations(
             max_allowable_negations=2,
-            max_negation_frac=0.25,  # TODO: temporary adjustment to new measurement criteria
+            max_negation_frac=0.25,
         ),
         RuleLongSentences(max_length=22, without_punctuation=True),
         # --- phrases and constructions ---
@@ -122,39 +120,15 @@ def get_noninstitutional_rules() -> list[Rule]:
         RuleConfirmationExpressions(),
         RuleAnaphoricReferences(),
         RulePassive(use_vallex=False),
-        # RuleLiteraryStyle(), # partially out of the project's scope
         # --- position in a sentence ---
-        RulePredSubjDistance(
-            max_distance=6,  # default value
-        ),
-        RulePredObjDistance(
-            max_distance=6,  # default value
-        ),
-        RuleMultiPartVerbs(
-            max_distance=5,  # default value
-        ),
-        RulePredTooFarInClause(
-            # max_order=5,  # default value
-            max_order=9,  # TODO: temporary adjustment
-        ),
+        RulePredSubjDistance(max_distance=6),
+        RulePredObjDistance(max_distance=6),
+        RuleMultiPartVerbs(max_distance=5),
+        RulePredTooFarInClause(max_order=9),
         RuleInfVerbDistance(max_distance=5),
         # --- ambiguity ---
-        RuleDoubleAdpos(),  # counter-intuitive measurable effect
+        RuleDoubleAdpos(),
         RuleIncompleteConstruction(),
-        # RuleVerbalNouns(), # hard to interpret
-        # RuleGPpatinstr(), # questionable reliability
-        # RuleGPcoordovs(), # effect size < 0.06
-        # RuleGPdeverbaddr(), # no good/bad interval border difference
-        # RuleGPdeverbsubj(), # no good/bad interval border difference
-        # RuleGPadjective(), # effect size < 0.06
-        # RuleGPpatbenperson(), # effect size < 0.06
-        # RuleGPwordorder(), # effect size < 0.06
-        # RuleAmbiguousRegards(), # unreliable
-        # RuleDoubleComparison(), # unreliable + acceptability
-        # RuleWrongValencyCase(), # unreliable + acceptability
-        # RuleWrongVerbonominalCase(), # unreliable + acceptability
-        # RuleFunctionWordRepetition(), # unreliable
-        # RuleReflexivePassWithAnimSubj(),  # effect size < 0.06
     ]
 
 

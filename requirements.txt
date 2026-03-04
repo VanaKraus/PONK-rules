@@ -1,12 +1,7 @@
 python_version >= '3.11.0'
-colorama==0.4.6 # TODO: remove unneeded dependencies (Den č.)
-termcolor==2.4.0 # TODO: remove unneeded dependencies (Den č.)
-udapi @ git+https://github.com/udapi/udapi-python.git@a43cd21f962a72e4f5e6f5dc40c5d35393669107 # GPL 3.0
-ufal.udpipe==1.3.1.1 # TODO: remove unneeded dependencies (UDPipe is not used by this module of PONK)
+udapi @ git+https://github.com/udapi/udapi-python.git@a43cd21f962a72e4f5e6f5dc40c5d35393669107
 ufal.morphodita==1.11.2.1
-nltk==3.8.1 # TODO: remove unneeded dependencies
 fastapi==0.110.0
 uvicorn==0.29.0
 python-multipart==0.0.9 # TODO: check if required
 pandas==2.2.3
-# DeriNet 2.0 API from https://github.com/vidraj/derinet/tree/master/tools/data-api/derinet2
