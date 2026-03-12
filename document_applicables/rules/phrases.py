@@ -211,8 +211,7 @@ class RuleConfirmationExpressions(PhrasesRule):
     cz_paricipants: dict[str, str] = {'confirmation_expression': 'Utvrzující výraz'}
     en_paricipants: dict[str, str] = {'confirmation_expression': 'Confirmation expression'}
 
-    # TODO: remove jasně
-    _expressions: list[str] = ['jasně', 'nepochybně', 'naprosto', 'rozhodně']
+    _expressions: list[str] = ['nepochybně', 'naprosto', 'rozhodně']
 
     def process_node(self, node):
         if (
@@ -316,18 +315,9 @@ class RuleRedundantExpressions(PhrasesRule):
                     self.annotate_node('redundant_expression', node, adp[0], noun[0])
                     self.advance_application_id()
 
-            # v této situaci / za situace když
+            # za situace když
             case 'situace':
-                # TODO: this seems to behave more as a contextual anchor than as an empty expression
-                # v této situaci
-                if (adp := [c for c in node.children if c.lemma == 'v']) and (
-                    det := [c for c in node.children if c.udeprel == 'det']
-                ):
-                    self.annotate_node('redundant_expression', node, *adp, *det)
-                    self.advance_application_id()
-
-                # za situace když
-                elif (adp := [c for c in node.children if c.lemma == 'za']) and (
+                if (adp := [c for c in node.children if c.lemma == 'za']) and (
                     conj := [
                         c
                         for c in node.root.descendants(add_self=True)[node.ord + 1 : node.ord + 3]
