@@ -185,16 +185,14 @@ class RuleInfVerbDistance(SentencePositionRule):
     cz_paricipants: dict[str, str] = {'infinitive': 'Infinitiv', 'verb': 'Řídící člen'}
     en_paricipants: dict[str, str] = {'infinitive': 'Infinitive', 'verb': 'Governing word'}
 
-    # TODO: it's called InfVERBDistance; the governing tokens should therefore be verbs, not nouns
-    # TODO: handle parataxis (and maybe other bracket-related phenomena)
-
     def process_node(self, node):
         if (
             (infinitive := node).feats['VerbForm'] == 'Inf'
-            and 'VerbForm' in (verb := infinitive.parent).feats
             and not is_clause_root(infinitive)
-            and infinitive.deprel not in ('conj', 'csubj')
+            and infinitive.deprel not in ('conj', 'csubj', 'parataxis')
             and infinitive.upos != 'AUX'
+            and 'VerbForm' in (verb := infinitive.parent).feats
+            and verb.upos != 'NOUN' 
             # it mainly attributes the za+ACC argument to the ACC argument, behaving as an "epistemic copula" of sorts
             and verb.lemma != 'považovat'
             and not is_citation(infinitive)
