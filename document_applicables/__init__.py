@@ -39,10 +39,14 @@ class Documentable(BaseModel):
         html += f'<button id={cls.__name__}-button>Show</button>'
         html += f'<div id={cls.__name__} style="display:none">'
         for child in cls.get_final_children():
+            docstring = child.__doc__
+
+            if not docstring:
+                continue
+
             html += f'<h2>{child.__name__}</h2>'
             html += f'<button id={child.__name__}-button>Show</button>'
 
-            docstring = child.__doc__
             attrs = None
             if 'Attributes:' in docstring:
                 import re

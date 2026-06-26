@@ -18,9 +18,16 @@ def root():
     return {"this is": "ponk-app1"}
 
 
-@app.get("/docs/foo", response_class=HTMLResponse, tags=['visual'])
-def asdf():
-    return Rule.generate_doc_html() + Metric.generate_doc_html() + Rule.generate_doc_footer()
+@app.get("/docs/rules", response_class=HTMLResponse, tags=['visual'])
+def rules_documentation():
+    return Rule.generate_doc_html() + Rule.generate_doc_footer()
+
+
+@app.get("/docs/metrics", response_class=HTMLResponse, tags=['visual'])
+def metrics_documentation():
+    return Metric.generate_doc_html() + Rule.generate_doc_footer()
+
+
 
 
 class MainRequest(BaseModel):
@@ -44,6 +51,7 @@ class MainReply(BaseModel):
                     "en_doc": "Rule documentation",
                     "cz_participants": {"adpos": "Adpozice s nejasnou valencí"},
                     "en_participants": {"adpos": "Adposition with an unclear valence"},
+                    "order": 5,
                 }
             }
         ]
@@ -116,8 +124,9 @@ def make_metric_info(metric_list: list[Metric]) -> dict[str, dict[str, str | dic
         for ord, metric in enumerate(metric_list)
     }
 
-
-@app.post('/main', tags=['ponk_rules'])
+# TODO: make the metric_list and rule_list fields intuitive
+#       only then uncover the endpoint
+# @app.post('/main', tags=['ponk_rules'])
 def choose_stats_and_rules(main_request: MainRequest) -> MainReply:
     doc = try_build_conllu_from_string(main_request.conllu_string)
     metric_list = unwrap_metric_list(main_request.metric_list)
