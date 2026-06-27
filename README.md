@@ -2,11 +2,13 @@
 
 This module of [PONK](https://ufal.mff.cuni.cz/ponk) measures **metrics** (statistical and readability-related numerical properties of the input text) and scans the text for violations of linguistic readability **rules** (they deterministically analyze the syntactic structure and/or look for specific words).
 
-# Start
+# Install
 
-Install the dependencies from `requirements.txt` and start the server with `uvicorn server:app` (or `uvicorn server:app --reload`). 
-
-<!-- TODO: derinet! -->
+1. Install the dependencies from `requirements.txt`.
+2. Install the [DeriNet](https://github.com/vidraj/derinet/tree/master/tools/data-api/derinet2/) Python package.
+3. Download the [Czech DeriNet database](http://hdl.handle.net/11234/1-5846). The expected location is `_local/derinet-2-3.tsv` (see *document_applicables/rules/util/external_tools.py*).
+4. Download the [Czech MorphoDiTa dictionary](http://hdl.handle.net/11234/1-5985). By default, PonkApp1 will look for `_local/czech-morfflex2.1-pdtc2.0-250909/czech-morfflex2.1-250909.dict` (see *document_applicables/rules/util/external_tools.py*).
+5. Start the server with `uvicorn server:app` (or `uvicorn server:app --reload`). 
 
 Tested on Python 3.14.
 
@@ -19,7 +21,7 @@ Send a multipart POST request to `/raw`. Parameters include:
 
 Also see <http://localhost:8000/docs>.
 
-For optimal performance, pass your input through the [NameTag](https://lindat.mff.cuni.cz/services/nametag/) NER pipeline first.
+For optimal performance, process your input using the [NameTag](https://lindat.mff.cuni.cz/services/nametag/) NER pipeline first.
 
 Happy rule-based simplification :^)
 
@@ -154,7 +156,7 @@ Note that the if the special annotations appear in the MISC column, they do so *
 PonkApp1:RuleTooLongExpressions:fde7d51c=v_důsledku_toho|PonkApp1:RuleTooLongExpressions:fde7d51c:remove=_
 ```
 
-Here, a token has been anotated by a rule with `application_id` of fde7d51c; during the same application, a correction is suggested.
+Here, a token has been anotated by a rule with `application_id` of fde7d51c. During the same application, a correction is suggested.
 
 ```
 PonkApp1:RuleTooLongExpressions:bee105bf:remove=post-process
