@@ -1,6 +1,12 @@
+# PonkApp1
+
+This module of [PONK](https://ufal.mff.cuni.cz/ponk) measures **metrics** (statistical and readability-related numerical properties of the input text) and scans the text for violations of linguistic readability **rules** (they deterministically analyze the syntactic structure and/or look for specific words).
+
 # Start
 
 Install the dependencies from `requirements.txt` and start the server with `uvicorn server:app` (or `uvicorn server:app --reload`). 
+
+<!-- TODO: derinet! -->
 
 Tested on Python 3.14.
 
@@ -11,7 +17,9 @@ Send a multipart POST request to `/raw`. Parameters include:
 - `file`: .conllu file (as a form file)
 - `profile`: requested [profile](#rules-metrics-and-profiles) (an URL parameter; optional, defaults to "default")
 
-Also see `:8000/docs`.
+Also see <http://localhost:8000/docs>.
+
+For optimal performance, pass your input through the [NameTag](https://lindat.mff.cuni.cz/services/nametag/) NER pipeline first.
 
 Happy rule-based simplification :^)
 
@@ -187,5 +195,43 @@ The `rebind` action states that the token should be rebound to another token in 
 PonkApp1:RuleTooLongExpressions:4bd3db28:rebind=9
 ```
 
+### Verbose annotations
+
+If turned on (see [Profiles](#profiles)), rules also print out parameter values in case the decision to apply the rule was at least partially based on some meausrement. The measurements and the parameter value are printed to the MISC column.
+
+Note that when the measurement doesn't breach the parameter value, and the rule thus doesn't apply, the measurement and the paramter value do not get printed.
+
+```
+PonkApp1:<rule_id>:<application_id>:param:<param_name>=<param_value>|PonkApp1:<rule_id>:<application_id>:measur:<param_name>=<measured_value>
+```
+
 # Rules, metrics, and profiles
 
+In total, 22 metrics and 35 rules are implemented.
+
+## Rules
+
+When allowed, some rules also suggest corrections for the highlighted text.
+
+We do *not* recommend using all of the rules for readability assessment, as some proved misleading during evaluations. Rules we believe are useful are contained in the `noninstitutional*` profiles.
+
+## Metrics
+
+Some metrics provide statistical overviews of the input text (e.g. no. of sentences) while others measure readability or stylometry metrics. We also measured metric values usually exhibited by more readable texts and less readable ones, but keep in mind that these values can also be influenced by the distribution of our data. The metrics we actually use for readability feedback in PONK are `ari`, `verb_dist`, `activity`, and `mattr`.
+
+## Profiles
+
+Profiles are selections of metrics, rules and their parameters intended for specific use cases. The following profiles are implemented:
+
+- `default`: all metrics + all rules
+- `default_corrective`: all metrics + all rules; correction suggestions are turned on where applicable
+- `noninstitutional`: all metrics + rules calibrated for readability advice in institution--laymen settings
+- `noninstitutional_corrective`: all metrics + rules calibrated for readability advice in institution--laymen settings; correction suggestions are turned on where applicable
+- `minimal`: all metrics + all rules; the rule parameters are set to minimum for the rules to capture even trivial cases
+- `minimal_verbose`: all metrics + all rules; the rule parameters are set to minimum for the rules to capture even trivial cases; the measurements taken by the rules are also printed (see [Verbose annotations](#verbose-annotations))
+
+See *server/profiles.py* for profile definitions.
+
+---
+
+See also <http://localhost:8000/docs/metrics> and <http://localhost:8000/docs/rules> for documentation of the metrics and the rules. The parameter values shown apply under the `default` profile.
