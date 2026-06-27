@@ -16,7 +16,9 @@ def get_morphodita() -> Morpho:
 
     if not _morphodita:
         print('Load MorphoDiTa dictionary')
-        _morphodita = Morpho.load('_local/czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict')
+        _morphodita = Morpho.load(
+            '_local/czech-morfflex2.1-pdtc2.0-250909/czech-morfflex2.1-250909.dict'
+        )
 
     return _morphodita
 
