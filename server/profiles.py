@@ -168,9 +168,14 @@ def wrap_helpers(rules: list[Rule]) -> list[Rule]:
 
 def get(profile: str) -> tuple[list[Metric], list[Rule]]:
     match profile:
+        case 'default':
+            return (
+                None,  # default metrics
+                None,  # default rules
+            )
         case 'default_corrective':
             return (
-                None,
+                None,  # default metrics
                 wrap_helpers(set_rules_corrective([rule() for rule in Rule.get_final_children()])),
             )
         case 'noninstitutional':
