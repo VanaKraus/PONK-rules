@@ -1,0 +1,845 @@
+from __future__ import annotations
+from udapi.core.document import Document
+from udapi.core.node import Node
+
+from typing import Iterator, Tuple, List, Literal, Union
+
+from math import log2, sqrt
+from statistics import mean, stdev
+
+from document_applicables import Documentable
+from document_applicables import intervals as intervs
+import document_applicables.rules.util as rutil
+
+from pydantic import BaseModel, Field
+
+
+class Metric(Documentable):
+    """
+    A base class for metrics.
+    """
+
+    def apply(self, doc: Document) -> float:
+        raise NotImplementedError(f"Please define your metric's ({self.__class__.__name__}) apply method.")
+
+    def id(self) -> str:
+        return self.metric_id
+
+    @staticmethod
+    def get_word_counts(nodes: List[Node], use_lemma=False, from_to: Tuple[int, int] | None = None) -> dict[str, int]:
+        if from_to:
+            nodes = nodes[from_to[0] : from_to[1]]
+        all_words = Metric.get_node_texts(nodes, use_lemma)
+        return Metric.count_occurrences_of_unique_texts(all_words)
+
+    @staticmethod
+    def count_occurrences_of_unique_texts(node_texts: List[str]):
+        result = {}
+        for text in node_texts:
+            if result.get(text) is None:
+                result[text] = 1
+            else:
+                result[text] += 1
+        return result
+
+    @staticmethod
+    def filter_nodes_on_upos(nodes: Iterator[Node], values: List[str], negative=False) -> List[Node]:
+        return [node for node in nodes if ((node.upos in values) != negative)]
+
+    @staticmethod
+    def negative_filter_nodes_on_upos(nodes: Iterator[Node], values_to_exclude: List[str]) -> List[Node]:
+        return Metric.filter_nodes_on_upos(nodes, values_to_exclude, True)
+
+    @staticmethod
+    def filter_nodes_on_punct(nodes: Iterator[Node]):
+        return Metric.negative_filter_nodes_on_upos(nodes, ['PUNCT'])
+
+    @staticmethod
+    def get_node_texts(nodes: Iterator[Node], use_lemma=False) -> List[str]:
+        return [node.form if not use_lemma else node.lemma for node in nodes]
+
+    @staticmethod
+    def get_syllables_in_word(word: str) -> int:
+        # FIXME: eeeeeh
+        return sum(
+            [
+                word.lower().count(vocal)
+                for vocal in ('a', 'e', 'i', 'o', 'u', 'y', 'á', 'é', 'ě', 'í', 'ó', 'ú', 'ů', 'ý')
+            ]
+        )
+
+
+class MetricPunctExcluding(Metric):
+    filter_punct: bool = Field(
+        default=True, description="Boolean controlling whether to exclude punctuation from the count."
+    )
+
+    def get_applicable_nodes(self, doc: Document) -> List[Node]:
+        return self.filter_nodes_on_punct(doc.nodes) if self.filter_punct else doc.nodes
+
+
+class MetricMovingAverageBase(MetricPunctExcluding):
+    """
+    Base class for metrics working with a sliding window
+    """
+
+    window_size: int = 100
+    annotate: bool = Field(default=False, hidden=True)
+    annotation_key: str = Field(default=None, hidden=True)
+
+    last_variation_coefficient: float | None = None
+
+    def add_to_annotation_list(self, value: float, node: Node):
+        self.annotate_node(
+            self.annotation_key, (self.get_node_annotation(self.annotation_key, node) or []) + [value], node
+        )
+
+    def calc_avg_value(self, node: Node):
+        self.annotate_node(self.annotation_key, mean(self.get_node_annotation(self.annotation_key, node)), node)
+
+    def apply_engine(
+        self,
+        doc: Document,
+        engine: MetricEngine,
+    ) -> float:
+        total_words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        filtered_nodes = self.get_applicable_nodes(doc)
+
+        wsize = min(self.window_size, len(filtered_nodes))
+
+        no_windows = int(total_words) - wsize + 1
+        measurements = []
+
+        for i in range(no_windows):
+            measurement = engine.compute(filtered_nodes[i : i + wsize])
+            measurements += [measurement]
+            if self.annotate:
+                for node in filtered_nodes[i : i + wsize]:
+                    self.add_to_annotation_list(measurement, node)
+
+        if self.annotate and total_words >= wsize:
+            for node in filtered_nodes:
+                self.calc_avg_value(node)
+
+        meas_mean = mean(measurements)
+        meas_sd = stdev(measurements) if len(measurements) > 1 else None
+
+        self.last_variation_coefficient = meas_sd / meas_mean if meas_sd else -1
+
+        return meas_mean
+
+
+class MetricEngine(Documentable):
+    '''
+    Base class for computation definitions of various metrics
+    '''
+
+    def compute(self, nodes: List[Node]) -> float:
+        raise NotImplementedError('This is an abstract definition')
+
+
+class EngineTTR(MetricEngine):
+    """
+    Type-token ratio. Measures the ratio of types (lemmas) to tokens.
+    """
+
+    cz_human_readable_name: str = 'TTR'
+    en_human_readable_name: str = 'TTR'
+    cz_doc: str = 'Type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
+    en_doc: str = 'Type-token ratio. Measures the ratio of types (lemmas) to tokens.'
+
+    use_lemma: bool = True
+
+    def compute(self, nodes):
+        counts = Metric.get_word_counts(nodes, use_lemma=self.use_lemma)
+        return len(counts) / len(nodes)
+
+
+class EngineEntropy(MetricEngine):
+    """
+    Measures the entropy of the text, considering either lemmas or word forms.
+    """
+
+    cz_human_readable_name: str = 'Entropie'
+    en_human_readable_name: str = 'Entropy'
+    cz_doc: str = 'Měří entropii textu, s ohledem na lemmata nebo slovní tvary.'
+    en_doc: str = 'Measures the entropy of the text, considering either lemmas or word forms.'
+
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def compute(self, nodes):
+        counts = Metric.get_word_counts(nodes, self.use_lemma).values()
+        n_words = sum(counts)
+        probs = map(lambda x: x / n_words, counts)
+        return -sum(prob * log2(prob) for prob in probs)
+
+
+class MetricSentenceCount(Metric):
+    """
+    A metric for counting sentences.
+    """
+
+    cz_human_readable_name: str = 'Počet vět'
+    en_human_readable_name: str = 'Sentence count'
+    cz_doc: str = 'Počet vět v textu.'
+    en_doc: str = 'The count of sentences in the text.'
+
+    metric_id: Literal['sent_count'] = 'sent_count'
+
+    def apply(self, doc: Document) -> float:
+        return len(doc.bundles)
+
+
+class MetricWordCount(MetricPunctExcluding):
+    """
+    A metric for counting words.
+    """
+
+    cz_human_readable_name: str = 'Počet slov'
+    en_human_readable_name: str = 'Word count'
+    cz_doc: str = 'Počet slov v textu.'
+    en_doc: str = 'The count of words in the text.'
+
+    metric_id: Literal['word_count'] = 'word_count'
+
+    def apply(self, doc: Document) -> float:
+        return len(self.get_applicable_nodes(doc))
+
+
+class MetricSyllableCount(MetricPunctExcluding):
+    """
+    A metric for counting syllables.
+    """
+
+    cz_human_readable_name: str = 'Počet slabik'
+    en_human_readable_name: str = 'Syllable count'
+    cz_doc: str = 'Počet slabik v textu.'
+    en_doc: str = 'The count of syllables in the text.'
+
+    metric_id: Literal['syllab_count'] = 'syllab_count'
+
+    def apply(self, doc: Document) -> float:
+        return sum(Metric.get_syllables_in_word(node.form) for node in self.get_applicable_nodes(doc))
+
+
+class MetricCharacterCount(MetricPunctExcluding):
+    """
+    A metric for counting characters.
+    """
+
+    cz_human_readable_name: str = 'Počet znaků'
+    en_human_readable_name: str = 'Character count'
+    cz_doc: str = 'Počet znaků v textu.'
+    en_doc: str = 'The count of characters in the text.'
+
+    metric_id: Literal['char_count'] = 'char_count'
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+
+    @staticmethod
+    def _no_of_spaces(node: Node) -> int:
+        res = 0 if 'SpaceAfter' in node.misc and node.misc['SpaceAfter'] == 'No' else 1
+
+        if 'SpacesBefore' in node.misc:
+            res += len(node.misc['SpacesBefore'].replace('\\r\\n', '\\n')) // 2
+        if 'SpacesAfter' in node.misc:
+            res += len(node.misc['SpacesAfter'].replace('\\r\\n', '\\n')) // 2
+
+        return res
+
+    def apply(self, doc: Document) -> float:
+        filtered_nodes = self.get_applicable_nodes(doc)
+        return sum(len(node.form) for node in filtered_nodes) + (
+            sum(self._no_of_spaces(n) for n in filtered_nodes) if self.count_spaces else 0
+        )
+
+
+class MetricCLI(MetricPunctExcluding):
+    """
+    Coleman–Liau index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    (coef_1 * (chars / words) * 100) - (coef_2 * (sents / words) * 100) - const_1
+
+    where chars is the number of characters in the text, wordgs is the number of words and
+    sents is the number of sentences.
+    """
+
+    cz_human_readable_name: str = 'CLI'
+    en_human_readable_name: str = 'CLI'
+    cz_doc: str = 'Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
+    en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
+    en_hint: str = 'Use fewer long words, and shorter sentences.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('cli')
+
+    metric_id: Literal['cli'] = 'cli'
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+
+    coef_1: float = 0.047
+    coef_2: float = 0.286
+    const_1: float = 12.9
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        chars = MetricCharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
+        return (self.coef_1 * (chars / words) * 100) - (self.coef_2 * (sents / words) * 100) - self.const_1
+
+
+class MetricARI(MetricPunctExcluding):
+    """
+    Automated readability index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * (chars / words) + coef_2 * (words / sents) - const_1
+
+    where chars is the number of characters in the text, words is the number of words and
+    sents is the number of sentences.
+    """
+
+    cz_human_readable_name: str = 'Automatizovaný index čitelnosti'
+    en_human_readable_name: str = 'Automated readability index'
+    cz_doc: str = (
+        'Automated readability index (ARI). Měří srozumitelnost textu v délce vzdělání nutného k porozumění textu (v letech).'
+    )
+    en_doc: str = 'ARI. Measures readability in years of education necessary for successful understanding.'
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('ari')
+
+    metric_id: Literal['ari'] = 'ari'
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+
+    coef_1: float = 3.666
+    coef_2: float = 0.631
+    const_1: float = 19.491
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        chars = MetricCharacterCount(count_spaces=self.count_spaces, filter_punct=self.filter_punct).apply(doc)
+        # Swapped coefficients compared to Bendová & Cinková (2021)
+        return self.coef_1 * (chars / words) + self.coef_2 * (words / sents) - self.const_1
+
+
+class MetricHapaxCount(MetricPunctExcluding):
+    """
+    The count of words that appear in the text only once.
+    """
+
+    cz_human_readable_name: str = 'Počet hapaxů'
+    en_human_readable_name: str = 'Hapax count'
+    cz_doc: str = 'Počet slov, která se v textu vyskytují pouze jednou.'
+    en_doc: str = 'The count of words that appear in the text only once.'
+
+    metric_id: Literal['num_hapax'] = 'num_hapax'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc: Document) -> float:
+        counts = list(self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values())
+        return counts.count(1)
+
+
+class MetricEntropy(MetricPunctExcluding):
+    """
+    Measures the entropy of the text, considering either lemmas or word forms.
+    """
+
+    cz_human_readable_name: str = 'Entropie'
+    en_human_readable_name: str = 'Entropy'
+    cz_doc: str = 'Měří entropii textu, s ohledem na lemmata nebo slovní tvary.'
+    en_doc: str = 'Measures the entropy of the text, considering either lemmas or word forms.'
+
+    metric_id: Literal['entropy'] = 'entropy'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc: Document) -> float:
+        return EngineEntropy(use_lemma=self.use_lemma).compute(self.get_applicable_nodes(doc))
+
+
+class MetricMovingAverageEntropy(MetricMovingAverageBase):
+    '''
+    Measures entropy over chunks of text of length window_size and averages them.
+    '''
+
+    cz_human_readable_name: str = 'Entropie - klouzavý průměr'
+    en_human_readable_name: str = 'Entropy - moving average'
+    cz_doc: str = 'Měří klouzavý průměr entropie v textu, s ohledem na lemmata nebo slovní tvary.'
+    en_doc: str = 'Measures the moving average of the text\'s entropy, considering either lemmas or word forms.'
+    cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
+    en_hint: str = 'Use less synonyms, if possible.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('maentropy')
+
+    metric_id: Literal['maentropy'] = 'maentropy'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc) -> float:
+        return self.apply_engine(doc, EngineEntropy(use_lemma=self.use_lemma))
+
+
+# FIXME: incredibly inefficient
+class MetricMovingAverageEntropyVariation(MetricMovingAverageBase):
+    '''
+    Measures entropy over chunks of text of length window_size and averages them.
+    '''
+
+    cz_human_readable_name: str = 'Entropie - klouzavý průměr - rozptyl'
+    en_human_readable_name: str = 'Entropy - moving average - variation'
+    cz_doc: str = 'Měří rozptyl klouzavého průměru entropie v textu, s ohledem na lemmata nebo slovní tvary.'
+    en_doc: str = (
+        'Measures the variance of the moving average of the text\'s entropy, considering either lemmas or word forms.'
+    )
+
+    metric_id: Literal['maentropy.v'] = 'maentropy.v'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc) -> float:
+        self.apply_engine(doc, EngineEntropy(use_lemma=self.use_lemma))
+        return self.last_variation_coefficient
+
+
+class MetricTTR(MetricPunctExcluding):
+    """
+    Type-token ratio. Measures the ratio of types (lemmas) to tokens.
+    """
+
+    cz_human_readable_name: str = 'TTR'
+    en_human_readable_name: str = 'TTR'
+    cz_doc: str = 'Type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
+    en_doc: str = 'Type-token ratio. Measures the ratio of types (lemmas) to tokens.'
+
+    metric_id: Literal['ttr'] = 'ttr'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc: Document) -> float:
+        return EngineTTR(use_lemma=self.use_lemma).compute(self.get_applicable_nodes(doc))
+
+
+class MetricMovingAverageTTR(MetricMovingAverageBase):
+    """
+    Measures Type-token ratio over chunks of text of length window_size and averages them.
+    """
+
+    cz_human_readable_name: str = 'TTR - klouzavý průměr'
+    en_human_readable_name: str = 'TTR - moving average'
+    cz_doc: str = 'Klouzavý průměr type-token ratio (MATTR). Měří poměr typů (lemmat) ku tokenům.'
+    en_doc: str = 'Moving average of type-token ratio (MATTR). Measures the ratio of types (lemmas) to tokens.'
+    cz_hint: str = 'Používejte méně synonym, pokud je to možné.'
+    en_hint: str = 'Use less synonyms, if possible.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('mattr')
+
+    metric_id: Literal['mattr'] = 'mattr'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+    window_size: int = 100
+
+    annotation_key: str = 'mattr'
+
+    def apply(self, doc: Document) -> float:
+        return self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
+
+
+# FIXME: really inefficient solution
+class MetricMovingAverageTTRVariation(MetricMovingAverageBase):
+    """
+    Measures Type-token ratio over chunks of text of length window_size and returns a variation coefficient.
+    """
+
+    cz_human_readable_name: str = 'TTR - klouzavý průměr - rozptyl'
+    en_human_readable_name: str = 'TTR - moving average - variation'
+    cz_doc: str = 'Rozptyl klouzavého průměru type-token ratio. Měří poměr typů (lemmat) ku tokenům.'
+    en_doc: str = 'Variation of the moving average of type-token ratio. Measures the ratio of types (lemmas) to tokens.'
+
+    metric_id: Literal['mattr.v'] = 'mattr.v'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+    window_size: int = 100
+
+    annotation_key: str = 'mattr.v'
+
+    def apply(self, doc: Document) -> float:
+        self.apply_engine(doc, EngineTTR(use_lemma=self.use_lemma))
+        return self.last_variation_coefficient
+
+
+class MetricVerbDistance(Metric):
+    """
+    Measures the average distance between verbs.
+    """
+
+    cz_human_readable_name: str = 'Vzdálenost sloves'
+    en_human_readable_name: str = 'Verb Distance'
+    cz_doc: str = 'Měří průměrnou vzdálenost mezi slovesy (ve slovech).'
+    en_doc: str = 'Measures the average distance between verbs.'
+    cz_hint: str = 'Používejte více sloves.'
+    en_hint: str = 'Use more verbs.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('verb_dist')
+
+    # MAYBE TODO: should we include punct here?
+    metric_id: Literal['verb_dist'] = 'verb_dist'
+    include_inf: bool = True
+
+    def _node_counts(self, node: Node) -> bool:
+        return node.upos == 'VERB' and (self.include_inf or rutil.is_finite_verb(node))
+
+    def apply(self, doc: Document) -> float:
+        nodes = list(doc.nodes)
+        verbs = [n for n in nodes if self._node_counts(n)]
+
+        if len(verbs) == 0:
+            return 0
+
+        first_verb_index = nodes.index(verbs[0])
+        last_verb_index = nodes.index(verbs[-1])
+        txtlen = last_verb_index - first_verb_index
+
+        return txtlen / max(1, len(verbs) - 1)
+
+
+class MetricActivity(Metric):
+    """
+    Measures the activity of the text, i.e. the ratio of (#verbs)/(#verbs + #adjectives).
+    """
+
+    cz_human_readable_name: str = 'Aktivita'
+    en_human_readable_name: str = 'Activity'
+    cz_doc: str = 'Míra aktivity textu (poměr sloves ku přídavným jménům a slovesům).'
+    en_doc: str = 'The degree of action of a text (ratio of verbs to adjectives and verbs).'
+    cz_hint: str = (
+        'Přídavná jména, která vyjadřují děj (např. "vyjadřující", "vyjadřovaný"), přepište do vět. '
+        + 'Vyvarujte se opisného trpného rodu.'
+    )
+    en_hint: str = (
+        'Rewrite adjectives expressing action (e.g. "vyjadřující", "vyjadřovaný") '
+        + 'into sentences ("který vyjadřuje"). Avoid passive voice.'
+    )
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('activity')
+
+    metric_id: Literal['activity'] = 'activity'
+
+    def apply(self, doc: Document) -> float:
+        nodes = list(doc.nodes)
+        return len(Metric.filter_nodes_on_upos(nodes, ['VERB'])) / max(
+            1, len(Metric.filter_nodes_on_upos(nodes, ['VERB', 'ADJ']))
+        )
+
+
+class MetricHPoint(MetricPunctExcluding):
+    """
+    Measures h-point, i.e. the frequency of the word that is equal to its rank. If no such word exists,
+    the h-point is computed using the following formula:
+
+    (fi * j - fj * i) / (j - i + fi - fj)
+
+    where i the rank of the last word with its frequency greater than its rank,
+    j is the rank of the following word, and fi, fj are frequencies of the words i and j.
+    """
+
+    cz_human_readable_name: str = 'h-point'
+    en_human_readable_name: str = 'h-point'
+    cz_doc: str = 'Postupný předěl mezi neplnovýznamovými a plnovýznamovými slovy, seřazenými sestupně podle frekvence.'
+    en_doc: str = 'A fuzzy boundary between function and content words, when sorted decreasingly by frequency.'
+
+    metric_id: Literal['hpoint'] = 'hpoint'
+    use_lemma: bool = Field(
+        default=True,
+        description="Boolean controlling whether lemma should be used instead of word form for the calculation.",
+    )
+
+    def apply(self, doc: Document) -> float:
+        counts = list(self.get_word_counts(self.get_applicable_nodes(doc), self.use_lemma).values())
+        counts.sort(reverse=True)
+        for i in range(len(counts)):
+            if i + 1 == counts[i]:
+                return counts[i]
+            if i + 1 > counts[i]:
+                j = i
+                i -= 1
+                fi = counts[i]
+                fj = counts[j]
+                return (fi * j - fj * i) / (j - i + fi - fj)
+        return 0
+
+
+class MetricAverageTokenLength(MetricPunctExcluding):
+    """
+    Measures the average length of tokens.
+    """
+
+    cz_human_readable_name: str = 'Průměrná délka tokenu'
+    en_human_readable_name: str = 'Average token length'
+    cz_doc: str = 'Průměrná dálka tokenu ve znacích.'
+    en_doc: str = 'Average token length in characters'
+
+    metric_id: Literal['atl'] = 'atl'
+
+    def apply(self, doc: Document) -> float:
+        total_tokens = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        total_chars = MetricCharacterCount(filter_punct=self.filter_punct, count_spaces=False).apply(doc)
+        return total_chars / total_tokens
+
+
+class MetricMovingAverageMorphologicalRichness(MetricMovingAverageBase):
+    """
+    Measures the difference between MATTR using word forms and MATTR using lemmas for the same window size.
+    """
+
+    cz_human_readable_name: str = 'Morfologická bohatost'
+    en_human_readable_name: str = 'Morphological richness'
+    cz_doc: str = 'Rozdíl mezi klouzavým průměrem TTR na slovních tvarech a klouzavého průměru TTR na lemmatech.'
+    en_doc: str = 'Difference between MATTR using word forms and MATTR using lemmas for the same window size.'
+
+    metric_id: Literal['mamr'] = 'mamr'
+
+    window_size: int = 100
+
+    annotation_key1: str = Field(default='mamr1', hidden=True)
+    annotation_key2: str = Field(default='mamr2', hidden=True)
+
+    def apply(self, doc: Document) -> float:
+        return MetricMovingAverageTTR(
+            use_lemma=False,
+            filter_punct=self.filter_punct,
+            window_size=self.window_size,
+            annotate=self.annotate,
+            annotation_key=self.annotation_key1,
+        ).apply(doc) - MetricMovingAverageTTR(
+            use_lemma=True,
+            filter_punct=self.filter_punct,
+            window_size=self.window_size,
+            annotate=self.annotate,
+            annotation_key=self.annotation_key2,
+        ).apply(
+            doc
+        )
+
+
+class MetricFleschReadingEase(MetricPunctExcluding):
+    """
+    Flesch reading ease index. Measures the difficulty of reading and comprehending the test on a scale from 0 to 100,
+    with 100 being the easiest to understand and 0 being the hardest.
+
+    The index is calculated according to this formula:
+
+    const_1 - coef_1 * (words / sents) - coef_2 * (syllabs / words)
+
+    where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
+    syllables
+    """
+
+    cz_human_readable_name: str = 'FRE'
+    en_human_readable_name: str = 'FRE'
+    cz_doc: str = (
+        'Fleshova snadnost čtení. Měří náročnost přečtení a pochopení textu na škále od 0 do 100, kde 100 je nejjednodušší a 0 je nejtěžší.'
+    )
+    en_doc: str = (
+        'Flesch reading ease index. Measures the difficulty of reading and comprehending the test on a scale from 0 to 100.'
+    )
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí.'
+    en_hint: str = 'Use fewer long words, and shorter sentences.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('fre')
+
+    metric_id: Literal['fre'] = 'fre'
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+
+    coef_1: float = 1.672
+    coef_2: float = 62.18
+    const_1: float = 206.935
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        syllabs = MetricSyllableCount(filter_punct=self.filter_punct).apply(doc)
+        return self.const_1 - self.coef_1 * (words / sents) - self.coef_2 * (syllabs / words)
+
+
+class MetricFleschKincaidGradeLevel(MetricPunctExcluding):
+    """
+    Flesch-Kincaid grade level index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * (words / se'nts) + coef_2 * (syllabs / words) - const_1
+
+    where words is the number of words in the text, sents is the number of sentences and syllabs is the number of
+    syllables
+    """
+
+    cz_human_readable_name: str = 'FKGL'
+    en_human_readable_name: str = 'FKGL'
+    cz_doc: str = (
+        'Fleshova-Kincaidova stupnice vzdělání. Měří čitelnost textu v letech vzdělání nutných k pochopení textu.'
+    )
+    en_doc: str = (
+        'Flesch-Kincaid grade level index. Measures readability in years of education necessary for successful understanding.'
+    )
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('fkgl')
+
+    metric_id: Literal['fkgl'] = 'fkgl'
+    count_spaces: bool = Field(default=False, description="Boolean controlling whether to include spaces in the count.")
+
+    coef_1: float = 0.52
+    coef_2: float = 9.133
+    const_1: float = 16.393
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        syllabs = MetricSyllableCount(filter_punct=self.filter_punct).apply(doc)
+        return self.coef_1 * (words / sents) + self.coef_2 * (syllabs / words) - self.const_1
+
+
+class PolysyllabicMetric(MetricPunctExcluding):
+    """
+    A base class for metrics utilizing a threshold of syllabic length.
+    """
+
+    syllab_threshold: int = 3
+
+    def _is_word_complex(self, word: str):
+        return Metric.get_syllables_in_word(word) > self.syllab_threshold
+
+
+class MetricGunningFog(PolysyllabicMetric):
+    """
+    Gunning fog index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * ((words/sents) + coef_2 * (complex_words/words))
+
+    where words is the number of words in the text, sents is the number of sentences and complex_words is the number of
+    words longer than the syllabic threshold.
+    """
+
+    cz_human_readable_name: str = 'Gunningův FOG index'
+    en_human_readable_name: str = 'Gunning FOG index'
+    cz_doc: str = 'Měří čitelnost textu v letech vzdělání nutných k pochopení textu.'
+    en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('gf')
+
+    metric_id: Literal['gf'] = 'gf'
+
+    coef_1: float = 0.4
+    coef_2: float = 100
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        words = MetricWordCount(filter_punct=self.filter_punct).apply(doc)
+        complex_words = len([node for node in doc.nodes if self._is_word_complex(node.form)])
+        return self.coef_1 * ((words / sents) + self.coef_2 * (complex_words / words))
+
+
+# Modified version of SMOG, correcting for the varying no. of sentences. We do not rely on sampling
+class MetricSMOG(PolysyllabicMetric):
+    """
+    SMOG index. Measures readability in years of education necessary for successful understanding.
+
+    The index is calculated according to this formula:
+
+    coef_1 * sqrt(complex_words * 90) / sents + const_1
+
+    where words is the number of words in the text, sents is the number of sentences and complex_words is the number of
+    words longer than the syllabic threshold.
+
+    The formula for this metric is modified, as the original relied on random sampling from the text.
+    """
+
+    cz_human_readable_name: str = 'SMOG index'
+    en_human_readable_name: str = 'SMOG index'
+    cz_doc: str = 'Měří čitelnost textu v letech vzdělání nutných k pochopení textu.'
+    en_doc: str = 'Measures readability in years of education necessary for successful understanding.'
+    cz_hint: str = 'Používejte méně dlouhých slov a kratší věty/souvětí. Pište uvolněněji, méně technicky.'
+    en_hint: str = 'Use fewer long words, and shorter sentences. Make your writing more relaxed and less technical.'
+    intervals: dict[str, tuple[float, float]] = intervs.get_all_intervals('smog')
+
+    metric_id: Literal['smog'] = 'smog'
+    coef_1: float = 1.043
+    const_1: float = 3.1291
+
+    def apply(self, doc: Document) -> float:
+        sents = MetricSentenceCount().apply(doc)
+        complex_words = len([node for node in self.get_applicable_nodes(doc) if self._is_word_complex(node.form)])
+        return self.coef_1 * sqrt(complex_words * (30 / sents)) + self.const_1
+
+
+# class MetricAvgPredSubDist(Metric):
+#     metric_id: Literal['avg_pred_sub'] = 'avg_pred_sub'
+#     include_clausal_subjects: bool = False
+#
+#     # YUCK
+#     def _get_pred_subj_dist(self, tree):
+#         import util
+#         for node in tree.descendants:
+#             if node.udeprel == 'nsubj' or (self.include_clausal_subjects and node.udeprel == 'csubj'):
+#                 # locate predicate
+#                 pred = node.parent
+#
+#                 # if the predicate is analytic, select the (non-conditional) auxiliary or the copula
+#                 if finite_verbs := [
+#                     nd for nd in pred.children if nd.udeprel == 'cop' or (nd.udeprel == 'aux' and nd.feats['Mood'] != 'Cnd')
+#                 ]:
+#                     pred = finite_verbs[0]
+#
+#                 # locate subject
+#                 subj = node
+#                 if node.udeprel == 'csubj':
+#                     clause = util.get_clause(node, without_subordinates=True, without_punctuation=True, node_is_root=True)
+#                     if node.ord < pred.ord:
+#                         subj = clause[-1]
+#                     else:
+#                         subj = clause[0]
+#
+#                 return abs(subj.ord - pred.ord)
+#         return None
+#
+#     def apply(self, doc: Document) -> float:
+#         total_sents = len(doc.bundles)
+#         total_dist = 0
+#         for bundle in doc.bundles:
+#             if not 0 < len(bundle.trees) < 2:
+#                 raise ValueError('Too many trees in a bundle :(')
+#             tree = bundle.trees[0]
+#             dist = self._get_pred_subj_dist(tree)
+#             if dist:
+#                 total_dist += dist
+#             else:
+#                 ... # really dont know what should happen if this is the case
+#         return total_dist / total_sents
+
+
+class MetricsWrapper(BaseModel):
+    metric: Union[*Metric.get_final_children()] = Field(..., discriminator='metric_id')
+
+
+class DocMetricHandler:
+    def __init__(self, doc: Document):
+        self.doc = doc

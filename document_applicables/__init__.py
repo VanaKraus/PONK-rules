@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from typing import Type
+from udapi.core.node import Node
 
 
-class StringBuildable(BaseModel):
+class Documentable(BaseModel):
     class Config:
         # this is black magick
         @staticmethod
@@ -14,40 +15,23 @@ class StringBuildable(BaseModel):
             schema["properties"] = props
 
     @classmethod
-    def get_direct_children(cls) -> dict[str, type]:
-        return {sub.id(): sub for sub in cls.__subclasses__()}
-
-    @classmethod
-    def get_final_children(cls) -> list[Type['StringBuildable']]:
+    def get_final_children(cls) -> list[Type['Documentable']]:
         children = cls.__subclasses__()
+        final_children = []
         for child in children:
             if child.__subclasses__():
-                children.remove(child)
                 children += child.__subclasses__()
-        return children
+            else:
+                final_children.append(child)
+        print([child.__name__ for child in final_children])
+        return final_children
 
+    def annotate_node(self, key: str, annotation, *node: Node):
+        for nd in node:
+            nd.misc[key] = annotation
 
-# might NOT be needed after all
-    @classmethod
-    def build_from_string(cls, string: str):
-        child_id, args = string.split(':')[0], string.split(':')[1:]
-        args = {arg.split('=')[0]: arg.split('=')[1] for arg in args}
-        return cls.get_direct_children()[child_id](**args)
-
-    @staticmethod
-    def parse_string_args(**decorator_kwargs):
-        kwargs_transform = {value: (lambda x: x == 'True' if typ == bool else typ)
-                            for value, typ in decorator_kwargs.items()}
-
-        def decorate(f):
-            def wrapper(*args, **kwargs):
-                # modified_kwargs = {
-                #     key: (kwargs_transform[key](item) if item.__class__ != decorator_kwargs[key] else item)
-                #     for key, item in kwargs.items()}
-                # return f(*args, **modified_kwargs)
-                return f(*args, **kwargs)
-            return wrapper
-        return decorate
+    def get_node_annotation(self, key: str, node: Node):
+        return node.misc.get(key)
 
     @classmethod
     def generate_doc_html(cls):
@@ -55,10 +39,14 @@ class StringBuildable(BaseModel):
         html += f'<button id={cls.__name__}-button>Show</button>'
         html += f'<div id={cls.__name__} style="display:none">'
         for child in cls.get_final_children():
+            docstring = child.__doc__
+
+            if not docstring:
+                continue
+
             html += f'<h2>{child.__name__}</h2>'
             html += f'<button id={child.__name__}-button>Show</button>'
 
-            docstring = child.__doc__
             attrs = None
             if 'Attributes:' in docstring:
                 import re
